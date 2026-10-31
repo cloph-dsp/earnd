@@ -14,4 +14,5 @@ internal object WidgetColors {
     val locked = accent
     val bedtime = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF1D1B18))
     val onBedtime = onSurface
+    val tile = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF1D1B18))
 }

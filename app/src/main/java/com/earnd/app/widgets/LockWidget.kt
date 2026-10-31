@@ -25,6 +25,10 @@ import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.ColorFilter
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.layout.size
 import com.earnd.app.R
 
 /** 1x1 widget: locked / open / bedtime with remaining minutes; tap toggles. */
@@ -40,22 +44,37 @@ class LockWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content(context: Context, state: LockState) {
-        val (bg, label) = when (state.mode) {
-            LockState.Mode.UNLOCKED -> WidgetColors.primary to R.string.widgets_lock_open
-            LockState.Mode.LOCKED -> WidgetColors.locked to R.string.widgets_lock_locked
-            LockState.Mode.BEDTIME -> WidgetColors.bedtime to R.string.widgets_lock_bedtime
+        // Graphite tile; the state lives in the icon tint and the big number, not a loud fill.
+        val (icon, tint, label) = when (state.mode) {
+            LockState.Mode.UNLOCKED -> Triple(R.drawable.widgets_ic_unlock, WidgetColors.primary, R.string.widgets_lock_open)
+            LockState.Mode.LOCKED -> Triple(R.drawable.widgets_ic_lock, WidgetColors.locked, R.string.widgets_lock_locked)
+            LockState.Mode.BEDTIME -> Triple(R.drawable.widgets_ic_moon, WidgetColors.muted, R.string.widgets_lock_bedtime)
         }
-        val fg = if (state.mode == LockState.Mode.BEDTIME) WidgetColors.onBedtime else WidgetColors.onPrimary
+        // Unlocked: minutes left in the session. Locked: banked minutes, amber when there is something to spend.
+        val minutesColor = when {
+            state.mode == LockState.Mode.UNLOCKED -> WidgetColors.primary
+            state.minutes > 0 -> WidgetColors.primary
+            else -> WidgetColors.muted
+        }
         Column(
-            modifier = GlanceModifier.fillMaxSize().cornerRadius(4.dp).background(bg).padding(6.dp)
-                .clickable(actionRunCallback<LockToggleAction>()),
+            modifier = GlanceModifier.fillMaxSize().cornerRadius(16.dp).background(WidgetColors.tile)
+                .padding(4.dp).clickable(actionRunCallback<LockToggleAction>()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(context.getString(label), style = TextStyle(color = fg, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+            Image(
+                provider = ImageProvider(icon),
+                contentDescription = context.getString(label),
+                colorFilter = ColorFilter.tint(tint),
+                modifier = GlanceModifier.size(20.dp),
+            )
             Text(
-                context.getString(R.string.widgets_minutes_short, state.minutes),
-                style = TextStyle(color = fg, fontSize = 16.sp, fontWeight = FontWeight.Medium, fontFamily = FontFamily.Monospace),
+                context.getString(R.string.widgets_minutes_compact, state.minutes),
+                style = TextStyle(color = minutesColor, fontSize = 17.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
+            )
+            Text(
+                context.getString(label).uppercase(),
+                style = TextStyle(color = WidgetColors.muted, fontSize = 9.sp, fontWeight = FontWeight.Medium),
             )
         }
     }
