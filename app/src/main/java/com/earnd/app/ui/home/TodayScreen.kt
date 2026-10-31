@@ -1,5 +1,6 @@
 package com.earnd.app.ui.home
 
+import com.earnd.app.data.entity.ListDensity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -92,7 +93,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val currentSeg = if (settings.segmentMode) Segments.current(minuteNow, settings) else null
 
     val allDone = habits.isNotEmpty() && habits.all(doneOf)
-    val bank = BankState(balance?.minutes ?: 0, session, settings.hardMode, allDone, settings.allDoneUnlock)
+    val bank = BankState(balance?.minutes ?: 0, session, settings.hardMode, allDone = allDone, allDoneUnlock = settings.allDoneUnlock, unlockCapMin = settings.unlockCapMin)
     val inBedtime = TimeBank.bedtimeWindow(settings)?.contains(System.currentTimeMillis(), sl.clock.zone()) == true
 
     val nags by remember { sl.db.nagStateDao().observeAll() }.collectAsState(initial = emptyList())
@@ -249,8 +250,9 @@ fun refuseText(reason: String): String = when (reason) {
 private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, todays: List<CheckInEntity>, settings: Settings, ignored: Int, onOpen: () -> Unit, onCheck: () -> Unit, onUndo: (CheckInEntity) -> Unit) {
     val h = hd.habit
     val p = Earnd.palette
+    val compact = settings.listDensity == ListDensity.COMPACT
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onOpen),
+        Modifier.fillMaxWidth().heightIn(min = if (compact) 48.dp else 60.dp).clickable(onClick = onOpen),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(
@@ -259,10 +261,10 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             reward = true,
             modifier = Modifier.offset(x = (-17).dp),
         )
-        Column(Modifier.weight(1f).offset(x = (-17).dp).padding(vertical = 6.dp)) {
+        Column(Modifier.weight(1f).offset(x = (-17).dp).padding(vertical = if (compact) 2.dp else 10.dp)) {
             Text(
                 h.name,
-                style = MaterialTheme.typography.bodyLarge,
+                style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
                 color = if (complete) p.done else p.text,
                 textDecoration = if (complete) TextDecoration.LineThrough else null,
             )
