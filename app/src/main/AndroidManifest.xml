@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Merged from the feature fragments in /manifest (alarms, blocking, photo, remote, ui, widgets). -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Lets Earnd appear in Settings > Usage access (screen-time report). Granted by the user there. -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
