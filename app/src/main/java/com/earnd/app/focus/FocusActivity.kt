@@ -166,7 +166,7 @@ private fun FocusScreen(
         Spacer(Modifier.weight(1f))
         if (!done) {
             Text(
-                "Other apps wait until the timer ends. Calls, messages and maps still work.",
+                "Other apps wait until the timer ends. Phone calls, SMS and maps still work; internet calls (e.g. WhatsApp) only if that app is always-open.",
                 style = MaterialTheme.typography.bodySmall, color = p.muted, textAlign = TextAlign.Center,
             )
             TextButton(onClick = { onKeepOn(!keepOn) }) {
