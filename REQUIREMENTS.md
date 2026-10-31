@@ -117,3 +117,10 @@ Described in our own words; design independently.
 - Restricted-settings guidance: on Android 13+, sideloaded apps must "Allow restricted settings" in App
   info before the accessibility service can be enabled; onboarding must explain this with a button to
   App info.
+- Unlock window: optional cap on each unlock session (off, 15–45 min in 5-min steps); unused earned
+  minutes stay in the balance for the next session.
+- Removal friction ("puzzle lock"): optional challenge before removing a blocked app/website or
+  weakening blocking — none / solve a short arithmetic problem / type out a displayed sentence exactly.
+- Backup: export all data to a JSON file (Storage Access Framework) and import it back; "clear all data"
+  with confirmation.
+- Habit list density option: compact or comfortable rows.
