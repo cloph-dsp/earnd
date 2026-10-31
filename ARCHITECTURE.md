@@ -309,3 +309,33 @@ them into the base manifest. Never add `INTERNET`. Remote access is protected by
 - Small files, one public type per file; Compose screens take state + lambdas, ViewModels via `viewModel { }` factories reading `ServiceLocator`.
 - All DB writes go through domain services so the ledger and ChangeBus stay consistent.
 - Copy is calm and non-gamified ("You have 25 minutes saved"), never shaming.
+
+## 7. Implementation notes (data + domain, as built)
+
+Additions to the contracts above (no renames):
+- Enums use Room's built-in by-name enum mapping; there is no `Converters` class. Schemas in `app/schemas` are committed.
+- Extra DAO members: `HabitDao.active()`, `CheckInDao.forDay()`, `TaskDao.subtasks()/open()/nextOpenInSeries()`,
+  `AlarmConfigDao.all()`, `NagStateDao.get()`, `LedgerDao.observeRecent()`, `SessionDao.lastWithReason()`,
+  `SettingDao.all()/delete()`. `SessionDao.active()` returns the un-ended session even if past `plannedEndAt`;
+  use `TimeBank.activeSession(now)` for an expiry-aware read.
+- `SessionReason` constants (`data.entity`): `SPEND`, `ALL_DONE`, `BEDTIME_GRACE`.
+- `Settings` is in `data/Settings.kt` and has `onVacation(epochDay)`. `SettingsRepository(dao, clock = SystemTimeClock, bus = null)`
+  also has `pendingWeakeningAt()`, `cancelPendingWeakening()`, `applyDueWeakening(now)` (also run by `current()`),
+  and `rawGet/rawPut` for internal values. The queued weakening is stored durably under `pending.*` keys.
+- `domain.Clock` with `SystemTimeClock` and extensions `today()`, `localDate(at)`, `startOfDay(day)`, `minuteOfDay(at)`.
+- Pure helpers: `Periods`, `DailyWindow` (wrapping minute-of-day window for bedtime and quiet hours), `HabitSchedule`
+  (`isScheduled`, `streak`), `Recurrence`, `BlockRules` (`decide(BlockFacts)`, `isLeisure`, `isUserAllowed`), `alarms.NagSchedule`.
+- `TimeBank` adds `startAllDoneUnlock()`, `startBedtimeGrace()` (one per bedtime night), `activeSession(now)`,
+  `periodKey(settings, now)`, `TimeBank.bedtimeWindow(settings)`, and `RefuseReason` constants. A spend session ended
+  early refunds the unused whole minutes (ADJUST) when still in the same period.
+- `HabitService(..., settings: SettingsRepository? = null)`; `undoCheckIn` returns the photo path so the caller can delete
+  the file. It also adds `history()` and `archive()`, and `HabitDay.complete`. Check-ins beyond `timesPerDay` earn 0.
+- `TaskService` adds `observeSubtasks`, `get` and `TaskService.bucketOf(task, todayEpochDay)`. Completing a recurring
+  task spawns the next occurrence after max(due, today), with copies of its subtasks. `uncomplete` deletes that occurrence.
+- `BlockPolicy(..., clock: Clock = SystemTimeClock)`. Packages the user marks `ALLOWED` count as essential.
+  `blocking.EssentialApps` is an interface; `CoreEssentials` lists fixed packages, and `SystemEssentialApps(context)`
+  resolves the default dialer, SMS app, HOME launcher, geo handler and DIAL handler (`refresh()` after package changes).
+  The blocking manifest fragment must declare `<queries>` for the HOME, `geo:` and DIAL intents.
+- `NagEngine(..., labels: suspend (OwnerKind, Long) -> String)` adds `snooze(kind, id, now)` (10 min, capped by
+  `snoozeMaxCount`) and `earliestNagAt()`. Progressive gaps are the intervals between successive nags. Items more than
+  7 days overdue share one daily digest slot at quiet-hours end.
