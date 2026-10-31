@@ -1,0 +1,93 @@
+package com.earnd.app.alarms
+
+import android.app.Notification
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import com.earnd.app.R
+import com.earnd.app.ServiceLocator
+import com.earnd.app.alarms.AlarmKeys.putOwner
+
+/**
+ * The single consolidated "pending" notification. Replaced in place (one id), removed when
+ * nothing is pending. Each item gets its own "Done: X" action; there is deliberately no snooze.
+ */
+class PendingNotifier(private val context: Context) {
+
+    suspend fun refresh(alert: Boolean) {
+        val now = ServiceLocator.clock.now()
+        val items = ServiceLocator.nagEngine.pending(now)
+        val nm = context.getSystemService(NotificationManager::class.java)
+        if (items.isEmpty()) {
+            nm.cancel(AlarmKeys.NOTIF_PENDING)
+            return
+        }
+        val states = ServiceLocator.db.nagStateDao().all()
+        val digest = states.isNotEmpty() && states.filter { it.dueAt <= now }.all { NagSchedule.isDigest(it, now) }
+        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest))
+    }
+
+    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean): Notification {
+        AlarmChannels.ensure(context)
+        val res = context.resources
+        val title = if (digest) res.getQuantityString(R.plurals.alarms_digest_title, items.size, items.size)
+        else res.getQuantityString(R.plurals.alarms_pending_title, items.size, items.size)
+        val header = items.joinToString(" · ") { shortLabel(it) }
+        val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title).setSummaryText(header)
+        items.take(MAX_LINES).forEach { inbox.addLine(line(it)) }
+        if (items.size > MAX_LINES) inbox.addLine(context.getString(R.string.alarms_more, items.size - MAX_LINES))
+
+        val builder = NotificationCompat.Builder(context, if (alert) AlarmChannels.PENDING else AlarmChannels.PENDING_QUIET)
+            .setSmallIcon(R.drawable.alarms_ic_notification)
+            .setColor(context.getColor(R.color.alarms_accent))
+            .setContentTitle(title)
+            .setContentText(header)
+            .setStyle(inbox)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setPriority(if (alert) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_LOW)
+            .setOnlyAlertOnce(!alert)
+            .setSilent(!alert)
+            .setOngoing(false)
+            .setAutoCancel(false)
+            .setShowWhen(true)
+            .setNumber(items.sumOf { it.nagCount })
+        openAppIntent()?.let { builder.setContentIntent(it) }
+        // Android shows up to three actions; items are already ordered most-ignored first.
+        items.take(MAX_ACTIONS).forEach { item ->
+            builder.addAction(0, context.getString(R.string.alarms_done_action, ellipsize(item.label, 22)), doneIntent(item))
+        }
+        return builder.build()
+    }
+
+    private fun line(it: PendingItem): String =
+        if (it.nagCount == 0) it.label
+        else context.resources.getQuantityString(R.plurals.alarms_line_nagged, it.nagCount, it.label, it.nagCount)
+
+    private fun shortLabel(it: PendingItem): String {
+        val short = ellipsize(it.label.substringBefore(' ').ifBlank { it.label }, 12)
+        return if (it.nagCount > 0) "$short ×${it.nagCount}" else short
+    }
+
+    private fun doneIntent(item: PendingItem): PendingIntent {
+        val intent = Intent(context, DoneActionReceiver::class.java).setAction(AlarmKeys.ACTION_DONE)
+            .setData(AlarmKeys.uri(item.ownerKind, item.ownerId, "done"))
+            .putOwner(item.ownerKind, item.ownerId)
+        return PendingIntent.getBroadcast(context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    private fun openAppIntent(): PendingIntent? =
+        context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
+            PendingIntent.getActivity(context, 3, it, PendingIntent.FLAG_IMMUTABLE)
+        }
+
+    companion object {
+        const val MAX_ACTIONS = 3
+        const val MAX_LINES = 7
+
+        internal fun ellipsize(s: String, max: Int): String =
+            if (s.length <= max) s else s.take(max - 1).trimEnd() + "…"
+    }
+}

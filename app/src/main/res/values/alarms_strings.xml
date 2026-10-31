@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarms_channel_pending">Waiting for you</string>
+    <string name="alarms_channel_pending_desc">One gentle summary of what is still open, updated in place.</string>
+    <string name="alarms_channel_quiet">Waiting for you (quiet updates)</string>
+    <string name="alarms_channel_upcoming">Coming up</string>
+    <string name="alarms_channel_ring">Alarms</string>
+    <string name="alarms_channel_ring_desc">Full-screen alarms that keep ringing until you respond.</string>
+
+    <plurals name="alarms_pending_title">
+        <item quantity="one">%d thing is waiting</item>
+        <item quantity="other">%d things are waiting</item>
+    </plurals>
+    <plurals name="alarms_digest_title">
+        <item quantity="one">Daily check-in: %d older item</item>
+        <item quantity="other">Daily check-in: %d older items</item>
+    </plurals>
+    <plurals name="alarms_line_nagged">
+        <item quantity="one">%1$s · reminded %2$d time</item>
+        <item quantity="other">%1$s · reminded %2$d times</item>
+    </plurals>
+    <string name="alarms_more">+%d more in the app</string>
+    <string name="alarms_done_action">Done: %s</string>
+    <string name="alarms_upcoming_text">Coming up at %s</string>
+
+    <string name="alarms_ring_kicker">It is time for</string>
+    <string name="alarms_ring_fallback">Your reminder</string>
+    <string name="alarms_ring_text">Tap to open, or mark it done.</string>
+    <string name="alarms_ring_done">Done</string>
+    <plurals name="alarms_ring_snooze">
+        <item quantity="one">Snooze %1$d min (%2$d left)</item>
+        <item quantity="other">Snooze %1$d min (%2$d left)</item>
+    </plurals>
+    <string name="alarms_ring_no_snooze">No snoozes left for this one. You have got this.</string>
+</resources>
