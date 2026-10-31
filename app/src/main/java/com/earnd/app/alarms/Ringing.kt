@@ -45,6 +45,13 @@ internal object Ringing {
             .build()
     }
 
+    /** Minimal notification for a service start that turns out to have nothing to ring. */
+    fun placeholder(context: Context): android.app.Notification =
+        NotificationCompat.Builder(context, AlarmChannels.RING)
+            .setSmallIcon(R.drawable.alarms_ic_notification)
+            .setContentText(context.getString(R.string.alarms_ring_text))
+            .build()
+
     @Suppress("UNUSED_PARAMETER")
     fun dismiss(context: Context, kind: OwnerKind, id: Long) {
         AlarmRingService.stop(context)

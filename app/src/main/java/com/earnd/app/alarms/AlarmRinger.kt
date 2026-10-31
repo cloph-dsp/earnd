@@ -18,11 +18,23 @@ internal object AlarmRinger {
     @Synchronized
     fun start(context: Context, soundUri: String?, vibrate: Boolean) {
         stop()
-        val uri = soundUri?.let(Uri::parse)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        player = runCatching {
-            MediaPlayer().apply {
+        // A custom sound may be gone (file deleted, permission lost): fall back to defaults.
+        player = listOfNotNull(
+            soundUri?.let(Uri::parse),
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+        ).firstNotNullOfOrNull { tryPlay(context, it) }
+        if (vibrate) {
+            vibrator = vibratorOf(context).also {
+                it.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 500), 0))
+            }
+        }
+    }
+
+    private fun tryPlay(context: Context, uri: Uri): MediaPlayer? {
+        val mp = MediaPlayer()
+        return runCatching {
+            mp.apply {
                 setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
                 setDataSource(context, uri)
@@ -30,12 +42,7 @@ internal object AlarmRinger {
                 prepare()
                 start()
             }
-        }.getOrNull()
-        if (vibrate) {
-            vibrator = vibratorOf(context).also {
-                it.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 500), 0))
-            }
-        }
+        }.onFailure { mp.release() }.getOrNull()
     }
 
     @Synchronized

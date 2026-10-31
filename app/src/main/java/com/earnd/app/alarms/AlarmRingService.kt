@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Foreground service that keeps a full-screen alarm ringing: looped alarm-stream audio and
@@ -30,6 +31,9 @@ class AlarmRingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val owner = intent?.let(AlarmKeys::ownerOf)
         if (owner == null) {
+            // Started via startForegroundService: must call startForeground before stopping.
+            startForeground(AlarmKeys.NOTIF_RING, Ringing.placeholder(this), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -41,7 +45,8 @@ class AlarmRingService : Service() {
         acquireWakeLock()
         scope.launch {
             val cfg = runCatching { ServiceLocator.db.alarmConfigDao().get(owner.first, owner.second) }.getOrNull()
-            AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, cfg?.vibrate ?: true)
+            // prepare() on a content URI can block: keep it off the main thread.
+            withContext(Dispatchers.IO) { AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, cfg?.vibrate ?: true) }
         }
         return START_NOT_STICKY
     }
