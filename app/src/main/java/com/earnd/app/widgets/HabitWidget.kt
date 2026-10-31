@@ -6,12 +6,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
@@ -20,6 +22,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.LinearProgressIndicator
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -45,9 +48,11 @@ import androidx.glance.unit.ColorProvider
 import com.earnd.app.R
 import com.earnd.app.ServiceLocator
 
-/** 1x1 widget: one chosen habit's progress today; tap to check in. */
+/** Resizable habit widget (1x1 default): one chosen habit's progress today; tap to check in. */
 class HabitWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(SMALL, TALL, WIDE, LARGE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
@@ -90,31 +95,47 @@ class HabitWidget : GlanceAppWidget() {
                 actionParametersOf(HabitCheckInAction.HABIT_ID to state.id),
             )
         }
+        val size = LocalSize.current
+        val wide = size.width >= WIDE.width
+        val tall = size.height >= TALL.height
+        // Scale text with the bucket; the name gets up to 3 lines when there is room.
+        val countSp = when { wide && tall -> 28; wide || tall -> 22; else -> 18 }
+        val nameLen = state.name.length
+        val nameSp = when {
+            wide && tall -> 15
+            wide || tall -> if (nameLen > 24) 12 else 13
+            nameLen > 18 -> 9
+            nameLen > 10 -> 10
+            else -> 11
+        }
+        val nameLines = if (tall) 3 else 2
         Column(
             modifier = base.background(if (state.complete) habitColor else WidgetColors.surface)
-                .padding(6.dp).clickable(tap),
+                .padding(if (wide || tall) 8.dp else 4.dp).clickable(tap),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val fg = if (state.complete) WidgetColors.onPrimary else WidgetColors.onSurface
             Text(
                 if (state.complete) "✓" else "${state.done}/${state.required}",
+                maxLines = 1,
                 style = TextStyle(
                     color = if (state.complete) fg else habitColor,
-                    fontSize = 20.sp,
+                    fontSize = countSp.sp,
                     fontWeight = FontWeight.Bold,
                 ),
             )
             Text(
-                WidgetHabit.shortName(state.name),
-                maxLines = 1,
-                style = TextStyle(color = fg, fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
+                state.name,
+                maxLines = nameLines,
+                modifier = GlanceModifier.fillMaxWidth(),
+                style = TextStyle(color = fg, fontSize = nameSp.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
             )
             if (!state.complete) {
-                Spacer(GlanceModifier.height(4.dp))
+                Spacer(GlanceModifier.height(if (wide || tall) 6.dp else 3.dp))
                 LinearProgressIndicator(
                     progress = state.done.toFloat() / state.required.coerceAtLeast(1),
-                    modifier = GlanceModifier.fillMaxWidth().height(3.dp),
+                    modifier = GlanceModifier.fillMaxWidth().height(if (wide || tall) 4.dp else 3.dp),
                     color = habitColor,
                     backgroundColor = WidgetColors.muted,
                 )
@@ -124,6 +145,10 @@ class HabitWidget : GlanceAppWidget() {
 
     companion object {
         val HABIT_ID = longPreferencesKey("widgets_habit_id")
+        private val SMALL = DpSize(57.dp, 57.dp)
+        private val TALL = DpSize(57.dp, 110.dp)
+        private val WIDE = DpSize(110.dp, 57.dp)
+        private val LARGE = DpSize(110.dp, 110.dp)
     }
 }
 
