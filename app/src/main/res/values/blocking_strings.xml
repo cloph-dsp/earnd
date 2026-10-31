@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="blocking_service_label">Earnd focus guard</string>
+    <string name="blocking_service_description">Earnd uses this to notice when you open an app or website you marked as leisure, and shows a calm reminder screen when you have no time saved. It reads only the app name and the browser address bar. Nothing leaves your phone.</string>
+    <string name="blocking_title">%1$s is resting for now</string>
+    <string name="blocking_title_bedtime">It\'s bedtime, so %1$s is resting</string>
+    <string name="blocking_bedtime_until">Back at %1$s. Sleep well.</string>
+    <plurals name="blocking_balance">
+        <item quantity="one">You have %d minute saved</item>
+        <item quantity="other">You have %d minutes saved</item>
+    </plurals>
+    <string name="blocking_use_time">Use some saved time</string>
+    <string name="blocking_minutes_short">%d min</string>
+    <string name="blocking_plus_minutes">+%d min</string>
+    <string name="blocking_earn_title">Ways to earn time</string>
+    <string name="blocking_nothing_to_earn">Nothing left to earn today. Maybe a good moment for a break.</string>
+    <string name="blocking_habit_progress">%1$d of %2$d today</string>
+    <string name="blocking_task_today">Task for today</string>
+    <string name="blocking_task_overdue">Task, a little overdue</string>
+    <string name="blocking_check_in">Check in</string>
+    <string name="blocking_go_home">Go to home screen</string>
+    <string name="blocking_grace">I need a couple of minutes</string>
+    <string name="blocking_hard_mode_note">Hard mode is on: leisure apps open once today\'s habits are done.</string>
+    <string name="blocking_not_enough">Not quite enough time saved for that.</string>
+    <string name="blocking_grace_used">You\'ve already used tonight\'s couple of minutes.</string>
+    <string name="blocking_not_bedtime">Bedtime is over, you can carry on.</string>
+    <string name="blocking_try_again">That didn\'t work, please try again.</string>
+</resources>
