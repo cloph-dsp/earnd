@@ -11,5 +11,14 @@
                 <action android:name="com.earnd.app.alarms.DEBUG_STOP" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".focus.DebugFocusReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.earnd.app.focus.DEBUG_START" />
+                <action android:name="com.earnd.app.focus.DEBUG_CANCEL" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
