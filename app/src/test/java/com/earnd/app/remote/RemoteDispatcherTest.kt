@@ -177,6 +177,23 @@ class RemoteDispatcherTest {
         assertEquals(0b1001, t.repeatWeekdayMask)
     }
 
+    @Test fun yearlyAndBiweeklyTasks() = runTest {
+        d.handle("tasks.create", mapOf("title" to "Bday", "due" to "2026-05-20", "repeat" to "YEARLY"))
+        d.handle("tasks.create", mapOf("title" to "Bins", "due" to "2026-03-08", "repeat" to "WEEKLY", "interval" to "2", "days" to "sun"))
+        val (y, w) = b.tasks.values.sortedBy { it.id }
+        assertEquals(RepeatKind.YEARLY, y.repeatKind)
+        assertEquals(RepeatKind.WEEKLY, w.repeatKind)
+        assertEquals(2, w.repeatInterval)
+        assertEquals(1 shl 6, w.repeatWeekdayMask)
+    }
+
+    @Test fun habitDaysWithoutScheduleMeansWeekdays() = runTest {
+        d.handle("habits.create", mapOf("name" to "Run", "days" to "mon,wed"))
+        val h = b.habits.values.single()
+        assertEquals(com.earnd.app.data.entity.ScheduleKind.WEEKDAYS, h.scheduleKind)
+        assertEquals(0b101, h.weekdayMask)
+    }
+
     @Test fun completeAndUncomplete() = runTest {
         val id = b.saveTask(TaskEntity(title = "a", createdAt = 0))
         assertTrue(d.handle("tasks.complete", mapOf("id" to "$id")).startsWith("{\"ok\":true"))

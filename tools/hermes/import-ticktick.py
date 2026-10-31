@@ -10,6 +10,7 @@ Sources (pick one):
 Nothing is written unless --apply is given (dry run is the default).
 """
 import argparse
+import re
 import datetime as dt
 import json
 import os
@@ -40,12 +41,35 @@ def parse_rrule(rule):
         if days:
             args["days"] = ",".join(days)
         if interval != 1:
-            return args, f"every {interval} weeks imported as weekly"
+            args["interval"] = str(interval)
         return args, None
     if freq == "MONTHLY":
         note = "BYDAY/BYSETPOS monthly rule imported as same day each month" if ("BYDAY" in parts or "BYSETPOS" in parts) else None
         return {"repeat": "MONTHLY", "interval": str(interval)}, note
+    if freq == "YEARLY":
+        # Earnd repeats on the due date's month/day; BYMONTH/BYMONTHDAY normally match it.
+        note = f"every {interval} years imported as yearly" if interval != 1 else None
+        if "BYDAY" in parts or "BYSETPOS" in parts:
+            note = "BYDAY yearly rule imported as same date each year"
+        return {"repeat": "YEARLY"}, note
     return {}, f"unsupported rule {body!r}, imported without repeat"
+
+
+# Internal reference junk some TickTick notes carry, e.g. "[id:12]" or "adhd-34".
+JUNK = re.compile(r"^\s*(?:\[id:\s*\d+\]|adhd-\d+)[\s:,;.-]*", re.IGNORECASE)
+
+
+def clean_notes(text):
+    out = []
+    for line in (text or "").splitlines():
+        while True:
+            stripped = JUNK.sub("", line, count=1)
+            if stripped == line:
+                break
+            line = stripped
+        if line.strip():
+            out.append(line.rstrip())
+    return "\n".join(out).strip()
 
 
 def parse_due(task):
@@ -82,9 +106,15 @@ def extract(data):
         return tasks, habits
     if not isinstance(data, dict):
         return tasks, habits
-    tasks += data.get("tasks", []) or []
+    names = {p.get("id"): p.get("name") for p in data.get("projects", []) or [] if isinstance(p, dict)}
+    own = (data.get("project") or {}).get("name") if isinstance(data.get("project"), dict) else None
+    for t in data.get("tasks", []) or []:
+        t.setdefault("_project", own or names.get(t.get("projectId")))
+        tasks.append(t)
     for p in data.get("projects", []) or []:
-        tasks += p.get("tasks", []) or []
+        for t in p.get("tasks", []) or []:
+            t.setdefault("_project", p.get("name"))
+            tasks.append(t)
     habits += data.get("habits", []) or []
     return tasks, habits
 
@@ -96,9 +126,12 @@ def fetch_api(token):
             return json.load(r)
     tasks = []
     for project in get("/project"):
-        tasks += get(f"/project/{project['id']}/data").get("tasks", []) or []
-    inbox = get("/project/inbox/data")
-    tasks += inbox.get("tasks", []) or []
+        for t in get(f"/project/{project['id']}/data").get("tasks", []) or []:
+            t["_project"] = project.get("name")
+            tasks.append(t)
+    for t in get("/project/inbox/data").get("tasks", []) or []:
+        t["_project"] = "Inbox"
+        tasks.append(t)
     return tasks, []
 
 
@@ -125,7 +158,10 @@ class Earnd:
 def import_task(earnd, t, notes):
     if t.get("status", 0) != 0:
         return False
-    args = {"title": t.get("title", "").strip() or "(untitled)", "notes": t.get("content") or t.get("desc") or ""}
+    args = {"title": t.get("title", "").strip() or "(untitled)"}
+    body = clean_notes(t.get("content") or t.get("desc") or "")
+    if body:
+        args["notes"] = body
     args.update(parse_due(t))
     prio = PRIORITY.get(t.get("priority", 0))
     if prio and prio != "NONE":
@@ -147,6 +183,8 @@ def import_task(earnd, t, notes):
 def import_habit(earnd, h, notes):
     rep, note = parse_rrule(h.get("repeatRule"))
     args = {"name": h.get("name", "").strip() or "(habit)"}
+    if rep.get("repeat") == "WEEKLY" and rep.get("interval"):
+        notes.append(f"{args['name']}: every {rep['interval']} weeks imported as every week")
     if rep.get("repeat") == "WEEKLY" and rep.get("days"):
         args.update({"schedule": "WEEKDAYS", "days": rep["days"]})
     elif rep.get("repeat") == "EVERY_N_DAYS":
@@ -169,6 +207,8 @@ def main():
     ap.add_argument("--apply", action="store_true", help="actually create items (default: dry run)")
     ap.add_argument("--dry-run", action="store_true", help="preview only (the default)")
     ap.add_argument("--no-habits", action="store_true")
+    ap.add_argument("--skip-project", action="append", default=[], metavar="NAME",
+                    help="skip every task in this TickTick project (case-insensitive; repeatable)")
     ap.add_argument("--cli", default=os.environ.get("EARND_CLI") or shutil.which("earnd-cli")
                     or os.path.join(os.path.dirname(os.path.abspath(__file__)), "earnd-cli"))
     a = ap.parse_args()
@@ -183,6 +223,12 @@ def main():
         if not token:
             sys.exit("token file is empty")
         tasks, habits = fetch_api(token)
+
+    skip = {n.strip().casefold() for n in a.skip_project}
+    if skip:
+        before = len(tasks)
+        tasks = [t for t in tasks if (t.get("_project") or "").strip().casefold() not in skip]
+        print(f"Skipping {before - len(tasks)} task(s) in project(s): {', '.join(a.skip_project)}")
 
     earnd = Earnd(a.cli, apply)
     notes = []

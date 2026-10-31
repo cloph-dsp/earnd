@@ -16,7 +16,7 @@ import com.earnd.app.data.entity.*
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
         AppRuleEntity::class, SettingEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -33,8 +33,15 @@ abstract class EarndDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
+
+        /** Recurrence anchor for interval-weekly and yearly series; existing rows anchor on their due date. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE task ADD COLUMN repeatAnchorEpochDay INTEGER")
+            }
+        }
 
         /** Parity pass: habit reminders, photo and reward overrides. Existing rewards move to rewardMinutes. */
         val MIGRATION_1_2 = object : Migration(1, 2) {

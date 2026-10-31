@@ -115,9 +115,15 @@ in the agent's environment). Invoke with `/earnd` or just ask about your tasks.
 ./import-ticktick.py --export ticktick.json --apply
 # From the Open API, token in a file you control (chmod 600)
 ./import-ticktick.py --token-file ~/.config/earnd/ticktick-token --apply
+# Skip whole TickTick projects by name (repeatable)
+./import-ticktick.py --export ticktick.json --skip-project Archive --skip-project "Old stuff" --apply
 ```
 
+Notes are cleaned of internal reference junk (lines/prefixes like `[id:12]` or `adhd-34`);
+notes that end up empty are dropped.
+
 Recurrence mapping: `FREQ=DAILY` -> daily (or every N days with INTERVAL), `FREQ=WEEKLY;BYDAY=..`
--> weekly on those days, `FREQ=MONTHLY` -> monthly. Other rules are imported without repeat
+-> weekly on those days (`INTERVAL=n` -> `interval=n`, every n weeks), `FREQ=MONTHLY` -> monthly,
+`FREQ=YEARLY` (incl. BYMONTH/BYMONTHDAY) -> yearly on the due date. Other rules are imported without repeat
 and listed in the summary. Habits (from the export's habit section, if present) become daily
 or weekday habits.

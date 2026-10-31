@@ -18,10 +18,24 @@ object Recurrence {
                 if (diff < 0) anchor else anchor.plusDays((diff / interval + 1) * interval)
             }
             RepeatKind.WEEKLY -> {
+                // Every [interval] weeks, counted from the Monday of the series' first due week.
+                val start = t.repeatAnchorEpochDay?.let(LocalDate::ofEpochDay) ?: anchor
                 val mask = if (t.repeatWeekdayMask and 0x7F != 0) t.repeatWeekdayMask
-                else 1 shl (anchor.dayOfWeek.value - 1)
-                (1L..7L).map { afterDay.plusDays(it) }
-                    .first { mask and (1 shl (it.dayOfWeek.value - 1)) != 0 }
+                else 1 shl (start.dayOfWeek.value - 1)
+                val week0 = start.minusDays(start.dayOfWeek.value - 1L).toEpochDay()
+                val from = if (afterDay.isBefore(start)) start.minusDays(1) else afterDay
+                (1L..(7L * interval + 7)).map { from.plusDays(it) }.first {
+                    val weeks = Math.floorDiv(it.toEpochDay() - week0, 7L)
+                    weeks >= 0 && weeks % interval == 0L && mask and (1 shl (it.dayOfWeek.value - 1)) != 0
+                }
+            }
+            RepeatKind.YEARLY -> {
+                // Step from the original anchor so Feb 29 returns in leap years (Feb 28 otherwise).
+                val start = t.repeatAnchorEpochDay?.let(LocalDate::ofEpochDay) ?: anchor
+                var k = (afterDay.year - start.year - 1L).coerceAtLeast(0)
+                var d = start.plusYears(k)
+                while (!d.isAfter(afterDay)) d = start.plusYears(++k)
+                d
             }
             RepeatKind.MONTHLY -> {
                 // Step from the anchor so a 31st clamps per month without drifting.

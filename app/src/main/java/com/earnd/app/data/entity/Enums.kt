@@ -4,7 +4,7 @@ enum class DaySegment { NONE, MORNING, AFTERNOON, EVENING }
 enum class ScheduleKind { DAILY, WEEKDAYS, EVERY_N_DAYS }
 enum class CheckInMode { TAP, PHOTO }
 enum class Priority { NONE, LOW, MEDIUM, HIGH }
-enum class RepeatKind { NONE, DAILY, WEEKLY, MONTHLY, EVERY_N_DAYS }
+enum class RepeatKind { NONE, DAILY, WEEKLY, MONTHLY, EVERY_N_DAYS, YEARLY }
 enum class AlarmStyle { SILENT, NOTIFICATION, FULL_SCREEN }
 enum class NagMode { OFF, PROGRESSIVE, FIXED }
 enum class OwnerKind { TASK, HABIT }

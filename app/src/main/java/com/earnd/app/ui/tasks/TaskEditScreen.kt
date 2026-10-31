@@ -155,16 +155,16 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
 private fun DueEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
     val today = remember { ServiceLocator.clock.today().toEpochDay() }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(t.dueEpochDay == null, { set(t.copy(dueEpochDay = null, dueMinuteOfDay = null)) }, { Text("No date") })
-        FilterChip(t.dueEpochDay == today, { set(t.copy(dueEpochDay = today)) }, { Text("Today") })
-        FilterChip(t.dueEpochDay == today + 1, { set(t.copy(dueEpochDay = today + 1)) }, { Text("Tomorrow") })
+        FilterChip(t.dueEpochDay == null, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = null, dueMinuteOfDay = null)) }, { Text("No date") })
+        FilterChip(t.dueEpochDay == today, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today)) }, { Text("Today") })
+        FilterChip(t.dueEpochDay == today + 1, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today + 1)) }, { Text("Tomorrow") })
     }
     if (t.dueEpochDay != null) {
         var text by remember(t.dueEpochDay) { mutableStateOf(formatIsoDay(t.dueEpochDay)) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = text,
-                onValueChange = { s -> text = s; parseIsoDay(s)?.let { set(t.copy(dueEpochDay = it)) } },
+                onValueChange = { s -> text = s; parseIsoDay(s)?.let { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = it)) } },
                 label = { Text("Date (YYYY-MM-DD)") }, singleLine = true,
                 isError = parseIsoDay(text) == null, modifier = Modifier.weight(1f),
             )
@@ -178,18 +178,22 @@ private fun RepeatEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
     ChoiceChips(RepeatKind.values().toList(), t.repeatKind, {
         when (it) {
             RepeatKind.NONE -> "Once"; RepeatKind.DAILY -> "Daily"; RepeatKind.WEEKLY -> "Weekly"
-            RepeatKind.MONTHLY -> "Monthly"; RepeatKind.EVERY_N_DAYS -> "Every few days"
+            RepeatKind.MONTHLY -> "Monthly"; RepeatKind.EVERY_N_DAYS -> "Every few days"; RepeatKind.YEARLY -> "Yearly"
         }
     }) { k ->
         val today = ServiceLocator.clock.today()
         set(t.copy(
             repeatKind = k,
+            repeatAnchorEpochDay = null,
             repeatWeekdayMask = if (k == RepeatKind.WEEKLY && t.repeatWeekdayMask == 0) 1 shl (today.dayOfWeek.value - 1) else t.repeatWeekdayMask,
             dueEpochDay = if (k != RepeatKind.NONE && t.dueEpochDay == null) today.toEpochDay() else t.dueEpochDay,
         ))
     }
     when (t.repeatKind) {
-        RepeatKind.WEEKLY -> WeekdayPicker(t.repeatWeekdayMask) { set(t.copy(repeatWeekdayMask = it)) }
+        RepeatKind.WEEKLY -> {
+            WeekdayPicker(t.repeatWeekdayMask) { set(t.copy(repeatWeekdayMask = it)) }
+            NumberField("Every how many weeks", t.repeatInterval, { set(t.copy(repeatInterval = (it ?: 1).coerceAtLeast(1), repeatAnchorEpochDay = null)) })
+        }
         RepeatKind.MONTHLY -> NumberField("Every how many months", t.repeatInterval, { set(t.copy(repeatInterval = (it ?: 1).coerceAtLeast(1))) })
         RepeatKind.EVERY_N_DAYS -> NumberField("Every how many days", t.repeatInterval, { set(t.copy(repeatInterval = (it ?: 1).coerceAtLeast(1))) })
         else -> Unit

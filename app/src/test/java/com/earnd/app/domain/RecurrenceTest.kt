@@ -47,6 +47,52 @@ class RecurrenceTest {
         assertTrue(!next.isBefore(wed))
     }
 
+    private fun anchored(kind: RepeatKind, due: LocalDate, anchor: LocalDate, mask: Int = 0, interval: Int = 1) =
+        task(kind, due, mask, interval).copy(repeatAnchorEpochDay = anchor.toEpochDay())
+
+    @Test fun yearlySameMonthDay() {
+        val t = task(RepeatKind.YEARLY, LocalDate.of(2026, 7, 15))
+        assertEquals(LocalDate.of(2027, 7, 15), Recurrence.next(t, LocalDate.of(2026, 7, 15)))
+        assertEquals(LocalDate.of(2026, 7, 15), Recurrence.next(t, LocalDate.of(2026, 1, 1)))
+    }
+
+    @Test fun yearlyLeapDay() {
+        val leap = LocalDate.of(2028, 2, 29)
+        val t = task(RepeatKind.YEARLY, leap)
+        assertEquals(LocalDate.of(2029, 2, 28), Recurrence.next(t, leap))
+        // Later occurrence (due Feb 28) still anchored on Feb 29 returns to it in the next leap year.
+        val later = anchored(RepeatKind.YEARLY, LocalDate.of(2031, 2, 28), leap)
+        assertEquals(LocalDate.of(2032, 2, 29), Recurrence.next(later, LocalDate.of(2031, 2, 28)))
+    }
+
+    @Test fun yearlyRollForwardOverdue() {
+        val t = task(RepeatKind.YEARLY, LocalDate.of(2020, 3, 1))
+        assertEquals(LocalDate.of(2027, 3, 1), Recurrence.next(t, wed.minusDays(1)))
+    }
+
+    @Test fun biweeklyAnchoredOnFirstWeek() {
+        val sun = 1 shl 6
+        val monSun = sun or 1
+        val firstSun = LocalDate.of(2026, 3, 8) // week of Mon 2 Mar
+        val t = task(RepeatKind.WEEKLY, firstSun, sun, interval = 2)
+        assertEquals(LocalDate.of(2026, 3, 22), Recurrence.next(t, firstSun))
+        // Mon+Sun every 2 weeks, anchored on week of 2 Mar: after Sun 8 Mar comes Mon 16 Mar.
+        val t2 = anchored(RepeatKind.WEEKLY, LocalDate.of(2026, 3, 2), LocalDate.of(2026, 3, 2), monSun, 2)
+        assertEquals(LocalDate.of(2026, 3, 8), Recurrence.next(t2, LocalDate.of(2026, 3, 2)))
+        assertEquals(LocalDate.of(2026, 3, 16), Recurrence.next(t2, LocalDate.of(2026, 3, 8)))
+        // A later occurrence keeps the original week parity.
+        val t3 = anchored(RepeatKind.WEEKLY, LocalDate.of(2026, 3, 16), LocalDate.of(2026, 3, 2), monSun, 2)
+        assertEquals(LocalDate.of(2026, 3, 22), Recurrence.next(t3, LocalDate.of(2026, 3, 16)))
+        assertEquals(LocalDate.of(2026, 3, 30), Recurrence.next(t3, LocalDate.of(2026, 3, 22)))
+    }
+
+    @Test fun biweeklyRollForwardOverdue() {
+        val sun = 1 shl 6
+        val t = anchored(RepeatKind.WEEKLY, LocalDate.of(2026, 1, 4), LocalDate.of(2026, 1, 4), sun, 2)
+        // today Wed 4 Mar: Sundays on-week are 1 Mar, 15 Mar (Jan 4 + 10 weeks = 15 Mar).
+        assertEquals(LocalDate.of(2026, 3, 15), Recurrence.next(t, wed.minusDays(1)))
+    }
+
     @Test fun bucketOf() {
         val today = wed.toEpochDay()
         assertEquals(TaskBucket.OVERDUE, TaskService.bucketOf(task(RepeatKind.NONE, wed.minusDays(1)), today))

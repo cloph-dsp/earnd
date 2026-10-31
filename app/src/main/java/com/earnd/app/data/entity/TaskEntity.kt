@@ -17,8 +17,10 @@ data class TaskEntity(
     val priority: Priority = Priority.NONE,
     val repeatKind: RepeatKind = RepeatKind.NONE,
     val repeatWeekdayMask: Int = 0,
-    /** N for EVERY_N_DAYS, months for MONTHLY. */
+    /** N for EVERY_N_DAYS, months for MONTHLY, weeks for WEEKLY. */
     val repeatInterval: Int = 1,
+    /** First due day of the series; anchors WEEKLY intervals and YEARLY dates. Null => use due. */
+    val repeatAnchorEpochDay: Long? = null,
     /** Null => earns nothing. */
     val rewardMinutes: Int? = null,
     val completedAt: Long? = null,

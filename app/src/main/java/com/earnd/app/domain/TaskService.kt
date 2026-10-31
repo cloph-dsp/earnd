@@ -34,6 +34,9 @@ class TaskService(
     /** Inserts or updates. New top-level tasks without a reward get the default reward. */
     suspend fun save(t: TaskEntity): Long {
         var toSave = t
+        if (t.repeatKind != RepeatKind.NONE && t.repeatAnchorEpochDay == null && t.dueEpochDay != null) {
+            toSave = toSave.copy(repeatAnchorEpochDay = t.dueEpochDay)
+        }
         if (t.id == 0L && t.rewardMinutes == null && t.parentId == null) {
             toSave = toSave.copy(rewardMinutes = settings.current().defaultTaskRewardMin)
         }

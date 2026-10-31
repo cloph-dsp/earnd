@@ -195,7 +195,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             anchorEpochDay = today.toEpochDay(),
             createdAt = backend.now(),
         )
-        val schedule = a.enum<ScheduleKind>("schedule") ?: base.scheduleKind
+        val schedule = a.enum<ScheduleKind>("schedule")
+            ?: if (a.has("days")) ScheduleKind.WEEKDAYS else base.scheduleKind
         val h = base.copy(
             name = name,
             iconKey = a.text("icon") ?: base.iconKey,
@@ -333,6 +334,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             repeatKind = repeat,
             repeatWeekdayMask = mask,
             repeatInterval = a.int("interval", 1..365) ?: base.repeatInterval,
+            // Re-anchor the series when its rule or date changes; save() fills it from due.
+            repeatAnchorEpochDay = if (repeat != base.repeatKind || due != base.dueEpochDay) null else base.repeatAnchorEpochDay,
         ).let { t -> a.intOrNone(REWARD_KEYS, REWARD_RANGE)?.let { t.copy(rewardMinutes = it.value) } ?: t }
         if (existing != null && (t.rewardMinutes ?: 0) > (existing.rewardMinutes ?: 0)) {
             throw WeakenForbidden("task reward can only be lowered remotely")
