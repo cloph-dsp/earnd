@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Keeps both widgets current: ChangeBus events, session end, and a periodic fallback. */
+/** Keeps all widgets current: ChangeBus events, session end, and a periodic fallback. */
 object WidgetRefresher {
     private const val PERIODIC = "widgets_periodic"
     private const val SESSION_END = "widgets_session_end"
@@ -34,6 +34,7 @@ object WidgetRefresher {
     suspend fun updateAll(context: Context) {
         LockWidget().updateAll(context)
         TasksWidget().updateAll(context)
+        HabitWidget().updateAll(context)
     }
 
     /** Call once from Application.onCreate; later calls are ignored. */

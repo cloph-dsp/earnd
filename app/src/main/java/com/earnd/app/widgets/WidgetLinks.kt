@@ -7,6 +7,7 @@ import android.net.Uri
 /** Deep links into the app, handled by MainActivity. */
 internal object WidgetLinks {
     fun task(context: Context, id: Long): Intent = view(context, "earnd://task?id=$id")
+    fun checkIn(context: Context, habitId: Long): Intent = view(context, "earnd://checkin?habitId=$habitId")
     fun addTask(context: Context): Intent = view(context, "earnd://add-task")
 
     fun home(context: Context): Intent =

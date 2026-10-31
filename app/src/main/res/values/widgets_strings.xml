@@ -10,4 +10,9 @@
     <string name="widgets_tasks_description">Your pending tasks, overdue and today first.</string>
     <string name="widgets_tasks_title">Tasks</string>
     <string name="widgets_tasks_empty">Nothing pending. Nice work.</string>
+    <string name="widgets_habit_name">Earnd habit</string>
+    <string name="widgets_habit_description">One habit at a glance. Tap to check in.</string>
+    <string name="widgets_habit_choose">Tap to choose</string>
+    <string name="widgets_habit_pick_title">Choose a habit</string>
+    <string name="widgets_habit_pick_empty">No active habits yet. Add one in Earnd first.</string>
 </resources>
