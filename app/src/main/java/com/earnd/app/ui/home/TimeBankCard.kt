@@ -1,5 +1,6 @@
 package com.earnd.app.ui.home
 
+import com.earnd.app.domain.UnlockCap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,7 @@ data class BankState(
     val balance: Int,
     val session: UnlockSessionEntity?,
     val hardMode: Boolean,
+    val unlockCapMin: Int? = null,
     val allDone: Boolean,
     val allDoneUnlock: Boolean,
 )
@@ -78,7 +80,7 @@ fun TimeBankCard(
                         "Hard mode: apps open once today's habits are done.",
                         style = MaterialTheme.typography.bodyMedium, color = p.secondary,
                     )
-                    state.balance > 0 -> SpendPicker(state.balance, onSpend)
+                    state.balance > 0 -> SpendPicker(state.balance, state.unlockCapMin, onSpend)
                     else -> Text("Check in a habit or finish a task to earn minutes.", style = MaterialTheme.typography.bodyMedium, color = p.secondary)
                 }
             }
@@ -87,14 +89,14 @@ fun TimeBankCard(
 }
 
 @Composable
-private fun SpendPicker(balance: Int, onSpend: (Int) -> Unit) {
-    val options = (SPEND_CHOICES.filter { it < balance } + balance).distinct()
-    var pick by remember(balance) { mutableIntStateOf(options.first()) }
+private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
+    val options = UnlockCap.choices(SPEND_CHOICES, balance, cap)
+    var pick by remember(balance, cap) { mutableIntStateOf(options.first()) }
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         options.take(5).forEach { m ->
             FilterChip(
                 selected = m == pick, onClick = { pick = m },
-                label = { Text(if (m == balance) "All" else "$m", style = NumberStyle) },
+                label = { Text(if (m == balance) "All" else if (m == options.last() && cap != null) "Max $m" else "$m", style = NumberStyle) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Earnd.palette.amber, selectedLabelColor = Earnd.palette.onAmber,
                 ),

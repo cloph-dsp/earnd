@@ -94,10 +94,14 @@ class TimeBank(
         return ledger.forSource(sourceKind, sourceId).filter { it.periodKey == key }.sumOf { it.minutes }
     }
 
-    /** Spends saved minutes on an unlock session. Refused in hard mode or without enough balance. */
-    suspend fun spend(minutes: Int): SpendResult = tx.run {
+    /**
+     * Spends saved minutes on an unlock session. Refused in hard mode or without enough balance.
+     * A request longer than the unlock cap is shortened to the cap; the rest stays in the balance.
+     */
+    suspend fun spend(requested: Int): SpendResult = tx.run {
         val s = settings.current()
         if (s.hardMode) return@run SpendResult.Refused(RefuseReason.HARD_MODE)
+        val minutes = UnlockCap.clamp(requested, s.unlockCapMin)
         if (minutes <= 0) return@run SpendResult.Refused(RefuseReason.INVALID)
         val now = clock.now()
         val key = periodKey(s, now)

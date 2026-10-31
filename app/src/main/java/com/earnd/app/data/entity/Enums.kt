@@ -17,3 +17,9 @@ enum class AppRule { LEISURE, ALLOWED }
 /** How habit check-ins pay out: per check-in, or one lump sum when everything scheduled today is done. */
 enum class RewardMode { PER_CHECKIN, ALL_DONE }
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+/** Challenge shown before removing a blocked app/site or loosening blocking. */
+enum class PuzzleKind { NONE, ARITHMETIC, SENTENCE }
+
+/** Row height of habit lists. */
+enum class ListDensity { COMFORTABLE, COMPACT }

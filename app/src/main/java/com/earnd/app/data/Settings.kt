@@ -1,5 +1,7 @@
 package com.earnd.app.data
 
+import com.earnd.app.data.entity.ListDensity
+import com.earnd.app.data.entity.PuzzleKind
 import com.earnd.app.data.entity.ResetPeriod
 import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.data.entity.ThemeMode
@@ -37,6 +39,10 @@ data class Settings(
     val dailyReportEnabled: Boolean = false,
     val dailyReportMin: Int = 21 * 60,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** Longest single unlock session in minutes, or null for no cap. Unused minutes stay banked. */
+    val unlockCapMin: Int? = null,
+    val removalPuzzle: PuzzleKind = PuzzleKind.NONE,
+    val listDensity: ListDensity = ListDensity.COMFORTABLE,
 ) {
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false

@@ -1,5 +1,7 @@
 package com.earnd.app.data
 
+import com.earnd.app.data.entity.ListDensity
+import com.earnd.app.data.entity.PuzzleKind
 import com.earnd.app.data.entity.ResetPeriod
 import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.data.entity.ThemeMode
@@ -35,6 +37,9 @@ internal object SettingsCodec {
         put("dailyReportEnabled", s.dailyReportEnabled.toString())
         put("dailyReportMin", s.dailyReportMin.toString())
         put("themeMode", s.themeMode.name)
+        put("unlockCapMin", s.unlockCapMin?.toString() ?: "")
+        put("removalPuzzle", s.removalPuzzle.name)
+        put("listDensity", s.listDensity.name)
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -71,6 +76,9 @@ internal object SettingsCodec {
             dailyReportEnabled = bool("dailyReportEnabled", d.dailyReportEnabled),
             dailyReportMin = int("dailyReportMin", d.dailyReportMin),
             themeMode = m["themeMode"]?.let { v -> ThemeMode.entries.find { it.name == v } } ?: d.themeMode,
+            unlockCapMin = optInt("unlockCapMin", d.unlockCapMin),
+            removalPuzzle = m["removalPuzzle"]?.let { v -> PuzzleKind.entries.find { it.name == v } } ?: d.removalPuzzle,
+            listDensity = m["listDensity"]?.let { v -> ListDensity.entries.find { it.name == v } } ?: d.listDensity,
         )
     }
 }

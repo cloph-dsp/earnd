@@ -1,6 +1,7 @@
 package com.earnd.app.blocking
 
 import androidx.compose.material3.TextButton
+import com.earnd.app.domain.UnlockCap
 import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.RowDivider
 import com.earnd.app.ui.theme.Chamfer
@@ -142,7 +143,6 @@ private fun Header(cause: BlockCause, target: String, until: String?, balance: I
 
 @Composable
 private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit) {
-    val choices = LockedViewModel.SESSION_CHOICES.filter { it <= ui.balanceMinutes }
     when {
         ui.hardMode -> Text(stringResource(R.string.blocking_hard_mode_note),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -150,7 +150,8 @@ private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit) {
         else -> {
             SectionTitle(stringResource(R.string.blocking_use_time))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val shown = (choices.take(3) + listOf(ui.balanceMinutes)).distinct().sorted().takeLast(3)
+                val all = UnlockCap.choices(LockedViewModel.SESSION_CHOICES, ui.balanceMinutes, ui.unlockCapMin)
+                val shown = (all.dropLast(1).take(2) + all.last()).distinct()
                 shown.forEach { m ->
                     AmberButton({ onStart(m) }, Modifier.weight(1f)) {
                         Text(stringResource(R.string.blocking_minutes_short, m))

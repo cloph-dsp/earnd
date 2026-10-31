@@ -26,7 +26,7 @@ internal object LockToggle {
             return bank.startAllDoneUnlock() is SpendResult.Started
         }
         if (s.hardMode || balance <= 0) return false
-        // Spend the whole balance; locking early refunds the unused minutes.
+        // Spend the whole balance, or up to the unlock cap (TimeBank clamps); unused minutes stay banked.
         return bank.spend(balance) is SpendResult.Started
     }
 }

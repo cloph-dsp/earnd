@@ -30,6 +30,7 @@ sealed interface EarnItem {
 data class LockedUi(
     val balanceMinutes: Int = 0,
     val hardMode: Boolean = false,
+    val unlockCapMin: Int? = null,
     val items: List<EarnItem> = emptyList(),
 )
 
@@ -62,7 +63,7 @@ class LockedViewModel(val cause: BlockCause) : ViewModel() {
 
     val ui: StateFlow<LockedUi> = combine(
         bank.observeBalance(), ServiceLocator.settings.settings, habitItems, taskItems,
-    ) { bal, s, h, t -> LockedUi(bal.minutes, s.hardMode, h + t) }
+    ) { bal, s, h, t -> LockedUi(bal.minutes, s.hardMode, s.unlockCapMin, h + t) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LockedUi())
 
     fun checkIn(habitId: Long) = viewModelScope.launch {
