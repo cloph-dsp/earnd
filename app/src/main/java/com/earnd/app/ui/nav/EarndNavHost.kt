@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Icon
@@ -33,7 +34,7 @@ import com.earnd.app.ui.apps.AppsScreen
 import com.earnd.app.ui.habits.CheckInRoute
 import com.earnd.app.ui.habits.HabitDetailScreen
 import com.earnd.app.ui.habits.HabitEditScreen
-import com.earnd.app.ui.habits.ManageHabitsScreen
+import com.earnd.app.ui.habits.HabitsScreen
 import com.earnd.app.ui.home.TodayScreen
 import com.earnd.app.ui.onboarding.OnboardingScreen
 import com.earnd.app.ui.onboarding.PermissionsScreen
@@ -47,6 +48,7 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 
 private val tabs = listOf(
     Tab(Routes.TODAY, "Today", Icons.Outlined.WbSunny),
+    Tab(Routes.HABITS, "Habits", Icons.Outlined.Repeat),
     Tab(Routes.TASKS, "Tasks", Icons.Outlined.Checklist),
     Tab(Routes.STATS, "Stats", Icons.Outlined.BarChart),
     Tab(Routes.SETTINGS, "Settings", Icons.Outlined.Settings),
@@ -100,7 +102,6 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                     onAddHabit = { nav.navigate(Routes.habitEdit()) },
                     onPhotoCheckIn = { nav.navigate(Routes.photo(it)) },
                     onOpenTask = { nav.navigate(Routes.taskEdit(it)) },
-                    onManageHabits = { nav.navigate(Routes.HABITS_MANAGE) },
                 )
             }
             composable(Routes.TASKS) {
@@ -114,8 +115,8 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                 )
             }
             composable(Routes.APPS) { AppsScreen(onBack = back) }
-            composable(Routes.HABITS_MANAGE) {
-                ManageHabitsScreen(onBack = back, onOpenHabit = { nav.navigate(Routes.habitDetail(it)) })
+            composable(Routes.HABITS) {
+                HabitsScreen(onOpenHabit = { nav.navigate(Routes.habitDetail(it)) }, onAddHabit = { nav.navigate(Routes.habitEdit()) })
             }
             composable(
                 Routes.HABIT_EDIT,

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only components. The test-alarm receiver is reachable only by holders of DUMP (adb shell). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name=".alarms.DebugAlarmReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.earnd.app.alarms.DEBUG_RING" />
+                <action android:name="com.earnd.app.alarms.DEBUG_STOP" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

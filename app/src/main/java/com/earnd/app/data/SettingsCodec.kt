@@ -5,6 +5,8 @@ import com.earnd.app.data.entity.PuzzleKind
 import com.earnd.app.data.entity.ResetPeriod
 import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.data.entity.ThemeMode
+import com.earnd.app.domain.DateFormatPref
+import com.earnd.app.domain.TimeFormatPref
 import java.time.DayOfWeek
 
 /** Maps [Settings] to and from flat string key/values stored in the `setting` table. */
@@ -40,6 +42,8 @@ internal object SettingsCodec {
         put("unlockCapMin", s.unlockCapMin?.toString() ?: "")
         put("removalPuzzle", s.removalPuzzle.name)
         put("listDensity", s.listDensity.name)
+        put("dateFormat", s.dateFormat.name)
+        put("timeFormat", s.timeFormat.name)
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -79,6 +83,8 @@ internal object SettingsCodec {
             unlockCapMin = optInt("unlockCapMin", d.unlockCapMin),
             removalPuzzle = m["removalPuzzle"]?.let { v -> PuzzleKind.entries.find { it.name == v } } ?: d.removalPuzzle,
             listDensity = m["listDensity"]?.let { v -> ListDensity.entries.find { it.name == v } } ?: d.listDensity,
+            dateFormat = m["dateFormat"]?.let { v -> DateFormatPref.entries.find { it.name == v } } ?: d.dateFormat,
+            timeFormat = m["timeFormat"]?.let { v -> TimeFormatPref.entries.find { it.name == v } } ?: d.timeFormat,
         )
     }
 }

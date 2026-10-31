@@ -48,6 +48,16 @@ class HabitService(
         }
     }
 
+    /** Every active habit with today's progress, flagged whether it is due today. */
+    fun observeAllActive(): Flow<List<Pair<HabitDay, Boolean>>> {
+        val today = clock.today()
+        return combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
+            val byHabit = cs.groupBy { it.habitId }
+            val week = weekDoneBefore(hs, today)
+            hs.map { dayOf(it, byHabit[it.id].orEmpty()) to HabitSchedule.isDueOn(it, today, week[it.id] ?: 0) }
+        }
+    }
+
     /** Per TIMES_PER_WEEK habit: complete days in [day]'s week before [day]. */
     private suspend fun weekDoneBefore(hs: List<HabitEntity>, day: LocalDate): Map<Long, Int> {
         val flexible = hs.filter { it.scheduleKind == com.earnd.app.data.entity.ScheduleKind.TIMES_PER_WEEK }

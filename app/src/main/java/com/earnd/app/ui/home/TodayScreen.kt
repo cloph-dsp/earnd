@@ -67,7 +67,6 @@ import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.domain.minuteOfDay
 import com.earnd.app.domain.Segments
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.mutableStateOf
@@ -77,7 +76,7 @@ import androidx.compose.ui.text.input.KeyboardType
 private val SEGMENT_ORDER = listOf(DaySegment.MORNING, DaySegment.AFTERNOON, DaySegment.EVENING, DaySegment.NONE)
 
 @Composable
-fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoCheckIn: (Long) -> Unit, onManageHabits: () -> Unit = {}, onOpenTask: (Long) -> Unit = {}) {
+fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoCheckIn: (Long) -> Unit, onOpenTask: (Long) -> Unit = {}) {
     val sl = ServiceLocator
     val todayDay = remember { sl.clock.today().toEpochDay() }
     val habits by remember { sl.habitService.observeToday() }.collectAsState(initial = emptyList())
@@ -137,7 +136,6 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     Wordmark()
                     Spacer(Modifier.width(10.dp))
                     Num(clock, Modifier.weight(1f))
-                    IconButton(onClick = onManageHabits) { Icon(Icons.Outlined.SwapVert, "Reorder and archived habits", tint = Earnd.palette.secondary) }
                 }
                 TimeBankCard(
                     state = bank,

@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import com.earnd.app.ui.theme.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +27,9 @@ internal fun AlarmScreen(
     label: String,
     snoozesLeft: Int,
     snoozeMinutes: Int,
-    onDone: () -> Unit,
+    onStop: () -> Unit,
     onSnooze: () -> Unit,
+    onDone: () -> Unit,
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -47,12 +49,12 @@ internal fun AlarmScreen(
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(48.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text(stringResource(R.string.alarms_ring_done), style = MaterialTheme.typography.titleLarge)
+            Button(onClick = onStop, modifier = Modifier.fillMaxWidth().height(72.dp)) {
+                Text(stringResource(R.string.alarms_ring_stop), style = MaterialTheme.typography.headlineSmall)
             }
             Spacer(Modifier.height(16.dp))
-            if (snoozesLeft > 0) {
-                OutlinedButton(onClick = onSnooze, modifier = Modifier.fillMaxWidth()) {
+            if (RingPolicy.canSnooze(snoozesLeft)) {
+                OutlinedButton(onClick = onSnooze, modifier = Modifier.fillMaxWidth().height(64.dp)) {
                     Text(pluralStringResource(R.plurals.alarms_ring_snooze, snoozesLeft, snoozeMinutes, snoozesLeft))
                 }
             } else {
@@ -62,6 +64,10 @@ internal fun AlarmScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+            }
+            Spacer(Modifier.height(32.dp))
+            TextButton(onClick = onDone) {
+                Text(stringResource(R.string.alarms_ring_mark_done))
             }
         }
     }

@@ -3,8 +3,10 @@ package com.earnd.app.alarms
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.earnd.app.alarms.AlarmKeys.putOwner
@@ -13,53 +15,67 @@ import com.earnd.app.ui.theme.EarndTheme
 import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
 
-/** Full-screen ringing alarm: rings until the user taps Done or (a limited number of times) Snooze. */
+/** Full-screen ringing alarm over the lock screen: Stop, Snooze (while allowed) and Mark done. */
 class AlarmActivity : ComponentActivity() {
-    private var owner: Pair<OwnerKind, Long>? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         current = WeakReference(this)
+        // Back must not dismiss silently: the user has to choose Stop or Snooze.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = Unit
+        })
         bind(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         bind(intent)
     }
 
     private fun bind(intent: Intent) {
         val o = AlarmKeys.ownerOf(intent) ?: return finish()
-        owner = o
         lifecycleScope.launch {
             val actions = AlarmsModule.actions
-            val label = actions.labelOf(o.first, o.second)
-            val left = actions.snoozesLeft(o.first, o.second)
-            // Idempotent: the service is normally already ringing; this covers opening from the notification.
-            AlarmRingService.start(this@AlarmActivity, o.first, o.second, label)
+            val label = runCatching { actions.labelOf(o.first, o.second) }.getOrDefault("")
+                .ifBlank { intent.getStringExtra(AlarmKeys.EXTRA_LABEL).orEmpty() }
+            val left = runCatching { actions.snoozesLeft(o.first, o.second) }.getOrDefault(0)
             setContent {
                 EarndTheme {
                     AlarmScreen(
                         label = label,
                         snoozesLeft = left,
                         snoozeMinutes = NagSchedule.SNOOZE_MIN,
-                        onDone = { act { actions.done(o.first, o.second) } },
+                        onStop = { act(null) },
                         onSnooze = { act { actions.snooze(o.first, o.second) } },
+                        onDone = { act { actions.done(o.first, o.second) } },
                     )
                 }
             }
         }
     }
 
-    private fun act(block: suspend () -> Unit) {
-        AlarmRingService.stop(this)
+    /** Always silences first (even if the follow-up DB work fails), then finishes. */
+    private fun act(block: (suspend () -> Unit)?) {
+        Ringing.stopAll(this)
+        if (block == null) return finish()
         lifecycleScope.launch {
-            block()
+            runCatching { block() }
             finish()
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
+            keyCode == KeyEvent.KEYCODE_VOLUME_MUTE
+        ) {
+            AlarmRingService.silence()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onDestroy() {

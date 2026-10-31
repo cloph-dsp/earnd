@@ -25,7 +25,12 @@
 
     <string name="alarms_ring_kicker">Now</string>
     <string name="alarms_ring_fallback">Your reminder</string>
-    <string name="alarms_ring_text">Tap to open, or mark it done.</string>
+    <string name="alarms_ring_text">Tap to open the alarm.</string>
+    <string name="alarms_ring_stop">Stop</string>
+    <string name="alarms_ring_snooze_short">Snooze %d min</string>
+    <string name="alarms_ring_mark_done">Mark done</string>
+    <string name="alarms_channel_missed">Missed alarms</string>
+    <string name="alarms_missed_title">Missed alarm</string>
     <string name="alarms_ring_done">Done</string>
     <plurals name="alarms_ring_snooze">
         <item quantity="one">Snooze %1$d min (%2$d left)</item>

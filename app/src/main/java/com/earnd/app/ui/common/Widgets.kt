@@ -77,7 +77,7 @@ fun NumberField(label: String, value: Int?, onChange: (Int?) -> Unit, modifier: 
     )
 }
 
-/** Minute-of-day text field ("HH:MM"); reports a value only once valid, null when cleared. */
+/** Minute-of-day text field in the user's 24h/12h format; reports a value only once valid, null when cleared. */
 @Composable
 fun TimeField(label: String, minuteOfDay: Int?, onChange: (Int?) -> Unit, modifier: Modifier = Modifier) {
     val state = androidx.compose.runtime.remember {
@@ -86,12 +86,12 @@ fun TimeField(label: String, minuteOfDay: Int?, onChange: (Int?) -> Unit, modifi
     OutlinedTextField(
         value = state.value,
         onValueChange = { t ->
-            state.value = t.take(5)
+            state.value = t.take(8)
             val parsed = parseMinuteOfDay(t)
             if (parsed != null || t.isBlank()) onChange(parsed)
         },
         label = { Text(label) },
-        placeholder = { Text("HH:MM") },
+        placeholder = { Text(timeHint()) },
         singleLine = true,
         isError = state.value.isNotBlank() && parseMinuteOfDay(state.value) == null,
         modifier = modifier,

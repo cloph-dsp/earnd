@@ -38,14 +38,17 @@ import com.earnd.app.remote.RemoteSettings
 import com.earnd.app.ui.alarms.AlarmConfigEditor
 import com.earnd.app.ui.alarms.AlarmConfigs
 import com.earnd.app.ui.common.ChoiceChips
+import com.earnd.app.domain.DateFormatPref
+import com.earnd.app.domain.TimeFormatPref
 import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
-import com.earnd.app.ui.common.formatIsoDay
+import com.earnd.app.ui.common.formatDate
+import com.earnd.app.ui.common.dateHint
 import com.earnd.app.ui.common.formatMinuteOfDay
 import com.earnd.app.ui.common.launchUi
-import com.earnd.app.ui.common.parseIsoDay
+import com.earnd.app.ui.common.parseDate
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import androidx.compose.ui.Alignment
@@ -211,6 +214,17 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
             ChoiceChips(ListDensity.entries, cur.listDensity, {
                 if (it == ListDensity.COMPACT) "Compact" else "Comfortable"
             }) { v -> change { it.copy(listDensity = v) } }
+            Text("Date format", style = MaterialTheme.typography.labelLarge)
+            ChoiceChips(DateFormatPref.entries, cur.dateFormat, {
+                when (it) {
+                    DateFormatPref.DMY -> "DD/MM/YYYY"; DateFormatPref.YMD -> "YYYY-MM-DD"
+                    DateFormatPref.MDY -> "MM/DD/YYYY"; DateFormatPref.SYSTEM -> "Follow system"
+                }
+            }) { v -> change { it.copy(dateFormat = v) } }
+            Text("Time format", style = MaterialTheme.typography.labelLarge)
+            ChoiceChips(TimeFormatPref.entries, cur.timeFormat, {
+                when (it) { TimeFormatPref.H24 -> "24-hour"; TimeFormatPref.H12 -> "12-hour"; TimeFormatPref.SYSTEM -> "Follow system" }
+            }) { v -> change { it.copy(timeFormat = v) } }
 
             SectionTitle("Remote control")
             RemoteSection()
@@ -253,16 +267,16 @@ private fun ExactAlarmRow() {
 
 @Composable
 private fun VacationEditor(cur: Settings, change: ((Settings) -> Settings) -> Unit) {
-    var from by remember(cur.vacationFromDay) { mutableStateOf(cur.vacationFromDay?.let(::formatIsoDay) ?: "") }
-    var to by remember(cur.vacationToDay) { mutableStateOf(cur.vacationToDay?.let(::formatIsoDay) ?: "") }
+    var from by remember(cur.vacationFromDay) { mutableStateOf(cur.vacationFromDay?.let(::formatDate) ?: "") }
+    var to by remember(cur.vacationToDay) { mutableStateOf(cur.vacationToDay?.let(::formatDate) ?: "") }
     Text("Pauses blocking and streaks between two dates.", style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(from, { from = it }, label = { Text("From (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+        OutlinedTextField(from, { from = it }, label = { Text("From (${dateHint()})") }, singleLine = true, modifier = Modifier.weight(1f))
         OutlinedTextField(to, { to = it }, label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f))
     }
     Row {
-        val f = parseIsoDay(from)
-        val t = parseIsoDay(to)
+        val f = parseDate(from)
+        val t = parseDate(to)
         TextButton(enabled = f != null && t != null && t >= f, onClick = {
             change { it.copy(vacationFromDay = f, vacationToDay = t) }
         }) { Text("Set vacation") }
@@ -307,6 +321,6 @@ private fun describeAudit(json: String): String = runCatching {
     val cmd = o.optString("cmd", "?")
     val ok = if (o.optBoolean("ok", true)) "" else " (refused)"
     val at = o.optLong("at", 0L)
-    val time = if (at > 0) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(at)) + ": " else ""
+    val time = if (at > 0) com.earnd.app.ui.common.formatDateTime(at) + ": " else ""
     time + cmd + ok
 }.getOrDefault(json)

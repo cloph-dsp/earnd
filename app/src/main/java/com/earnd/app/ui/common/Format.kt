@@ -1,10 +1,23 @@
 package com.earnd.app.ui.common
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.earnd.app.domain.DateTimeFormats
 
-private val dayFormat = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
+/**
+ * Compose-observable mirror of [DateTimeFormats.current]: reading it during composition
+ * recomposes when the user changes the date/time format in Settings.
+ */
+object UiFormats {
+    var value: DateTimeFormats by mutableStateOf(DateTimeFormats.current)
+        private set
+
+    fun apply(f: DateTimeFormats) {
+        DateTimeFormats.current = f
+        if (value != f) value = f
+    }
+}
 
 fun formatMinutes(min: Int): String = when {
     min < 60 -> "$min min"
@@ -12,22 +25,26 @@ fun formatMinutes(min: Int): String = when {
     else -> "${min / 60} h ${min % 60} min"
 }
 
-fun formatMinuteOfDay(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
+/** Minute of day in the user's time format (24h "07:30" or 12h "7:30 AM"). */
+fun formatMinuteOfDay(min: Int): String = UiFormats.value.formatTime(min)
 
-/** Parses "H:MM" / "HH:MM" into minute of day, or null. */
-fun parseMinuteOfDay(text: String): Int? {
-    val parts = text.trim().split(":")
-    if (parts.size != 2) return null
-    val h = parts[0].toIntOrNull() ?: return null
-    val m = parts[1].toIntOrNull() ?: return null
-    return if (h in 0..23 && m in 0..59) h * 60 + m else null
-}
+/** Parses a typed time ("HH:MM", or "h:mm am/pm") into minute of day, or null. */
+fun parseMinuteOfDay(text: String): Int? = UiFormats.value.parseTime(text)
 
-fun formatDay(epochDay: Long): String = LocalDate.ofEpochDay(epochDay).format(dayFormat)
+/** Weekday plus date in the user's date format, e.g. "Sat 31/10/2026". */
+fun formatDay(epochDay: Long): String = UiFormats.value.formatDayWithWeekday(epochDay)
 
-fun formatIsoDay(epochDay: Long): String = LocalDate.ofEpochDay(epochDay).toString()
+/** Date in the user's date format (used for typed date fields). */
+fun formatDate(epochDay: Long): String = UiFormats.value.formatDate(epochDay)
 
-fun parseIsoDay(text: String): Long? = runCatching { LocalDate.parse(text.trim()).toEpochDay() }.getOrNull()
+/** Parses a typed date in the user's format (ISO also accepted), or null. */
+fun parseDate(text: String): Long? = UiFormats.value.parseDate(text)?.toEpochDay()
+
+fun formatDateTime(epochMs: Long): String =
+    UiFormats.value.formatDateTime(epochMs, com.earnd.app.ServiceLocator.clock.zone())
+
+fun dateHint(): String = UiFormats.value.dateHint
+fun timeHint(): String = UiFormats.value.timeHint
 
 fun formatRemaining(ms: Long): String {
     val total = (ms / 1000).coerceAtLeast(0)

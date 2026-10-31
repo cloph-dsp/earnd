@@ -85,8 +85,7 @@ class LockedActivity : ComponentActivity() {
     }
 
     private fun formatTime(at: Long): String =
-        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-            .format(Instant.ofEpochMilli(at).atZone(ServiceLocator.clock.zone()))
+        com.earnd.app.domain.DateTimeFormats.current.formatTime(at, ServiceLocator.clock.zone())
 
     companion object {
         private const val EXTRA_PKG = "com.earnd.app.blocking.PKG"

@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.earnd.app.ServiceLocator
+import com.earnd.app.domain.DateTimeFormats
+import com.earnd.app.ui.common.UiFormats
 import com.earnd.app.domain.today
 import com.earnd.app.ui.apps.PendingRuleChanges
 import com.earnd.app.ui.nav.EarndNavHost
@@ -35,6 +37,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val settings by remember { ServiceLocator.settings.settings }.collectAsState(initial = null)
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            androidx.compose.runtime.SideEffect {
+                settings?.let { s ->
+                    UiFormats.apply(DateTimeFormats(s.dateFormat, s.timeFormat, android.text.format.DateFormat.is24HourFormat(ctx)))
+                }
+            }
             EarndTheme(darkTheme = (settings?.themeMode ?: ThemeMode.SYSTEM).isDark()) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     val start by produceState<String?>(null) {

@@ -1,5 +1,6 @@
 package com.earnd.app.alarms
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -9,53 +10,83 @@ import com.earnd.app.R
 import com.earnd.app.alarms.AlarmKeys.putOwner
 import com.earnd.app.data.entity.OwnerKind
 
-/** Posts the full-screen-intent notification that opens [AlarmActivity] over the lock screen. */
+/**
+ * The ringing notification: full-screen intent to [AlarmActivity] (heads-up when the system
+ * downgrades it), tap opens the alarm screen, and Stop / Snooze actions that work from the shade.
+ */
 internal object Ringing {
-    /** Posts the ringing notification through [AlarmRingService]; falls back to a plain notification. */
+    /** Starts ringing through [AlarmRingService]. */
     suspend fun show(context: Context, kind: OwnerKind, id: Long) {
         AlarmChannels.ensure(context)
         val label = AlarmsModule.actions.labelOf(kind, id).ifBlank { context.getString(R.string.alarms_ring_fallback) }
         if (AlarmRingService.start(context, kind, id, label)) return
-        val n = build(context, kind, id, label).apply { flags = flags or android.app.Notification.FLAG_INSISTENT }
-        context.getSystemService(NotificationManager::class.java).notify(AlarmKeys.NOTIF_RING, n)
+        // Service refused: a plain heads-up with the same actions (no looping sound to get stuck).
+        context.getSystemService(NotificationManager::class.java)
+            .notify(AlarmKeys.NOTIF_RING, build(context, kind, id, label, snoozesLeft = 0))
     }
 
-    fun build(context: Context, kind: OwnerKind, id: Long, label: String): android.app.Notification {
-        val open = PendingIntent.getActivity(
-            context, 0, AlarmActivity.intent(context, kind, id),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val done = PendingIntent.getBroadcast(
+    fun openIntent(context: Context, kind: OwnerKind, id: Long): PendingIntent = PendingIntent.getActivity(
+        context, 0, AlarmActivity.intent(context, kind, id),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    private fun actionIntent(context: Context, action: String, kind: OwnerKind, id: Long): PendingIntent =
+        PendingIntent.getBroadcast(
             context, 0,
-            Intent(context, DoneActionReceiver::class.java).setAction(AlarmKeys.ACTION_DONE)
-                .setData(AlarmKeys.uri(kind, id, "done-ring")).putOwner(kind, id),
+            Intent(context, RingActionReceiver::class.java).setAction(action)
+                .setData(AlarmKeys.uri(kind, id, action.substringAfterLast('.'))).putOwner(kind, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        return NotificationCompat.Builder(context, AlarmChannels.RING)
+
+    fun build(context: Context, kind: OwnerKind, id: Long, label: String, snoozesLeft: Int): Notification {
+        val open = openIntent(context, kind, id)
+        val b = NotificationCompat.Builder(context, AlarmChannels.RING)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(label)
             .setContentText(context.getString(R.string.alarms_ring_text))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setFullScreenIntent(open, true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(open)
             .setOngoing(true)
-            .addAction(0, context.getString(R.string.alarms_done_action, PendingNotifier.ellipsize(label, 22)), done)
+            .setAutoCancel(false)
+            .setFullScreenIntent(open, true) // downgraded to heads-up when not allowed or screen in use
+            .addAction(0, context.getString(R.string.alarms_ring_stop), actionIntent(context, AlarmKeys.ACTION_RING_STOP, kind, id))
+        if (RingPolicy.canSnooze(snoozesLeft)) {
+            b.addAction(0, context.getString(R.string.alarms_ring_snooze_short, NagSchedule.SNOOZE_MIN),
+                actionIntent(context, AlarmKeys.ACTION_RING_SNOOZE, kind, id))
+        }
+        return b.build()
+    }
+
+    fun missed(context: Context, kind: OwnerKind, id: Long, label: String) {
+        val n = NotificationCompat.Builder(context, AlarmChannels.MISSED)
+            .setSmallIcon(R.drawable.alarms_ic_notification)
+            .setColor(context.getColor(R.color.alarms_accent))
+            .setContentTitle(context.getString(R.string.alarms_missed_title))
+            .setContentText(label)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
             .build()
+        runCatching { context.getSystemService(NotificationManager::class.java).notify(AlarmKeys.NOTIF_MISSED, n) }
     }
 
     /** Minimal notification for a service start that turns out to have nothing to ring. */
-    fun placeholder(context: Context): android.app.Notification =
+    fun placeholder(context: Context): Notification =
         NotificationCompat.Builder(context, AlarmChannels.RING)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setContentText(context.getString(R.string.alarms_ring_text))
+            .setSilent(true)
             .build()
 
+    /** Silences and removes everything about the current ring. Safe to call any number of times. */
     @Suppress("UNUSED_PARAMETER")
-    fun dismiss(context: Context, kind: OwnerKind, id: Long) {
+    fun dismiss(context: Context, kind: OwnerKind, id: Long) = stopAll(context)
+
+    fun stopAll(context: Context) {
         AlarmRingService.stop(context)
-        context.getSystemService(NotificationManager::class.java).cancel(AlarmKeys.NOTIF_RING)
+        runCatching { context.getSystemService(NotificationManager::class.java).cancel(AlarmKeys.NOTIF_RING) }
         AlarmActivity.finishCurrent()
     }
 }

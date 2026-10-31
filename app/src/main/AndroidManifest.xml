@@ -108,6 +108,7 @@
 
         <receiver android:name=".alarms.AlarmReceiver" android:exported="false" />
         <receiver android:name=".alarms.DoneActionReceiver" android:exported="false" />
+        <receiver android:name=".alarms.RingActionReceiver" android:exported="false" />
         <receiver android:name=".alarms.RearmReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

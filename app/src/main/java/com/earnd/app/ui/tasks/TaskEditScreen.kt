@@ -46,9 +46,10 @@ import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
 import com.earnd.app.ui.common.WeekdayPicker
-import com.earnd.app.ui.common.formatIsoDay
+import com.earnd.app.ui.common.formatDate
+import com.earnd.app.ui.common.dateHint
 import com.earnd.app.ui.common.launchUi
-import com.earnd.app.ui.common.parseIsoDay
+import com.earnd.app.ui.common.parseDate
 import kotlinx.coroutines.flow.flowOf
 
 @Composable
@@ -165,13 +166,13 @@ private fun DueEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
         FilterChip(t.dueEpochDay == today + 1, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today + 1)) }, { Text("Tomorrow") })
     }
     if (t.dueEpochDay != null) {
-        var text by remember(t.dueEpochDay) { mutableStateOf(formatIsoDay(t.dueEpochDay)) }
+        var text by remember(t.dueEpochDay) { mutableStateOf(formatDate(t.dueEpochDay)) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = text,
-                onValueChange = { s -> text = s; parseIsoDay(s)?.let { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = it)) } },
-                label = { Text("Date (YYYY-MM-DD)") }, singleLine = true,
-                isError = parseIsoDay(text) == null, modifier = Modifier.weight(1f),
+                onValueChange = { s -> text = s; parseDate(s)?.let { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = it)) } },
+                label = { Text("Date (${dateHint()})") }, singleLine = true,
+                isError = parseDate(text) == null, modifier = Modifier.weight(1f),
             )
             TimeField("Time (optional)", t.dueMinuteOfDay, { set(t.copy(dueMinuteOfDay = it)) }, Modifier.weight(1f))
         }

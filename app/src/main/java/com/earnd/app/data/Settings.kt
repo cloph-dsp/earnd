@@ -5,6 +5,8 @@ import com.earnd.app.data.entity.PuzzleKind
 import com.earnd.app.data.entity.ResetPeriod
 import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.data.entity.ThemeMode
+import com.earnd.app.domain.DateFormatPref
+import com.earnd.app.domain.TimeFormatPref
 import java.time.DayOfWeek
 
 /** Typed user settings. Minute-of-day values are 0..1439 local time. */
@@ -43,6 +45,8 @@ data class Settings(
     val unlockCapMin: Int? = null,
     val removalPuzzle: PuzzleKind = PuzzleKind.NONE,
     val listDensity: ListDensity = ListDensity.COMFORTABLE,
+    val dateFormat: DateFormatPref = DateFormatPref.DMY,
+    val timeFormat: TimeFormatPref = TimeFormatPref.H24,
 ) {
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false

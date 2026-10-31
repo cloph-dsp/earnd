@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application>
@@ -23,8 +25,15 @@
             android:taskAffinity="com.earnd.app.alarm"
             android:theme="@style/Theme.Earnd" />
 
+        <!-- mediaPlayback: allowed to start from an exact-alarm broadcast; needs FOREGROUND_SERVICE_MEDIA_PLAYBACK. -->
+        <service
+            android:name=".alarms.AlarmRingService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <receiver android:name=".alarms.AlarmReceiver" android:exported="false" />
         <receiver android:name=".alarms.DoneActionReceiver" android:exported="false" />
+        <receiver android:name=".alarms.RingActionReceiver" android:exported="false" />
         <receiver android:name=".alarms.RearmReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

@@ -81,8 +81,7 @@ class AlarmActions(private val context: Context) {
 
     suspend fun snoozesLeft(kind: OwnerKind, id: Long): Int {
         val s = db.nagStateDao().get(kind, id) ?: return 0
-        val max = db.alarmConfigDao().get(kind, id)?.snoozeMaxCount ?: 2
-        return (max - s.snoozeCount).coerceAtLeast(0)
+        return RingPolicy.snoozesLeft(db.alarmConfigDao().get(kind, id)?.snoozeMaxCount, s.snoozeCount)
     }
 
     suspend fun labelOf(kind: OwnerKind, id: Long): String = when (kind) {
