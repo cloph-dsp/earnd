@@ -1,5 +1,7 @@
 package com.earnd.app.ui.onboarding
 
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.RowDivider
 import android.Manifest
 import android.content.Intent
 import android.os.Build
@@ -19,13 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
+import com.earnd.app.ui.theme.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -55,16 +55,16 @@ fun PermissionCards(modifier: Modifier = Modifier) {
         onDispose { owner.lifecycle.removeObserver(obs) }
     }
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier) {
         AppPermissions.all().forEach { p ->
             val granted = remember(tick) { runCatching { p.granted(context) }.getOrDefault(false) }
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
+            run {
+                Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(p.title + if (p.optional) " (optional)" else "", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        if (granted) Icon(Icons.Outlined.CheckCircle, "Granted", tint = MaterialTheme.colorScheme.primary)
+                        Text(p.title + if (p.optional) " (optional)" else "", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        if (granted) Text("On", style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber) else Text("Off", style = MaterialTheme.typography.labelMedium, color = Earnd.palette.red)
                     }
-                    Text(p.why, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                    Text(p.why, style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(top = 2.dp))
                     if (!granted) {
                         FilledTonalButton(onClick = {
                             val intentFn = p.settingsIntent
@@ -83,6 +83,7 @@ fun PermissionCards(modifier: Modifier = Modifier) {
                     }
                 }
             }
+            RowDivider()
         }
     }
 }

@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import com.earnd.app.ui.theme.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.earnd.app.ui.theme.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +37,7 @@ internal fun AlarmScreen(
         ) {
             Text(
                 stringResource(R.string.alarms_ring_kicker),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.height(12.dp))
@@ -47,7 +47,7 @@ internal fun AlarmScreen(
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(48.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(64.dp)) {
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                 Text(stringResource(R.string.alarms_ring_done), style = MaterialTheme.typography.titleLarge)
             }
             Spacer(Modifier.height(16.dp))

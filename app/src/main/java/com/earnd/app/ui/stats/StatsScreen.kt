@@ -81,7 +81,7 @@ fun StatsScreen() {
         SectionTitle("Tasks finished")
         Bars(days.map { it.toEpochDay() }, tasksByDay, MaterialTheme.colorScheme.secondary)
         SectionTitle("Minutes earned")
-        Bars(days.map { it.toEpochDay() }, earnedByDay, MaterialTheme.colorScheme.tertiary)
+        Bars(days.map { it.toEpochDay() }, earnedByDay, MaterialTheme.colorScheme.primary)
         SectionTitle("Minutes spent")
         Text(
             "Earned ${formatMinutes(earnedByDay.values.sum())}, spent ${formatMinutes(spentByDay.values.sum())} this week.",
@@ -103,7 +103,7 @@ private fun Bars(days: List<Long>, values: Map<Long, Int>, color: Color) {
                 Text("$v", style = MaterialTheme.typography.labelSmall)
                 Box(
                     Modifier.fillMaxWidth().height((96f * v / max).dp.coerceAtLeast(2.dp))
-                        .background(if (v == 0) MaterialTheme.colorScheme.surfaceVariant else color, RoundedCornerShape(4.dp)),
+                        .background(if (v == 0) MaterialTheme.colorScheme.surfaceVariant else color, RoundedCornerShape(1.dp)),
                 )
                 Text(
                     java.time.LocalDate.ofEpochDay(d).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),

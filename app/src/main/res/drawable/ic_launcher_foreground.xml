@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Earnd mark: an open teal ring (time) with a coral check sweeping into it. 108dp adaptive canvas. -->
+<!-- Earnd mark: an amber chamfered block (7-unit cuts top-left and bottom-right) with a graphite
+     notch, on graphite. 108dp adaptive canvas, content inside the 66dp safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:strokeColor="#0FA3A3" android:strokeWidth="7" android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:pathData="M54,30 A24,24 0 1,1 31.4,46" />
-    <path android:fillColor="#5FD4D2"
-        android:pathData="M50.5,30 a3.5,3.5 0 1,1 7,0 a3.5,3.5 0 1,1 -7,0z" />
-    <path android:strokeColor="#FF7A5C" android:strokeWidth="7" android:strokeLineCap="round"
-        android:strokeLineJoin="round" android:fillColor="#00000000"
-        android:pathData="M43,54 L51,62 L66,45" />
+    <path android:fillColor="#FFB000"
+        android:pathData="M40,32 L76,32 L76,68 L68,76 L32,76 L32,40 Z" />
+    <path android:fillColor="#121110"
+        android:pathData="M42,47 L66,47 L66,53 L42,53 Z M42,59 L58,59 L58,65 L42,65 Z" />
 </vector>

@@ -162,7 +162,7 @@ private fun HistoryGrid(today: java.time.LocalDate, counts: Map<Long, Int>, perD
                         n == 0 -> MaterialTheme.colorScheme.surfaceVariant
                         else -> color.copy(alpha = (0.35f + 0.65f * (n.toFloat() / perDay).coerceAtMost(1f)))
                     }
-                    Box(Modifier.size(16.dp).background(fill, RoundedCornerShape(3.dp)))
+                    Box(Modifier.size(16.dp).background(fill, RoundedCornerShape(1.dp)))
                 }
             }
         }

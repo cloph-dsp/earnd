@@ -3,14 +3,15 @@ package com.earnd.app.widgets
 import androidx.compose.ui.graphics.Color
 import androidx.glance.color.ColorProvider
 
-/** Day/night colors shared by the Earnd widgets. */
+/** Day/night colors shared by the Earnd widgets: graphite and paper, amber for earned, red for locked. */
 internal object WidgetColors {
-    val surface = ColorProvider(day = Color(0xFFF4FBFA), night = Color(0xFF0B3D3A))
-    val onSurface = ColorProvider(day = Color(0xFF0B3D3A), night = Color(0xFFE3F4F2))
-    val muted = ColorProvider(day = Color(0xFF4F6F6C), night = Color(0xFFA5C4C0))
-    val primary = ColorProvider(day = Color(0xFF0FA3A3), night = Color(0xFF2E9E9B))
-    val onPrimary = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFFFFFFFF))
-    val accent = ColorProvider(day = Color(0xFFD95F48), night = Color(0xFFFF9B85))
-    val locked = ColorProvider(day = Color(0xFF0B3D3A), night = Color(0xFF16524E))
-    val bedtime = ColorProvider(day = Color(0xFF3B4A6B), night = Color(0xFF2A3554))
+    val surface = ColorProvider(day = Color(0xFFF2EFE8), night = Color(0xFF121110))
+    val onSurface = ColorProvider(day = Color(0xFF121110), night = Color(0xFFE9E4DA))
+    val muted = ColorProvider(day = Color(0xFF5C564C), night = Color(0xFFA39C8F))
+    val primary = ColorProvider(day = Color(0xFF9A6A00), night = Color(0xFFFFB000))
+    val onPrimary = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF121110))
+    val accent = ColorProvider(day = Color(0xFFC9281C), night = Color(0xFFFF4A3D))
+    val locked = accent
+    val bedtime = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF1D1B18))
+    val onBedtime = onSurface
 }

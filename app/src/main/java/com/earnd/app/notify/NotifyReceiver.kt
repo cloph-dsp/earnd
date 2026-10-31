@@ -76,6 +76,7 @@ class NotifyReceiver : BroadcastReceiver() {
         }
         val n = Notification.Builder(context, channel)
             .setSmallIcon(R.drawable.alarms_ic_notification)
+            .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(msg.title)
             .setContentText(msg.body.lineSequence().first())
             .setStyle(Notification.BigTextStyle().bigText(msg.body))

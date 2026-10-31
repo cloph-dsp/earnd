@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.earnd.app.ui.theme.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -81,7 +81,7 @@ fun ScreenTimeSection() {
             }
             Box(
                 Modifier.fillMaxWidth(ms.toFloat() / max).height(6.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(3.dp)),
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(1.dp)),
             )
         }
     }
@@ -97,8 +97,8 @@ private fun HourBars(perHour: LongArray) {
             Box(
                 Modifier.weight(1f).height((80f * v / max).dp.coerceAtLeast(1.dp))
                     .background(
-                        if (v == 0L) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.tertiary,
-                        RoundedCornerShape(2.dp),
+                        if (v == 0L) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.secondary,
+                        RoundedCornerShape(1.dp),
                     ),
             )
         }

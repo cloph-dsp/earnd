@@ -1,5 +1,7 @@
 package com.earnd.app.ui.settings
 
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.RowDivider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,10 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.earnd.app.ui.theme.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -89,12 +89,14 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
             Text("Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp))
 
             pendingAt?.let { at ->
-                Card(Modifier.fillMaxWidth().padding(top = 12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
-                    Row(Modifier.padding(12.dp)) {
-                        Text("A loosening change is waiting and applies at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.", Modifier.weight(1f))
-                        TextButton(onClick = { launchUi { sl.settings.cancelPendingWeakening(); refresh++ } }) { Text("Cancel it") }
-                    }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Looser settings apply at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.",
+                        Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.red,
+                    )
+                    TextButton(onClick = { launchUi { sl.settings.cancelPendingWeakening(); refresh++ } }) { Text("Cancel") }
                 }
+                RowDivider()
             }
 
             SectionTitle("Blocking")

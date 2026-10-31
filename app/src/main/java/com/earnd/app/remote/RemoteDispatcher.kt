@@ -326,7 +326,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
 
         fun isForbidden(cmd: String): Boolean = cmd.substringBefore('.') in FORBIDDEN_ROOTS
 
-        private const val DEFAULT_COLOR = 0xFF0FA3A3.toInt()
+        private const val DEFAULT_COLOR = 0xFFFFB000.toInt()
 
         fun parseColor(s: String): Int {
             val hex = s.removePrefix("#")

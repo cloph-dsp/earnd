@@ -1,5 +1,7 @@
 package com.earnd.app.ui.onboarding
 
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.Wordmark
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,8 +16,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
+import com.earnd.app.ui.theme.Button
+import com.earnd.app.ui.theme.OutlinedButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -60,11 +62,12 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         if (step < pages.size) {
             val p = pages[step]
-            Text(p.title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-            Text(p.body, style = MaterialTheme.typography.bodyLarge)
+            if (step == 0) Wordmark()
+            Text(p.title, style = MaterialTheme.typography.headlineMedium)
+            Text(p.body, style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
         } else if (step == pages.size) {
-            Text("A few permissions", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-            Text("You can change any of these later in Settings.", style = MaterialTheme.typography.bodyLarge)
+            Text("Permissions", style = MaterialTheme.typography.headlineMedium)
+            Text("You can change these later in Settings.", style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
             PermissionCards()
         } else {
             KeepAliveGuide()
@@ -83,7 +86,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
 @Composable
 fun KeepAliveGuide() {
     val context = LocalContext.current
-    Text("Keep Earnd running", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+    Text("Keep Earnd running", style = MaterialTheme.typography.headlineMedium)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Text("If the blocking service is greyed out", style = MaterialTheme.typography.titleMedium)
         Text(

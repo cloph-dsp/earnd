@@ -45,27 +45,27 @@ class TasksWidget : GlanceAppWidget() {
     @Composable
     private fun Content(context: Context, rows: List<WidgetTasks.Row>) {
         Column(
-            modifier = GlanceModifier.fillMaxSize().cornerRadius(20.dp)
+            modifier = GlanceModifier.fillMaxSize().cornerRadius(4.dp)
                 .background(WidgetColors.surface).padding(12.dp),
         ) {
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     context.getString(R.string.widgets_tasks_title),
                     modifier = GlanceModifier.defaultWeight(),
-                    style = TextStyle(color = WidgetColors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                    style = TextStyle(color = WidgetColors.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium),
                 )
                 Text(
                     "+",
                     modifier = GlanceModifier.padding(horizontal = 10.dp)
                         .clickable(actionStartActivity(WidgetLinks.addTask(context))),
-                    style = TextStyle(color = WidgetColors.accent, fontSize = 22.sp, fontWeight = FontWeight.Bold),
+                    style = TextStyle(color = WidgetColors.primary, fontSize = 20.sp, fontWeight = FontWeight.Medium),
                 )
             }
             if (rows.isEmpty()) {
                 Text(
                     context.getString(R.string.widgets_tasks_empty),
                     modifier = GlanceModifier.padding(top = 8.dp),
-                    style = TextStyle(color = WidgetColors.muted, fontSize = 14.sp),
+                    style = TextStyle(color = WidgetColors.muted, fontSize = 13.sp),
                 )
             } else {
                 LazyColumn {
@@ -87,8 +87,8 @@ class TasksWidget : GlanceAppWidget() {
                     actionParametersOf(CompleteTaskAction.TASK_ID to row.id),
                 ),
                 colors = CheckboxDefaults.colors(
-                    checkedColor = WidgetColors.primary,
-                    uncheckedColor = WidgetColors.primary,
+                    checkedColor = WidgetColors.muted,
+                    uncheckedColor = WidgetColors.onSurface,
                 ),
             )
             Spacer(GlanceModifier.width(4.dp))
@@ -99,7 +99,7 @@ class TasksWidget : GlanceAppWidget() {
                     .clickable(actionStartActivity(WidgetLinks.task(context, row.id))),
                 style = TextStyle(
                     color = if (row.overdue) WidgetColors.accent else WidgetColors.onSurface,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                 ),
             )
         }

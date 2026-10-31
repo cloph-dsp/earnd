@@ -181,7 +181,7 @@ class HabitService(
         val s = settingsNow()
         val now = clock.now()
         return HabitEntity(
-            name = name, iconKey = "check", colorArgb = 0xFF4CAF50.toInt(),
+            name = name, iconKey = "check", colorArgb = 0xFFFFB000.toInt(),
             anchorEpochDay = clock.localDate(now).toEpochDay(),
             checkInMode = if (s.photoRequiredDefault) CheckInMode.PHOTO else CheckInMode.TAP,
             createdAt = now,

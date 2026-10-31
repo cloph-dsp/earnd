@@ -4,14 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.earnd.app.ui.theme.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import com.earnd.app.ui.theme.ChamferPanel
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.NumberStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.earnd.app.ui.theme.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,41 +48,38 @@ fun TimeBankCard(
     onAllDoneUnlock: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val p = Earnd.palette
+    ChamferPanel(modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val s = state.session
             var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
             LaunchedEffect(s?.id) { while (s != null) { now = System.currentTimeMillis(); delay(1000) } }
             if (s != null && s.plannedEndAt > now) {
                 Text(
-                    if (s.reason == SessionReason.ALL_DONE) "Everything's done. Enjoy the rest of today." else "Leisure apps are open",
-                    style = MaterialTheme.typography.titleMedium,
+                    if (s.reason == SessionReason.ALL_DONE) "Open for the rest of today" else "Open",
+                    style = MaterialTheme.typography.titleSmall, color = p.amber,
                 )
-                Text(formatRemaining(s.plannedEndAt - now) + " left", style = MaterialTheme.typography.displaySmall)
-                OutlinedButton(onClick = onStop) { Text("Lock again now") }
+                Text(formatRemaining(s.plannedEndAt - now) + " left", style = MaterialTheme.typography.displaySmall, color = p.amber)
                 if (s.reason == SessionReason.SPEND) {
-                    Text("Unused whole minutes go back to your bank.", style = MaterialTheme.typography.bodySmall)
+                    Text("Unused whole minutes go back to the bank.", style = MaterialTheme.typography.bodySmall, color = p.secondary)
                 }
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(onClick = onStop) { Text("Lock now") }
             } else {
-                Text("You have", style = MaterialTheme.typography.titleSmall)
-                Text(formatMinutes(state.balance) + " saved", style = MaterialTheme.typography.displaySmall)
+                Text("Locked", style = MaterialTheme.typography.titleSmall, color = p.red)
+                Text(formatMinutes(state.balance) + " banked", style = MaterialTheme.typography.displaySmall, color = p.amber)
                 when {
                     state.allDone && state.allDoneUnlock -> {
-                        Text("Everything for today is done.", style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = onAllDoneUnlock, colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary,
-                            contentColor = MaterialTheme.colorScheme.onTertiary,
-                        )) { Text("Open leisure apps for today") }
+                        Text("Everything for today is done.", style = MaterialTheme.typography.bodyMedium, color = p.secondary)
+                        Spacer(Modifier.height(4.dp))
+                        Button(onClick = onAllDoneUnlock) { Text("Unlock for today") }
                     }
                     state.hardMode -> Text(
-                        "Hard mode is on: leisure opens once today's habits are done.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        "Hard mode: apps open once today's habits are done.",
+                        style = MaterialTheme.typography.bodyMedium, color = p.secondary,
                     )
                     state.balance > 0 -> SpendPicker(state.balance, onSpend)
-                    else -> Text("Check in a habit or finish a task to add minutes.", style = MaterialTheme.typography.bodyMedium)
+                    else -> Text("Check in a habit or finish a task to earn minutes.", style = MaterialTheme.typography.bodyMedium, color = p.secondary)
                 }
             }
         }
@@ -93,8 +92,14 @@ private fun SpendPicker(balance: Int, onSpend: (Int) -> Unit) {
     var pick by remember(balance) { mutableIntStateOf(options.first()) }
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         options.take(5).forEach { m ->
-            FilterChip(selected = m == pick, onClick = { pick = m }, label = { Text(if (m == balance) "All" else "$m") })
+            FilterChip(
+                selected = m == pick, onClick = { pick = m },
+                label = { Text(if (m == balance) "All" else "$m", style = NumberStyle) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Earnd.palette.amber, selectedLabelColor = Earnd.palette.onAmber,
+                ),
+            )
         }
     }
-    Button(onClick = { onSpend(pick) }) { Text("Use ${formatMinutes(pick)}") }
+    Button(onClick = { onSpend(pick) }) { Text("Unlock ${formatMinutes(pick)}") }
 }

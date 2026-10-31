@@ -1,5 +1,17 @@
 package com.earnd.app.blocking
 
+import androidx.compose.material3.TextButton
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.RowDivider
+import com.earnd.app.ui.theme.Chamfer
+import com.earnd.app.ui.theme.Num
+import com.earnd.app.ui.theme.AmberButton
+import com.earnd.app.ui.common.SectionTitle
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import com.earnd.app.ui.theme.Checkbox
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,16 +25,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Bedtime
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
+import com.earnd.app.ui.theme.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.earnd.app.R
 import com.earnd.app.domain.BlockCause
@@ -57,7 +63,7 @@ fun LockedScreen(
         ) {
             Header(cause, target, until, ui.balanceMinutes)
             if (message != null) {
-                Text(refuseText(message), color = MaterialTheme.colorScheme.tertiary,
+                Text(refuseText(message), color = Earnd.palette.red,
                     style = MaterialTheme.typography.bodyMedium)
             }
             when (cause) {
@@ -67,8 +73,8 @@ fun LockedScreen(
                 else -> SessionChoices(ui, onStartSession)
             }
             if (cause != BlockCause.BEDTIME) {
-                Text(stringResource(R.string.blocking_earn_title), style = MaterialTheme.typography.titleMedium)
-                LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionTitle(stringResource(R.string.blocking_earn_title))
+                LazyColumn(Modifier.weight(1f)) {
                     if (ui.items.isEmpty()) item {
                         Text(stringResource(R.string.blocking_nothing_to_earn),
                             style = MaterialTheme.typography.bodyMedium,
@@ -82,12 +88,15 @@ fun LockedScreen(
                                 if (item.overdue) stringResource(R.string.blocking_task_overdue) else
                                     stringResource(R.string.blocking_task_today), item.minutes, photo = false) { onTask(item) }
                         }
+                        RowDivider()
                     }
                 }
             } else {
                 Spacer(Modifier.weight(1f))
             }
-            OutlinedButton(onHome, Modifier.fillMaxWidth()) { Text(stringResource(R.string.blocking_go_home)) }
+            TextButton(onHome, Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.blocking_go_home), color = Earnd.palette.secondary)
+            }
         }
     }
 }
@@ -103,24 +112,31 @@ private fun progress(item: EarnItem.Habit): String =
 
 @Composable
 private fun Header(cause: BlockCause, target: String, until: String?, balance: Int) {
-    Column(Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(if (cause == BlockCause.BEDTIME) Icons.Outlined.Bedtime else Icons.Outlined.Lock, null,
-            tint = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            when (cause) {
-                BlockCause.BEDTIME -> stringResource(R.string.blocking_title_bedtime, target)
-                else -> stringResource(R.string.blocking_title, target)
-            },
-            style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center,
-        )
+    val p = Earnd.palette
+    Column(Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.Start) {
+        Row(
+            Modifier.background(p.red, Chamfer).padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(if (cause == BlockCause.BEDTIME) Icons.Outlined.Bedtime else Icons.Outlined.Lock, null,
+                tint = p.onRed, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.padding(3.dp))
+            Text(
+                when (cause) {
+                    BlockCause.BEDTIME -> stringResource(R.string.blocking_title_bedtime, target)
+                    else -> stringResource(R.string.blocking_title, target)
+                },
+                style = MaterialTheme.typography.labelLarge, color = p.onRed,
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(stringResource(R.string.blocking_not_yet), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(4.dp))
         val sub = when {
             cause == BlockCause.BEDTIME && until != null -> stringResource(R.string.blocking_bedtime_until, until)
             else -> pluralStringResource(R.plurals.blocking_balance, balance, balance)
         }
-        Text(sub, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center)
+        Text(sub, style = MaterialTheme.typography.bodyMedium, color = p.secondary)
     }
 }
 
@@ -132,11 +148,11 @@ private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit) {
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ui.balanceMinutes <= 0 -> Unit
         else -> {
-            Text(stringResource(R.string.blocking_use_time), style = MaterialTheme.typography.titleMedium)
+            SectionTitle(stringResource(R.string.blocking_use_time))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val shown = (choices.take(3) + listOf(ui.balanceMinutes)).distinct().sorted().takeLast(3)
                 shown.forEach { m ->
-                    Button({ onStart(m) }, Modifier.weight(1f)) {
+                    AmberButton({ onStart(m) }, Modifier.weight(1f)) {
                         Text(stringResource(R.string.blocking_minutes_short, m))
                     }
                 }
@@ -147,20 +163,22 @@ private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit) {
 
 @Composable
 private fun EarnRow(title: String, detail: String, minutes: Int, photo: Boolean, onClick: () -> Unit) {
-    Card(onClick, Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge)
-                Text(detail, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(stringResource(R.string.blocking_plus_minutes, minutes),
-                color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.padding(4.dp))
-            Icon(if (photo) Icons.Outlined.CameraAlt else Icons.Outlined.CheckCircle,
-                contentDescription = stringResource(R.string.blocking_check_in),
-                tint = MaterialTheme.colorScheme.primary)
+    val p = Earnd.palette
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick).padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = p.secondary)
+        }
+        Num(stringResource(R.string.blocking_plus_minutes, minutes), color = p.amber)
+        Spacer(Modifier.padding(6.dp))
+        if (photo) {
+            Icon(Icons.Outlined.CameraAlt, contentDescription = stringResource(R.string.blocking_check_in),
+                tint = p.amber, modifier = Modifier.size(16.dp))
+        } else {
+            Checkbox(false, null, reward = true)
         }
     }
 }

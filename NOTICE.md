@@ -15,3 +15,12 @@ _None so far._
 
 AndroidX, Jetpack Compose, Room, WorkManager, Glance, CameraX (Apache-2.0) and kotlinx.coroutines
 (Apache-2.0).
+
+## Fonts
+
+Bundled in `app/src/main/res/font`, unmodified, from the google/fonts repository. Both are licensed under the
+SIL Open Font License 1.1; the license texts are in `licenses/`.
+
+- Chakra Petch Medium and SemiBold, Copyright 2018 The Chakra Petch Project Authors
+  (`licenses/OFL-ChakraPetch.txt`).
+- IBM Plex Mono Medium, Copyright 2017 IBM Corp. (`licenses/OFL-IBMPlexMono.txt`).

@@ -59,6 +59,7 @@ object GuardWatch {
         )
         val n = NotificationCompat.Builder(context, AlarmChannels.GUARD)
             .setSmallIcon(R.drawable.alarms_ic_notification)
+            .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(context.getString(R.string.blocking_guard_off_title))
             .setContentText(context.getString(R.string.blocking_guard_off_text))
             .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.blocking_guard_off_text)))

@@ -23,7 +23,7 @@
     <string name="alarms_done_action">Done: %s</string>
     <string name="alarms_upcoming_text">Coming up at %s</string>
 
-    <string name="alarms_ring_kicker">It is time for</string>
+    <string name="alarms_ring_kicker">Now</string>
     <string name="alarms_ring_fallback">Your reminder</string>
     <string name="alarms_ring_text">Tap to open, or mark it done.</string>
     <string name="alarms_ring_done">Done</string>
@@ -31,7 +31,7 @@
         <item quantity="one">Snooze %1$d min (%2$d left)</item>
         <item quantity="other">Snooze %1$d min (%2$d left)</item>
     </plurals>
-    <string name="alarms_ring_no_snooze">No snoozes left for this one. You have got this.</string>
+    <string name="alarms_ring_no_snooze">No snoozes left.</string>
     <string name="alarms_channel_guard">Blocking is off</string>
     <string name="alarms_channel_guard_desc">Tells you when the blocking service has been switched off.</string>
 </resources>

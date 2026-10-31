@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer: the chamfered block with its two notches cut out (even-odd fill). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7" android:strokeLineCap="round"
-        android:fillColor="#00000000" android:pathData="M54,30 A24,24 0 1,1 31.4,46" />
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7" android:strokeLineCap="round"
-        android:strokeLineJoin="round" android:fillColor="#00000000"
-        android:pathData="M43,54 L51,62 L66,45" />
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+        android:pathData="M40,32 L76,32 L76,68 L68,76 L32,76 L32,40 Z M42,47 L66,47 L66,53 L42,53 Z M42,59 L58,59 L58,65 L42,65 Z" />
 </vector>

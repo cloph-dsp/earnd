@@ -9,6 +9,12 @@ import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.unit.dp
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.RowDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,7 +59,9 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
     Scaffold(
         bottomBar = {
             if (tabs.any { it.route == route }) {
-                NavigationBar {
+                Column {
+                RowDivider()
+                NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                     tabs.forEach { t ->
                         NavigationBarItem(
                             selected = route == t.route,
@@ -66,8 +74,14 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                             },
                             icon = { Icon(t.icon, contentDescription = null) },
                             label = { Text(t.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Earnd.palette.amber, selectedTextColor = Earnd.palette.amber,
+                                indicatorColor = MaterialTheme.colorScheme.background,
+                                unselectedIconColor = Earnd.palette.muted, unselectedTextColor = Earnd.palette.muted,
+                            ),
                         )
                     }
+                }
                 }
             }
         },
@@ -85,6 +99,7 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                     onOpenHabit = { nav.navigate(Routes.habitDetail(it)) },
                     onAddHabit = { nav.navigate(Routes.habitEdit()) },
                     onPhotoCheckIn = { nav.navigate(Routes.photo(it)) },
+                    onOpenTask = { nav.navigate(Routes.taskEdit(it)) },
                     onManageHabits = { nav.navigate(Routes.HABITS_MANAGE) },
                 )
             }

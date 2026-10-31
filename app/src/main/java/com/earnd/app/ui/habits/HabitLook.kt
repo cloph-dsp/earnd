@@ -38,8 +38,8 @@ object HabitLook {
     )
 
     val colors: List<Int> = listOf(
-        0xFF0FA3A3, 0xFF0B3D3A, 0xFFFF7A5C, 0xFF4C8DDB, 0xFF8E6CD8,
-        0xFFE0A63A, 0xFF5BAE6A, 0xFFD45D8A, 0xFF6B7A79,
+        0xFFFFB000, 0xFFFF4A3D, 0xFFD9822B, 0xFFB5651D, 0xFF9C8B3A,
+        0xFF6F8F4E, 0xFFC8B89A, 0xFFA39C8F, 0xFF7A7368,
     ).map { it.toInt() }
 
     fun icon(key: String): ImageVector = icons[key] ?: Icons.Outlined.Star

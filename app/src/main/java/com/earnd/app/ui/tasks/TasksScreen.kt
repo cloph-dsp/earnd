@@ -1,5 +1,11 @@
 package com.earnd.app.ui.tasks
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.Num
+import com.earnd.app.ui.theme.RowDivider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material3.Checkbox
+import com.earnd.app.ui.theme.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,7 +77,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
             QuickAdd()
         }
         if (lists.values.all { it.isEmpty() }) {
-            item { Text("Nothing open. Nice and quiet.", modifier = Modifier.padding(vertical = 24.dp)) }
+            item { Text("Nothing open.", color = Earnd.palette.secondary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 20.dp)) }
         }
         OPEN_BUCKETS.forEach { b -> taskSection(b, lists[b].orEmpty(), onOpenTask) }
         if (completed.isNotEmpty()) {
@@ -80,7 +86,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
                     Text((if (showCompleted) "Hide" else "Show") + " completed (${completed.size})")
                 }
             }
-            if (showCompleted) items(completed, key = { "c${it.id}" }) { t -> TaskRow(t, onOpenTask) }
+            if (showCompleted) items(completed, key = { "c${it.id}" }) { t -> TaskRow(t, onOpenTask); RowDivider() }
         }
     }
 }
@@ -88,7 +94,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
 private fun LazyListScope.taskSection(b: TaskBucket, tasks: List<TaskEntity>, onOpen: (Long) -> Unit) {
     if (tasks.isEmpty()) return
     item(key = "h$b") { SectionTitle(bucketLabel(b)) }
-    items(tasks, key = { it.id }) { t -> TaskRow(t, onOpen) }
+    items(tasks, key = { it.id }) { t -> TaskRow(t, onOpen); RowDivider() }
 }
 
 @Composable
@@ -126,25 +132,34 @@ private fun QuickAdd() {
 fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
     val done = t.completedAt != null
     Row(
-        Modifier.fillMaxWidth().clickable { onOpen(t.id) }.padding(vertical = 2.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { onOpen(t.id) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = done, onCheckedChange = { c ->
-            launchUi { if (c) ServiceLocator.taskService.complete(t.id) else ServiceLocator.taskService.uncomplete(t.id) }
-        })
-        Column(Modifier.weight(1f)) {
+        Checkbox(
+            checked = done,
+            onCheckedChange = { c ->
+                launchUi { if (c) ServiceLocator.taskService.complete(t.id) else ServiceLocator.taskService.uncomplete(t.id) }
+            },
+            reward = (t.rewardMinutes ?: 0) > 0,
+            modifier = Modifier.offset(x = (-17).dp),
+        )
+        Column(Modifier.weight(1f).offset(x = (-17).dp).padding(vertical = 6.dp)) {
             Text(
                 t.title,
                 style = MaterialTheme.typography.bodyLarge,
                 textDecoration = if (done) TextDecoration.LineThrough else null,
-                color = if (t.priority == Priority.HIGH && !done) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onBackground,
+                color = when {
+                    done -> Earnd.palette.done
+                    t.priority == Priority.HIGH -> Earnd.palette.red
+                    else -> MaterialTheme.colorScheme.onBackground
+                },
             )
             val meta = buildList {
                 t.dueEpochDay?.let { add(formatDay(it) + (t.dueMinuteOfDay?.let { m -> " " + formatMinuteOfDay(m) } ?: "")) }
                 t.rewardMinutes?.takeIf { it > 0 }?.let { add("+$it min") }
             }
-            if (meta.isNotEmpty()) Text(meta.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
+            if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
         }
-        if (t.repeatKind != RepeatKind.NONE) Icon(Icons.Outlined.Repeat, "Repeats", modifier = Modifier.padding(8.dp))
+        if (t.repeatKind != RepeatKind.NONE) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.size(16.dp))
     }
 }

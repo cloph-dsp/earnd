@@ -1,5 +1,7 @@
 package com.earnd.app.ui.habits
 
+import com.earnd.app.ui.theme.RowDivider
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -61,7 +63,7 @@ fun ManageHabitsScreen(onBack: () -> Unit, onOpenHabit: (Long) -> Unit) {
                 IconButton(enabled = i > 0, onClick = { move(i, i - 1) }) { Icon(Icons.Outlined.KeyboardArrowUp, "Move up") }
                 IconButton(enabled = i < order.lastIndex, onClick = { move(i, i + 1) }) { Icon(Icons.Outlined.KeyboardArrowDown, "Move down") }
             }
-            HorizontalDivider()
+            RowDivider()
         }
 
         SectionTitle("Archived")
@@ -72,17 +74,15 @@ fun ManageHabitsScreen(onBack: () -> Unit, onOpenHabit: (Long) -> Unit) {
             HabitLine(h, onOpen = { onOpenHabit(h.id) }) {
                 TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id) } }) { Text("Restore") }
             }
-            HorizontalDivider()
+            RowDivider()
         }
     }
 }
 
 @Composable
 private fun HabitLine(h: HabitEntity, onOpen: () -> Unit, trailing: @Composable () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(32.dp).background(Color(h.colorArgb), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(HabitLook.icon(h.iconKey), null, tint = Color.White, modifier = Modifier.size(18.dp))
-        }
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onOpen), verticalAlignment = Alignment.CenterVertically) {
+        Icon(HabitLook.icon(h.iconKey), null, tint = Color(h.colorArgb), modifier = Modifier.size(16.dp))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) { Text(h.name, style = MaterialTheme.typography.bodyLarge) }
         trailing()
     }

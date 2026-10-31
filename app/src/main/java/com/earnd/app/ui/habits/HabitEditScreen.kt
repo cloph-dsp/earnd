@@ -1,5 +1,7 @@
 package com.earnd.app.ui.habits
 
+import com.earnd.app.ui.theme.Earnd
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,10 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.earnd.app.ui.theme.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.earnd.app.ui.theme.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -89,17 +91,17 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
                 val on = key == h.iconKey
                 Box(
                     Modifier.size(40.dp)
-                        .background(if (on) Color(h.colorArgb) else MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                        .border(1.dp, if (on) Earnd.palette.amber else Earnd.palette.line, RectangleShape)
                         .clickable { set(h.copy(iconKey = key)) },
                     contentAlignment = Alignment.Center,
-                ) { Icon(icon, key, tint = if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant) }
+                ) { Icon(icon, key, tint = if (on) Color(h.colorArgb) else Earnd.palette.muted, modifier = Modifier.size(20.dp)) }
             }
         }
         Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HabitLook.colors.forEach { c ->
                 Box(
-                    Modifier.size(32.dp).background(Color(c), CircleShape)
-                        .then(if (c == h.colorArgb) Modifier.border(3.dp, MaterialTheme.colorScheme.onBackground, CircleShape) else Modifier)
+                    Modifier.size(28.dp).background(Color(c), RectangleShape)
+                        .then(if (c == h.colorArgb) Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground, RectangleShape) else Modifier)
                         .clickable { set(h.copy(colorArgb = c)) },
                 )
             }
