@@ -22,6 +22,10 @@ import com.earnd.app.ui.nav.EarndNavHost
 import com.earnd.app.ui.nav.Routes
 import com.earnd.app.ui.onboarding.Onboarding
 import com.earnd.app.ui.theme.EarndTheme
+import com.earnd.app.ui.theme.isDark
+import com.earnd.app.data.entity.ThemeMode
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 
 class MainActivity : ComponentActivity() {
     private var nav: NavHostController? = null
@@ -30,7 +34,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EarndTheme {
+            val settings by remember { ServiceLocator.settings.settings }.collectAsState(initial = null)
+            EarndTheme(darkTheme = (settings?.themeMode ?: ThemeMode.SYSTEM).isDark()) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     val start by produceState<String?>(null) {
                         value = if (Onboarding.isDone()) Routes.TODAY else Routes.ONBOARDING

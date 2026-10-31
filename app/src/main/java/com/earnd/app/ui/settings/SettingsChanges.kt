@@ -2,6 +2,7 @@ package com.earnd.app.ui.settings
 
 import com.earnd.app.data.Settings
 import com.earnd.app.data.entity.ResetPeriod
+import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.domain.DailyWindow
 
 /** Decides whether a settings edit loosens blocking (and so must wait out the hard-mode cooldown). */
@@ -15,7 +16,20 @@ object SettingsChanges {
             new.bedtimeGraceMin > old.bedtimeGraceMin ||
             bedtimeLoosened(old, new) ||
             vacationLoosened(old, new) ||
-            (new.defaultTaskRewardMin ?: 0) > (old.defaultTaskRewardMin ?: 0)
+            (new.defaultTaskRewardMin ?: 0) > (old.defaultTaskRewardMin ?: 0) ||
+            new.defaultHabitRewardMin > old.defaultHabitRewardMin ||
+            (old.rewardMode == RewardMode.ALL_DONE && new.rewardMode != RewardMode.ALL_DONE) ||
+            (old.photoRequiredDefault && !new.photoRequiredDefault) ||
+            segmentLoosened(old, new)
+
+    /** Turning segment mode on, or moving a segment start, can open apps earlier than before. */
+    private fun segmentLoosened(old: Settings, new: Settings): Boolean {
+        if (!new.segmentMode) return false
+        if (!old.segmentMode) return true
+        return new.morningStartMin != old.morningStartMin ||
+            new.afternoonStartMin != old.afternoonStartMin ||
+            new.eveningStartMin != old.eveningStartMin
+    }
 
     private fun bedtimeLoosened(old: Settings, new: Settings): Boolean {
         if (!old.bedtimeEnabled) return false

@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.earnd.app.data.entity.ThemeMode
 
 private val LightColors = lightColorScheme(
     primary = Teal, onPrimary = Color.White,
@@ -26,6 +27,14 @@ private val DarkColors = darkColorScheme(
     surface = DeepGreenDarker, onSurface = MistVariant,
     surfaceVariant = DeepGreen, onSurfaceVariant = MistVariant,
 )
+
+/** Resolves the user's theme choice against the system setting. */
+@Composable
+fun ThemeMode.isDark(): Boolean = when (this) {
+    ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+}
 
 @Composable
 fun EarndTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {

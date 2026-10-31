@@ -48,6 +48,14 @@ import com.earnd.app.ui.common.launchUi
 import com.earnd.app.ui.common.parseIsoDay
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import com.earnd.app.alarms.AlarmPermissions
+import com.earnd.app.data.entity.RewardMode
+import com.earnd.app.data.entity.ThemeMode
 
 @Composable
 fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
@@ -106,6 +114,29 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
             SwitchRow("Open everything when today's habits are done", cur.allDoneUnlock, { v -> change { it.copy(allDoneUnlock = v) } })
             NumberField("Default task reward (minutes, blank = none)", cur.defaultTaskRewardMin, { v -> change { it.copy(defaultTaskRewardMin = v) } }, Modifier.fillMaxWidth())
 
+            SectionTitle("Habits")
+            Text("Habit minutes are paid", style = MaterialTheme.typography.labelLarge)
+            ChoiceChips(RewardMode.entries, cur.rewardMode, {
+                if (it == RewardMode.PER_CHECKIN) "With each check-in" else "Once everything is done"
+            }) { v -> change { it.copy(rewardMode = v) } }
+            NumberField("Default minutes per check-in", cur.defaultHabitRewardMin,
+                { v -> change { it.copy(defaultHabitRewardMin = (v ?: 0).coerceIn(0, 600)) } }, Modifier.fillMaxWidth())
+            SwitchRow(
+                "I promise to prove it", cur.photoRequiredDefault, { v -> change { it.copy(photoRequiredDefault = v) } },
+                hint = "Habits check in with a photo unless you set otherwise on the habit.",
+            )
+            SwitchRow(
+                "Unlock by part of the day", cur.segmentMode, { v -> change { it.copy(segmentMode = v) } },
+                hint = "Finish the morning's habits and leisure apps open until the afternoon starts, and so on.",
+            )
+            if (cur.segmentMode) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TimeField("Morning", cur.morningStartMin, { v -> v?.let { m -> change { it.copy(morningStartMin = m) } } }, Modifier.weight(1f))
+                    TimeField("Afternoon", cur.afternoonStartMin, { v -> v?.let { m -> change { it.copy(afternoonStartMin = m) } } }, Modifier.weight(1f))
+                    TimeField("Evening", cur.eveningStartMin, { v -> v?.let { m -> change { it.copy(eveningStartMin = m) } } }, Modifier.weight(1f))
+                }
+            }
+
             SectionTitle("Hard mode")
             SwitchRow(
                 "Hard mode", cur.hardMode, { v -> change { it.copy(hardMode = v) } },
@@ -132,8 +163,24 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
                 TimeField("From", cur.quietStartMin, { v -> v?.let { m -> change { it.copy(quietStartMin = m) } } }, Modifier.weight(1f))
                 TimeField("Until", cur.quietEndMin, { v -> v?.let { m -> change { it.copy(quietEndMin = m) } } }, Modifier.weight(1f))
             }
+            SwitchRow("Morning nudge", cur.morningNudgeEnabled, { v -> change { it.copy(morningNudgeEnabled = v) } },
+                hint = "A short summary of today's habits.")
+            if (cur.morningNudgeEnabled) {
+                TimeField("At", cur.morningNudgeMin, { v -> v?.let { m -> change { it.copy(morningNudgeMin = m) } } })
+            }
+            SwitchRow("Daily report", cur.dailyReportEnabled, { v -> change { it.copy(dailyReportEnabled = v) } },
+                hint = "In the evening: what got done, what didn't, and leisure minutes used.")
+            if (cur.dailyReportEnabled) {
+                TimeField("At", cur.dailyReportMin, { v -> v?.let { m -> change { it.copy(dailyReportMin = m) } } })
+            }
+            ExactAlarmRow()
             DefaultAlarm(OwnerKind.TASK, "Default for tasks")
             DefaultAlarm(OwnerKind.HABIT, "Default for habit reminders")
+
+            SectionTitle("Appearance")
+            ChoiceChips(ThemeMode.entries, cur.themeMode, {
+                when (it) { ThemeMode.SYSTEM -> "Follow system"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" }
+            }) { v -> change { it.copy(themeMode = v) } }
 
             SectionTitle("Remote control")
             RemoteSection()
@@ -145,6 +192,29 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 24.dp),
             )
         }
+    }
+}
+
+/** Shows whether exact alarms are allowed, re-checked whenever the screen resumes. */
+@Composable
+private fun ExactAlarmRow() {
+    val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current
+    var ok by remember { mutableStateOf(AlarmPermissions.canScheduleExact(context)) }
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { ok = AlarmPermissions.canScheduleExact(context) }
+    }
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Exact alarms", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                if (ok) "Allowed. Reminders ring on time." else "Not allowed. Reminders may arrive late.",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (ok) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+            )
+        }
+        val intent = AlarmPermissions.exactAlarmSettingsIntent(context)
+        if (!ok && intent != null) TextButton(onClick = { runCatching { context.startActivity(intent) } }) { Text("Allow") }
     }
 }
 

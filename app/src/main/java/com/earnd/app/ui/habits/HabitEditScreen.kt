@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.earnd.app.ServiceLocator
+import com.earnd.app.data.Settings
+import androidx.compose.runtime.collectAsState
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.CheckInMode
 import com.earnd.app.data.entity.DaySegment
@@ -59,9 +61,11 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         habit = sl.db.habitDao().get(habitId) ?: HabitEntity(
             name = "", iconKey = "star", colorArgb = HabitLook.colors.first(),
             anchorEpochDay = sl.clock.today().toEpochDay(), createdAt = sl.clock.now(),
+            sortOrder = sl.db.habitDao().nextSortOrder(), rewardMinutes = null,
         )
         alarm = AlarmConfigs.custom(OwnerKind.HABIT, habitId)
     }
+    val settings by remember { sl.settings.settings }.collectAsState(initial = Settings())
     val h = habit ?: return
     val isNew = h.id == 0L
     val set: (HabitEntity) -> Unit = { habit = it }
@@ -69,7 +73,9 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
     EditScaffold(if (isNew) "New habit" else "Edit habit", onBack = onDone, actions = {
         TextButton(enabled = h.name.isNotBlank(), onClick = {
             launchUi {
-                val id = sl.habitService.save(h.copy(name = h.name.trim()))
+                val id = sl.habitService.save(
+                    h.copy(name = h.name.trim(), minutesPerCheckIn = HabitRules.rewardMinutes(h, sl.settings.current())),
+                )
                 AlarmConfigs.apply(OwnerKind.HABIT, id, alarm)
                 onDone()
             }
@@ -123,14 +129,39 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         }
 
         SectionTitle("Reward and check-in")
-        NumberField("Minutes earned per check-in", h.minutesPerCheckIn, { set(h.copy(minutesPerCheckIn = (it ?: 0).coerceIn(0, 600))) })
         SwitchRow(
-            "Check in with a photo", h.checkInMode == CheckInMode.PHOTO,
-            { set(h.copy(checkInMode = if (it) CheckInMode.PHOTO else CheckInMode.TAP)) },
-            hint = "Taking the picture is the commitment. Photos stay on this phone.",
+            "Use the default reward", h.rewardMinutes == null,
+            { on -> set(h.copy(rewardMinutes = if (on) null else settings.defaultHabitRewardMin)) },
+            hint = if (h.rewardMinutes == null) "${settings.defaultHabitRewardMin} min per check-in, set in Settings." else null,
+        )
+        h.rewardMinutes?.let { r ->
+            NumberField("Minutes earned per check-in", r, { set(h.copy(rewardMinutes = (it ?: 0).coerceIn(0, 600))) })
+        }
+        Text("Check in with", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
+        ChoiceChips(listOf(null, true, false), h.photoRequired, {
+            when (it) {
+                null -> if (settings.photoRequiredDefault) "Default (photo)" else "Default (tap)"
+                true -> "A photo"
+                false -> "A tap"
+            }
+        }) { v -> set(h.copy(photoRequired = v, checkInMode = if (v == true) CheckInMode.PHOTO else CheckInMode.TAP)) }
+        Text(
+            "Taking the picture is the commitment. Photos stay on this phone.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         SectionTitle("Reminder")
+        SwitchRow(
+            "Remind only on some days", h.reminderDays != 0,
+            { on -> set(h.copy(reminderDays = if (on) h.weekdayMask.takeIf { it != 0 } ?: 0b1111111 else 0)) },
+            hint = if (h.reminderDays == 0) "Reminds on every day the habit is scheduled." else null,
+        )
+        if (h.reminderDays != 0) WeekdayPicker(h.reminderDays) { m -> set(h.copy(reminderDays = m.takeIf { it != 0 } ?: h.reminderDays)) }
+        OutlinedTextField(
+            h.reminderMessage.orEmpty(), { set(h.copy(reminderMessage = it.take(120).ifBlank { null })) },
+            label = { Text("Reminder message (optional)") }, placeholder = { Text(h.name.ifBlank { "Uses the habit name" }) },
+            singleLine = true, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        )
         SwitchRow("Custom reminder for this habit", alarm != null, { on ->
             if (!on) alarm = null else launchUi { alarm = AlarmConfigs.defaults(OwnerKind.HABIT).copy(ownerId = h.id) }
         }, hint = if (alarm == null) "Uses your default reminder settings." else null)

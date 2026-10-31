@@ -9,6 +9,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val APPS = "apps"
     const val PERMISSIONS = "permissions"
+    const val HABITS_MANAGE = "habits/manage"
 
     const val HABIT_EDIT = "habit/edit?id={id}"
     const val HABIT_DETAIL = "habit/{id}"

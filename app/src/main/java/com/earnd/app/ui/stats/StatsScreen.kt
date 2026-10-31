@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,8 +53,17 @@ fun StatsScreen() {
                 sl.clock.localDate(it.at) == d
         }.sumOf { it.minutes }.coerceAtLeast(0)
     }
+    val spentByDay = days.associate { d ->
+        d.toEpochDay() to -ledger.filter {
+            (it.kind == LedgerKind.SPEND || it.kind == LedgerKind.ADJUST) && sl.clock.localDate(it.at) == d
+        }.sumOf { it.minutes }.coerceAtMost(0)
+    }
     val tasksByDay = days.associate { d ->
         d.toEpochDay() to completed.count { t -> t.completedAt?.let { sl.clock.localDate(it) } == d }
+    }
+
+    val perfectDays by produceState(0, ledger.size) {
+        value = runCatching { sl.habitService.perfectDays(today.withDayOfMonth(1), today).size }.getOrDefault(0)
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
@@ -62,12 +72,24 @@ fun StatsScreen() {
             "${checkIns.values.sum()} check-ins, ${tasksByDay.values.sum()} tasks finished, ${formatMinutes(earnedByDay.values.sum())} earned.",
             style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp),
         )
+        Text(
+            "Perfect days this month: $perfectDays.",
+            style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp),
+        )
         SectionTitle("Check-ins")
         Bars(days.map { it.toEpochDay() }, checkIns, MaterialTheme.colorScheme.primary)
         SectionTitle("Tasks finished")
         Bars(days.map { it.toEpochDay() }, tasksByDay, MaterialTheme.colorScheme.secondary)
         SectionTitle("Minutes earned")
         Bars(days.map { it.toEpochDay() }, earnedByDay, MaterialTheme.colorScheme.tertiary)
+        SectionTitle("Minutes spent")
+        Text(
+            "Earned ${formatMinutes(earnedByDay.values.sum())}, spent ${formatMinutes(spentByDay.values.sum())} this week.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Bars(days.map { it.toEpochDay() }, spentByDay, MaterialTheme.colorScheme.secondary)
+        ScreenTimeSection()
+        Spacer(Modifier.height(24.dp))
     }
 }
 
