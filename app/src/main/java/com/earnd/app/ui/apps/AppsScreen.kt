@@ -50,6 +50,7 @@ import com.earnd.app.data.entity.AppRule
 import com.earnd.app.data.entity.AppRuleEntity
 import com.earnd.app.ui.common.formatMinuteOfDay
 import com.earnd.app.ui.common.launchUi
+import com.earnd.app.ui.common.rememberPuzzleGate
 import com.earnd.app.domain.minuteOfDay
 import kotlinx.coroutines.launch
 
@@ -67,6 +68,7 @@ fun AppsScreen(onBack: () -> Unit) {
     val rules by remember { sl.db.appRuleDao().observeAll() }.collectAsState(initial = emptyList())
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val gate = rememberPuzzleGate()
     LaunchedEffect(Unit) { sl.essentialApps.refresh(); apps = InstalledApps.load(context) }
     LaunchedEffect(reload, rules) { PendingRuleChanges.applyDue(sl.clock.now()); pending = PendingRuleChanges.pending() }
 
@@ -98,22 +100,20 @@ fun AppsScreen(onBack: () -> Unit) {
                         Checkbox(isLeisure, { on ->
                             launchUi {
                                 if (on) { PendingRuleChanges.addLeisure(app.pkg, app.label, false); reload++ }
-                                else announce(PendingRuleChanges.removeLeisure(app.pkg, app.label, false))
+                                else gate { launchUi { announce(PendingRuleChanges.removeLeisure(app.pkg, app.label, false)) } }
                             }
                         })
                     }
                 }
                 1 -> WebsiteList(rules.filter { it.isWebsite }, onAdd = { host ->
                     launchUi { PendingRuleChanges.addLeisure(host, host, true); reload++ }
-                }, onRemove = { r -> launchUi { announce(PendingRuleChanges.removeLeisure(r.key, r.label, true)) } })
+                }, onRemove = { r -> gate { launchUi { announce(PendingRuleChanges.removeLeisure(r.key, r.label, true)) } } })
                 else -> AppList(apps, rules, header = "Calls, messages, maps, settings and this app are always open. Add others here.") { app, isLeisure, isEssential ->
                     val userAllowed = rules.any { it.key == app.pkg && it.rule == AppRule.ALLOWED }
                     val builtIn = isEssential && !userAllowed
                     Checkbox(isEssential, enabled = !builtIn, onCheckedChange = { on ->
-                        launchUi {
-                            if (on) announce(PendingRuleChanges.allow(app.pkg, app.label))
-                            else { PendingRuleChanges.disallow(app.pkg); reload++ }
-                        }
+                        if (on) gate { launchUi { announce(PendingRuleChanges.allow(app.pkg, app.label)) } }
+                        else launchUi { PendingRuleChanges.disallow(app.pkg); reload++ }
                     })
                     if (isLeisure && !isEssential) Text("Leisure", style = MaterialTheme.typography.labelSmall)
                 }

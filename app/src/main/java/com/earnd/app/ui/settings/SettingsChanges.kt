@@ -20,7 +20,16 @@ object SettingsChanges {
             new.defaultHabitRewardMin > old.defaultHabitRewardMin ||
             (old.rewardMode == RewardMode.ALL_DONE && new.rewardMode != RewardMode.ALL_DONE) ||
             (old.photoRequiredDefault && !new.photoRequiredDefault) ||
-            segmentLoosened(old, new)
+            segmentLoosened(old, new) ||
+            capLoosened(old.unlockCapMin, new.unlockCapMin) ||
+            new.removalPuzzle.ordinal < old.removalPuzzle.ordinal
+
+    /** Removing the session cap or raising it lets one unlock run longer. */
+    private fun capLoosened(old: Int?, new: Int?): Boolean = when {
+        old == null -> false
+        new == null -> true
+        else -> new > old
+    }
 
     /** Turning segment mode on, or moving a segment start, can open apps earlier than before. */
     private fun segmentLoosened(old: Settings, new: Settings): Boolean {
