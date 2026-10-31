@@ -2,6 +2,8 @@ package com.earnd.app.widgets
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -30,7 +32,10 @@ class LockWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val state = LockState.load()
         WidgetRefresher.scheduleSessionEnd(context, state.sessionEndsAt)
-        provideContent { Content(context, state) }
+        provideContent {
+            val live by LockState.observe().collectAsState(state)
+            Content(context, live)
+        }
     }
 
     @Composable

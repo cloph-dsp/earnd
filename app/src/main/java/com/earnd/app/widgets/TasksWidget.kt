@@ -2,6 +2,8 @@ package com.earnd.app.widgets
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -38,8 +40,13 @@ import com.earnd.app.ServiceLocator
 /** 4x2 widget: pending tasks (overdue and today first); check one to complete it. */
 class TasksWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val rows = WidgetTasks.load()
-        provideContent { Content(context, rows) }
+        // Read inside the composition: the Glance session outlives a single update, so data
+        // captured before provideContent would go stale after a check.
+        val initial = WidgetTasks.load()
+        provideContent {
+            val rows by WidgetTasks.observe().collectAsState(initial)
+            Content(context, rows)
+        }
     }
 
     @Composable
