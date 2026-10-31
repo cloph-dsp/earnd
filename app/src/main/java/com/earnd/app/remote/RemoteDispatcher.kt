@@ -158,7 +158,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "timesPerDay" to h.timesPerDay,
             "complete" to (done.size >= h.timesPerDay),
             "mode" to h.checkInMode,
-            "minutesPerCheckIn" to h.minutesPerCheckIn,
+            "minutesPerCheckIn" to HabitProgress.rewardMinutes(h, backend.settings()),
             "order" to h.sortOrder,
         )
         if (detailed) {
