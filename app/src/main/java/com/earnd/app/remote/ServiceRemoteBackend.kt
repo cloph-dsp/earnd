@@ -1,6 +1,13 @@
 package com.earnd.app.remote
 
+import android.content.Context
+import android.content.Intent
 import com.earnd.app.data.EarndDatabase
+import com.earnd.app.data.Settings
+import com.earnd.app.data.entity.AlarmConfigEntity
+import com.earnd.app.data.entity.OwnerKind
+import com.earnd.app.ui.alarms.AlarmConfigs
+import com.earnd.app.ui.apps.PendingRuleChanges
 import com.earnd.app.data.SettingsRepository
 import com.earnd.app.data.entity.CheckInEntity
 import com.earnd.app.data.entity.HabitEntity
@@ -24,6 +31,7 @@ class ServiceRemoteBackend(
     private val tasksSvc: TaskService,
     private val clock: Clock,
     private val photoDir: File?,
+    private val context: Context?,
 ) : RemoteBackend {
 
     override fun now() = clock.now()
@@ -84,6 +92,31 @@ class ServiceRemoteBackend(
     override suspend fun completeTask(id: Long) = tasksSvc.complete(id, creditBank = false)
     override suspend fun uncompleteTask(id: Long) = tasksSvc.uncomplete(id)
     override suspend fun deleteTask(id: Long) = tasksSvc.delete(id)
+
+    override suspend fun alarmConfig(kind: OwnerKind, id: Long) = db.alarmConfigDao().get(kind, id)
+    override suspend fun saveAlarmConfig(cfg: AlarmConfigEntity) = AlarmConfigs.save(cfg)
+
+    override suspend fun settings(): Settings = settings.current()
+    override suspend fun saveSettings(expected: Settings, new: Settings): Boolean {
+        var applied = false
+        settings.update { cur -> if (cur == expected) new.also { applied = true } else cur }
+        return applied
+    }
+
+    override suspend fun appRules() = db.appRuleDao().all()
+    override suspend fun blockRule(key: String, label: String, isWebsite: Boolean) =
+        PendingRuleChanges.addLeisure(key, label, isWebsite)
+
+    override suspend fun launchableApps(): List<Pair<String, String>> {
+        val ctx = context ?: return emptyList()
+        val pm = ctx.packageManager
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return pm.queryIntentActivities(intent, 0).map { it.activityInfo }
+            .distinctBy { it.packageName }
+            .filter { it.packageName != ctx.packageName }
+            .map { it.loadLabel(pm).toString() to it.packageName }
+            .sortedBy { it.first.lowercase() }
+    }
 
     override suspend fun appendAudit(entryJson: String) {
         settings.rawPut(RemoteAudit.KEY, RemoteAudit.append(settings.rawGet(RemoteAudit.KEY), entryJson))

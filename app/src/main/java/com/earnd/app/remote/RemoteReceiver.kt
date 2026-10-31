@@ -59,6 +59,7 @@ class RemoteReceiver : BroadcastReceiver() {
                     ServiceRemoteBackend(
                         db, settings, timeBank, habitService, taskService, clock,
                         File(context.applicationContext.filesDir, "photos"),
+                        context.applicationContext,
                     ),
                 )
             }.also { cached = it }

@@ -1,7 +1,11 @@
 package com.earnd.app.remote
 
+import com.earnd.app.data.Settings
+import com.earnd.app.data.entity.AlarmConfigEntity
+import com.earnd.app.data.entity.AppRuleEntity
 import com.earnd.app.data.entity.CheckInEntity
 import com.earnd.app.data.entity.HabitEntity
+import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.TaskEntity
 import java.time.LocalDate
 
@@ -31,6 +35,20 @@ interface RemoteBackend {
     suspend fun completeTask(id: Long): TaskEntity?
     suspend fun uncompleteTask(id: Long)
     suspend fun deleteTask(id: Long)
+
+    /** Per-item alarm/reminder config, or null when the item follows the defaults. */
+    suspend fun alarmConfig(kind: OwnerKind, id: Long): AlarmConfigEntity?
+    suspend fun saveAlarmConfig(cfg: AlarmConfigEntity)
+
+    suspend fun settings(): Settings
+    /** Replaces settings with [new] only if they still equal [expected]; false on a race. */
+    suspend fun saveSettings(expected: Settings, new: Settings): Boolean
+
+    suspend fun appRules(): List<AppRuleEntity>
+    /** Marks an app or website as blocked (leisure). Only ever strengthens blocking. */
+    suspend fun blockRule(key: String, label: String, isWebsite: Boolean)
+    /** Launchable installed apps as (label, package), sorted by label. */
+    suspend fun launchableApps(): List<Pair<String, String>>
 
     suspend fun appendAudit(entryJson: String)
     suspend fun auditLog(): List<String>

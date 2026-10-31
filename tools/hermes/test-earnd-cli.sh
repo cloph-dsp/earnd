@@ -24,4 +24,8 @@ cli 'x.y.z' >/dev/null; check "nested command refused" "$?" 2
 cli tasks.list 'bad-key=1' >/dev/null; check "bad key refused" "$?" 2
 cli tasks.list novalue >/dev/null; check "missing = refused" "$?" 2
 
+out="$(cli habits.create name=x reminders="08:00,14:00" remind_days="mon,tue")"
+args="$(reparse "$out")"
+check "list value stays one arg" "$(printf '%s\n' "$args" | grep -c '^08:00,14:00$')" 1
+
 exit $fail

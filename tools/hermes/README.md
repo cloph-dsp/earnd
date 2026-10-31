@@ -9,13 +9,22 @@ phone. Everything goes through adb; Earnd has no network permission and no serve
 
 ## What remote access can and cannot do
 
-Allowed: read status (balance, lock state, counts; read-only), list/get/create/update/archive/
-unarchive/reorder habits, check in (with quantity) and undo, list/get/create/update/complete/uncomplete/delete tasks.
+Policy: **creating or strengthening is allowed; weakening is not.**
 
-Always refused with `forbidden`: unlocking, changing the balance or reward minutes, reward
-mode, segment mode, changing blocked apps, disabling blocking, bedtime, vacation, hard mode and
-all other settings. Photo habits must be checked in on the phone, and photo proof can only be
-turned off there. Remote access is **off by default**; turn it on in
+Allowed: read status (balance, lock state, counts; read-only), list/get/create/update/archive/
+unarchive/reorder habits (including reward minutes, photo proof, reminders and alarm config),
+check in (with quantity) and undo, list/get/create/update/complete/uncomplete/delete tasks
+(reward on create, alarms), list and add blocked apps/websites (`rules.*`), read settings and
+tighten them (`settings.tighten`). Remote check-ins and completions never credit the time bank.
+
+Refused with `forbidden_weaken`: raising a habit's or task's reward minutes, turning photo proof
+off, and any `settings.tighten` change that the phone's own settings screen classifies as
+weakening (e.g. raising or removing the unlock cap, turning hard mode/blocking/bedtime off,
+segment mode, vacation, theme and other non-tightening keys).
+
+Always refused with `forbidden`: unlocking/locking, sessions, spending or changing the balance,
+the ledger, vacation, remote access itself, and any unblock / always-open command (none exists).
+Photo habits must be checked in on the phone. Remote access is **off by default**; turn it on in
 Earnd's settings. Every remote change (and every refusal) is kept in an audit log on the
 phone (last 200 entries; `earnd-cli audit.list`).
 

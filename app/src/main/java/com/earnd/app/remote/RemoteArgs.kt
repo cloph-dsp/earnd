@@ -39,6 +39,14 @@ class RemoteArgs(raw: Map<String, String>) {
         }
     }
 
+    /** First present key of [keys] as an int in [range]; `none` gives a null value; null if absent. */
+    fun intOrNone(keys: List<String>, range: IntRange): Field.Set<Int?>? {
+        val k = keys.firstOrNull(::has) ?: return null
+        val v = values.getValue(k)
+        if (v.isBlank() || v.equals("none", true)) return Field.Set(null)
+        return Field.Set(int(k, range))
+    }
+
     fun requireLong(key: String): Long = long(key) ?: bad("missing $key")
 
     /** Like [int] but rejects values outside [range]. */
@@ -118,7 +126,7 @@ class RemoteArgs(raw: Map<String, String>) {
         /** Per-key decoded length caps; other keys use [MAX_VALUE_LEN]. */
         val TEXT_CAPS = mapOf(
             "title" to 200, "name" to 80, "unit" to 24, "notes" to 4_000,
-            "message" to 200, "ids" to 4_000,
+            "message" to 200, "ids" to 4_000, "label" to 80,
         )
         private val DAY_PREFIXES = listOf("mo", "tu", "we", "th", "fr", "sa", "su")
         private val DAY_NAMES = listOf("mon", "tue", "wed", "thu", "fri", "sat", "sun")

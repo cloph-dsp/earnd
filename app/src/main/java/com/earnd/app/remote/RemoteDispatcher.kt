@@ -1,23 +1,36 @@
 package com.earnd.app.remote
 
+import com.earnd.app.data.Settings
+import com.earnd.app.data.SettingsCodec
+import com.earnd.app.data.entity.AlarmConfigEntity
+import com.earnd.app.data.entity.AlarmStyle
+import com.earnd.app.data.entity.AppRule
 import com.earnd.app.data.entity.CheckInMode
 import com.earnd.app.data.entity.DaySegment
 import com.earnd.app.data.entity.HabitEntity
+import com.earnd.app.data.entity.NagMode
+import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.Priority
 import com.earnd.app.data.entity.RepeatKind
 import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.data.entity.TaskEntity
+import com.earnd.app.domain.HabitProgress
 import com.earnd.app.domain.HabitSchedule
 import com.earnd.app.domain.TaskBucket
 import com.earnd.app.domain.TaskService
+import com.earnd.app.ui.apps.normalizeHost
+import com.earnd.app.ui.settings.SettingsChanges
 import java.time.LocalDate
 
 /**
  * Pure command dispatcher for the adb-only remote interface. Every call returns one JSON
  * object: `{"ok":true,...}` or `{"ok":false,"error":"<code>","message":...}`.
  *
- * Only habit/task management and read-only status are reachable. Anything touching the time
- * bank, unlock sessions, blocking, bedtime, vacation or settings is refused as `forbidden`.
+ * Policy: creating things and strengthening blocking is allowed; weakening never is. Habits,
+ * tasks, reminders and alarms can be configured; apps/sites can be blocked (never unblocked);
+ * settings can only be tightened (classified by [SettingsChanges.isWeakening], the same rule the
+ * phone UI uses). Raising rewards or dropping photo proof fails with `forbidden_weaken`. The time
+ * bank, unlock sessions, vacation and remote access itself are refused as `forbidden`.
  */
 class RemoteDispatcher(private val backend: RemoteBackend) {
 
@@ -39,6 +52,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             }
         } catch (e: ForbiddenField) {
             fail("forbidden", e.message)
+        } catch (e: WeakenForbidden) {
+            fail("forbidden_weaken", e.message)
         } catch (e: BadArgs) {
             fail("bad_args", e.message)
         } catch (e: NotFound) {
@@ -82,8 +97,23 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         "tasks.list" -> tasksList(a)
         "tasks.get" -> {
             val t = taskOr404(a.requireLong("id"))
-            ok("task" to taskJson(t) + ("subtasks" to backend.subtasks(t.id).map(::taskJson)))
+            ok(
+                "task" to taskJson(t) + ("alarm" to backend.alarmConfig(OwnerKind.TASK, t.id)?.let(::alarmJson)) +
+                    ("subtasks" to backend.subtasks(t.id).map(::taskJson)),
+            )
         }
+        "rules.list" -> rulesList()
+        "rules.block_app" -> blockApp(a)
+        "rules.block_site" -> blockSite(a)
+        "rules.blockable_apps" -> {
+            val blocked = backend.appRules().filter { it.rule == AppRule.LEISURE && !it.isWebsite }.map { it.key }.toSet()
+            ok("apps" to backend.launchableApps().map { (label, pkg) -> Json.obj("label" to label, "pkg" to pkg, "blocked" to (pkg in blocked)) })
+        }
+        "settings.get" -> ok(
+            "settings" to SettingsCodec.encode(backend.settings()).toSortedMap().mapValues { it.value.ifEmpty { null } },
+            "tightenable" to TIGHTEN_KEYS.sorted(),
+        )
+        "settings.tighten" -> settingsTighten(a)
         "tasks.create" -> taskSave(a, null)
         "tasks.update" -> taskSave(a, taskOr404(a.requireLong("id")))
         "tasks.complete" -> {
@@ -143,6 +173,11 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 "target" to h.targetQuantity,
                 "unit" to h.unit,
                 "streak" to backend.streak(h.id),
+                "rewardMinutes" to HabitProgress.rewardMinutes(h, backend.settings()),
+                "photoRequired" to photoOn(h, backend.settings()),
+                "remindDays" to if (h.reminderDays == 0) null else RemoteArgs.maskToDays(h.reminderDays),
+                "message" to h.reminderMessage,
+                "alarm" to backend.alarmConfig(OwnerKind.HABIT, h.id)?.let(::alarmJson),
                 "checkInsToday" to done.map { Json.obj("id" to it.id, "at" to it.at, "quantity" to it.quantity) },
             )
         }
@@ -150,7 +185,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     }
 
     private suspend fun habitSave(a: RemoteArgs, existing: HabitEntity?): Map<String, Any?> {
-        rejectRewardFields(a, *HABIT_LOCKED_FIELDS)
+        val s = backend.settings()
         val today = backend.today()
         val name = a.text("name") ?: existing?.name ?: bad("missing name")
         val base = existing ?: HabitEntity(
@@ -174,14 +209,40 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             targetQuantity = if (a.has("target")) a.str("target")?.takeIf { it != "none" }?.let { a.double("target", QTY_RANGE) } else base.targetQuantity,
             unit = if (a.has("unit")) a.text("unit") else base.unit,
             checkInMode = a.enum<CheckInMode>("mode") ?: base.checkInMode,
-        )
-        // Dropping photo proof weakens a habit, so only the phone may do it.
-        if (existing?.checkInMode == CheckInMode.PHOTO && h.checkInMode != CheckInMode.PHOTO) {
-            throw ForbiddenField("photo proof can only be turned off on the phone")
+            reminderDays = when (a.str("remind_days")?.lowercase()) {
+                null -> base.reminderDays
+                "", "none", "all" -> 0
+                else -> a.weekdayMask("remind_days")!!
+            },
+            reminderMessage = if (a.has("message")) a.text("message")?.takeIf { !it.equals("none", true) } else base.reminderMessage,
+        ).let { h ->
+            val reward = a.intOrNone(REWARD_KEYS, REWARD_RANGE)
+            val photo = PHOTO_KEYS.firstNotNullOfOrNull(a::bool)
+            h.copy(
+                rewardMinutes = if (reward != null) reward.value else h.rewardMinutes,
+                photoRequired = photo ?: h.photoRequired,
+                checkInMode = when {
+                    a.has("mode") || photo == null -> h.checkInMode
+                    photo -> CheckInMode.PHOTO
+                    else -> CheckInMode.TAP
+                },
+            )
+        }
+        if (existing != null) {
+            // Earning more per check-in or dropping photo proof weakens the habit: phone only.
+            if (HabitProgress.rewardMinutes(h, s) > HabitProgress.rewardMinutes(existing, s)) {
+                throw WeakenForbidden("reward minutes can only be lowered remotely")
+            }
+            if (photoOn(existing, s) && !photoOn(h, s)) {
+                throw WeakenForbidden("photo proof can only be turned off on the phone")
+            }
         }
         val id = backend.saveHabit(h)
+        saveAlarm(a, OwnerKind.HABIT, id, habit = true)
         return ok("id" to id)
     }
+
+    private fun photoOn(h: HabitEntity, s: Settings) = h.checkInMode == CheckInMode.PHOTO || HabitProgress.photoRequired(h, s)
 
     private suspend fun habitCheckIn(a: RemoteArgs): Map<String, Any?> {
         val h = habitOr404(a.requireLong("id"))
@@ -241,7 +302,6 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     )
 
     private suspend fun taskSave(a: RemoteArgs, existing: TaskEntity?): Map<String, Any?> {
-        rejectRewardFields(a, *TASK_LOCKED_FIELDS)
         val today = backend.today()
         val title = a.text("title") ?: existing?.title ?: bad("missing title")
         val parent = a.long("parent")?.let { pid ->
@@ -273,15 +333,133 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             repeatKind = repeat,
             repeatWeekdayMask = mask,
             repeatInterval = a.int("interval", 1..365) ?: base.repeatInterval,
-        )
-        return ok("id" to backend.saveTask(t))
+        ).let { t -> a.intOrNone(REWARD_KEYS, REWARD_RANGE)?.let { t.copy(rewardMinutes = it.value) } ?: t }
+        if (existing != null && (t.rewardMinutes ?: 0) > (existing.rewardMinutes ?: 0)) {
+            throw WeakenForbidden("task reward can only be lowered remotely")
+        }
+        val id = backend.saveTask(t)
+        saveAlarm(a, OwnerKind.TASK, id, habit = false)
+        return ok("id" to id)
     }
 
     // ---- helpers ----
 
-    /** Rewards feed the time bank, so they can only be changed on the phone. */
-    private fun rejectRewardFields(a: RemoteArgs, vararg keys: String) {
-        keys.firstOrNull(a::has)?.let { throw ForbiddenField("$it can only be changed on the phone") }
+    // ---- alarms / reminders ----
+
+    /**
+     * Applies alarm keys to the item's own config. For habits, `reminders=08:00,14:00,21:00` is
+     * stored as a daily reminder at the latest time plus "minutes before" offsets for the others.
+     */
+    private suspend fun saveAlarm(a: RemoteArgs, kind: OwnerKind, id: Long, habit: Boolean) {
+        if (ALARM_KEYS.none(a::has) && !(habit && a.has("reminders"))) return
+        val base = backend.alarmConfig(kind, id) ?: AlarmConfigEntity(ownerKind = kind, ownerId = id)
+        val nagMax = a.intOrNone(listOf("nag_max"), 1..100)
+        var c = base.copy(
+            style = a.enum<AlarmStyle>("alarm") ?: base.style,
+            atDue = a.bool("at_due") ?: base.atDue,
+            offsetsBeforeMin = a.str("offsets")?.let { parseOffsets(it) } ?: base.offsetsBeforeMin,
+            nagMode = a.enum<NagMode>("nag") ?: base.nagMode,
+            nagEveryMin = a.int("nag_every", 1..1440) ?: base.nagEveryMin,
+            nagMaxCount = if (nagMax != null) nagMax.value else base.nagMaxCount,
+            vibrate = a.bool("vibrate") ?: base.vibrate,
+            snoozeMaxCount = a.int("snooze_max", 0..20) ?: base.snoozeMaxCount,
+        )
+        if (habit && a.has("reminders")) {
+            if (a.has("offsets")) bad("use either reminders or offsets for a habit")
+            val times = parseTimes(a.str("reminders").orEmpty())
+            c = if (times.isEmpty()) {
+                c.copy(habitReminderMinuteOfDay = null, offsetsBeforeMin = "")
+            } else {
+                c.copy(habitReminderMinuteOfDay = times.last(), offsetsBeforeMin = times.dropLast(1).map { times.last() - it }.joinToString(","))
+            }
+        }
+        backend.saveAlarmConfig(c.copy(ownerKind = kind, ownerId = id))
+    }
+
+    private fun alarmJson(c: AlarmConfigEntity): Map<String, Any?> {
+        val offsets = c.offsetsBeforeMin.split(',').mapNotNull { it.trim().toIntOrNull() }.filter { it > 0 }
+        return Json.obj(
+            "reminders" to c.habitReminderMinuteOfDay?.let { r -> (offsets.map { r - it }.filter { it >= 0 } + r).distinct().sorted().map(::hhmm) },
+            "style" to c.style,
+            "atDue" to c.atDue,
+            "offsets" to offsets.ifEmpty { null },
+            "nag" to c.nagMode,
+            "nagEvery" to c.nagEveryMin,
+            "nagMax" to c.nagMaxCount,
+            "vibrate" to c.vibrate,
+            "snoozeMax" to c.snoozeMaxCount,
+        )
+    }
+
+    // ---- block rules ----
+
+    private suspend fun rulesList(): Map<String, Any?> {
+        val rules = backend.appRules().sortedBy { it.label.lowercase() }
+        fun pick(rule: AppRule, web: Boolean) =
+            rules.filter { it.rule == rule && it.isWebsite == web }.map { Json.obj("key" to it.key, "label" to it.label) }
+        return ok("blockedApps" to pick(AppRule.LEISURE, false), "blockedSites" to pick(AppRule.LEISURE, true), "alwaysOpen" to pick(AppRule.ALLOWED, false))
+    }
+
+    private suspend fun blockApp(a: RemoteArgs): Map<String, Any?> {
+        val pkg = a.text("pkg") ?: bad("missing pkg")
+        if (!PACKAGE_SHAPE.matches(pkg)) bad("bad pkg: $pkg")
+        val label = a.text("label") ?: backend.launchableApps().firstOrNull { it.second == pkg }?.first ?: pkg
+        backend.blockRule(pkg, label, isWebsite = false)
+        return ok("pkg" to pkg, "label" to label)
+    }
+
+    private suspend fun blockSite(a: RemoteArgs): Map<String, Any?> {
+        val raw = a.text("domain") ?: bad("missing domain")
+        val host = normalizeHost(raw)?.takeIf { HOST_SHAPE.matches(it) && it.length <= 253 } ?: bad("bad domain: $raw")
+        backend.blockRule(host, host, isWebsite = true)
+        return ok("domain" to host)
+    }
+
+    // ---- settings ----
+
+    /** Applies key=value pairs only if the result is not weakening by the phone UI's own rule. */
+    private suspend fun settingsTighten(a: RemoteArgs): Map<String, Any?> {
+        if (a.keys.isEmpty()) bad("give key=value pairs; tightenable: ${TIGHTEN_KEYS.sorted().joinToString(" ")}")
+        a.keys.firstOrNull { it !in TIGHTEN_KEYS }?.let { throw WeakenForbidden("$it cannot be changed remotely") }
+        val old = backend.settings()
+        val enc = SettingsCodec.encode(old).toMutableMap()
+        val wanted = a.keys.associateWith { k -> normalizeSetting(k, a.str(k)!!.trim(), enc.getValue(k)) }
+        enc += wanted
+        val new = SettingsCodec.decode(enc)
+        val got = SettingsCodec.encode(new)
+        wanted.forEach { (k, v) -> if (got[k] != v) bad("bad $k: ${a.str(k)}") }
+        checkSettingRanges(new)
+        if (new == old) return ok("changed" to false)
+        if (SettingsChanges.isWeakening(old, new)) throw WeakenForbidden("that change loosens blocking; only the phone can do it")
+        if (!backend.saveSettings(old, new)) return fail("conflict", "settings changed meanwhile; retry")
+        return ok("changed" to true, "settings" to wanted.keys.sorted().associateWith { got.getValue(it).ifEmpty { null } })
+    }
+
+    private fun normalizeSetting(key: String, v: String, current: String): String {
+        val l = v.lowercase()
+        return when {
+            l.isEmpty() || l == "none" -> ""
+            current == "true" || current == "false" -> when (l) {
+                "on", "yes", "1" -> "true"
+                "off", "no", "0" -> "false"
+                else -> l
+            }
+            (key.endsWith("StartMin") || key.endsWith("EndMin")) && ':' in v ->
+                ((RemoteArgs(mapOf(key to v)).time(key) as RemoteArgs.Field.Set).value ?: bad("bad $key")).toString()
+            v.first().isLetter() -> v.uppercase()
+            else -> v
+        }
+    }
+
+    private fun checkSettingRanges(s: Settings) {
+        fun chk(k: String, v: Int?, r: IntRange) { if (v != null && v !in r) bad("$k must be ${r.first}..${r.last}") }
+        chk("unlockCapMin", s.unlockCapMin, 1..1440)
+        chk("weakenCooldownMin", s.weakenCooldownMin, 0..1440)
+        chk("bedtimeStartMin", s.bedtimeStartMin, 0..1439)
+        chk("bedtimeEndMin", s.bedtimeEndMin, 0..1439)
+        chk("bedtimeGraceMin", s.bedtimeGraceMin, 0..120)
+        chk("defaultTaskRewardMin", s.defaultTaskRewardMin, REWARD_RANGE)
+        chk("defaultHabitRewardMin", s.defaultHabitRewardMin, REWARD_RANGE)
     }
 
     private suspend fun habitOr404(id: Long) = backend.habit(id) ?: throw NotFound("habit $id")
@@ -289,6 +467,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
 
     private class NotFound(message: String) : Exception(message)
     private class ForbiddenField(message: String) : Exception(message)
+    private class WeakenForbidden(message: String) : Exception(message)
 
     companion object {
         val COMMANDS = setOf(
@@ -298,22 +477,63 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "habits.checkin", "habits.undo",
             "tasks.list", "tasks.get", "tasks.create", "tasks.update",
             "tasks.complete", "tasks.uncomplete", "tasks.delete",
+            "rules.list", "rules.block_app", "rules.block_site", "rules.blockable_apps",
+            "settings.get", "settings.tighten",
         )
-        private val READ_ONLY = setOf("help", "status", "audit.list", "habits.list", "habits.get", "tasks.list", "tasks.get")
+        private val READ_ONLY = setOf(
+            "help", "status", "audit.list", "habits.list", "habits.get", "tasks.list", "tasks.get",
+            "rules.list", "rules.blockable_apps", "settings.get",
+        )
 
         /** Command roots that are never available remotely, whatever follows them. */
         val FORBIDDEN_ROOTS = setOf(
             "unlock", "lock", "session", "sessions", "spend", "balance", "bank", "ledger",
-            "apps", "app", "rules", "block", "blocking", "blocklist", "bedtime", "vacation",
-            "settings", "setting", "hardmode", "remote",
+            "apps", "app", "block", "blocking", "blocklist", "bedtime", "vacation",
+            "setting", "hardmode", "remote", "unblock", "allow",
             "reward", "rewards", "segment", "segments", "guard", "notify",
         )
 
-        /** Habit fields that feed the time bank or weaken proof: phone only. */
-        private val HABIT_LOCKED_FIELDS = arrayOf(
-            "minutes", "minutesPerCheckIn", "reward", "rewardMinutes", "photo", "photoRequired",
+        /**
+         * Roots with a fixed set of allowed commands: anything else under them (e.g. `rules.unblock`,
+         * `settings.set`) is refused as forbidden rather than unknown.
+         */
+        private val GUARDED_ROOTS = setOf("rules", "settings")
+
+        private val REWARD_KEYS = listOf("minutes", "rewardMinutes", "reward")
+        private val PHOTO_KEYS = listOf("photo", "photoRequired")
+        private val REWARD_RANGE = 0..240
+        private val ALARM_KEYS = listOf("alarm", "at_due", "offsets", "nag", "nag_every", "nag_max", "vibrate", "snooze_max")
+
+        /** Settings keys `settings.tighten` accepts (and then only for non-weakening values). */
+        val TIGHTEN_KEYS = setOf(
+            "hardMode", "blockingEnabled", "allDoneUnlock", "resetPeriod", "weakenCooldownMin",
+            "bedtimeEnabled", "bedtimeStartMin", "bedtimeEndMin", "bedtimeGraceMin",
+            "defaultTaskRewardMin", "defaultHabitRewardMin", "rewardMode", "photoRequiredDefault",
+            "unlockCapMin", "removalPuzzle",
         )
-        private val TASK_LOCKED_FIELDS = arrayOf("reward", "rewardMinutes")
+
+        private val PACKAGE_SHAPE = Regex("[A-Za-z][A-Za-z0-9_]*([.][A-Za-z][A-Za-z0-9_]*)+")
+        private val HOST_SHAPE = Regex("([a-z0-9]([a-z0-9-]*[a-z0-9])?[.])+[a-z]([a-z0-9-]*[a-z0-9])?")
+
+        fun hhmm(m: Int) = "%02d:%02d".format(m / 60, m % 60)
+
+        /** `08:00,14:00` -> sorted distinct minutes of day; `none` -> empty. */
+        fun parseTimes(v: String): List<Int> {
+            if (v.isBlank() || v.equals("none", true)) return emptyList()
+            val list = v.split(',').map { it.trim() }.filter { it.isNotEmpty() }.map { t ->
+                (RemoteArgs(mapOf("t" to t)).time("t") as? RemoteArgs.Field.Set)?.value ?: bad("bad reminders: $t")
+            }.distinct().sorted()
+            if (list.size > 12) bad("too many reminders (max 12)")
+            return list
+        }
+
+        /** `60,15` -> "60,15"; `none` -> "". */
+        fun parseOffsets(v: String): String {
+            if (v.isBlank() || v.equals("none", true)) return ""
+            return v.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+                .map { it.toIntOrNull()?.takeIf { n -> n in 1..10_080 } ?: bad("bad offsets: $it") }
+                .distinct().sortedDescending().joinToString(",")
+        }
 
         private val COMMAND_SHAPE = Regex("[a-z][a-z0-9_]{0,23}([.][a-z][a-z0-9_]{0,23})?")
         private val QTY_RANGE = 0.0..1_000_000.0
@@ -324,7 +544,10 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             return wanted.filter { it in current } + current.filterNot { it in w }
         }
 
-        fun isForbidden(cmd: String): Boolean = cmd.substringBefore('.') in FORBIDDEN_ROOTS
+        fun isForbidden(cmd: String): Boolean {
+            val root = cmd.substringBefore('.')
+            return root in FORBIDDEN_ROOTS || (root in GUARDED_ROOTS && cmd !in COMMANDS)
+        }
 
         private const val DEFAULT_COLOR = 0xFFFFB000.toInt()
 

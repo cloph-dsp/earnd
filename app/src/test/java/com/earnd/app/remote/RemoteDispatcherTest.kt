@@ -1,6 +1,11 @@
 package com.earnd.app.remote
 
+import com.earnd.app.data.Settings
+import com.earnd.app.data.entity.AlarmConfigEntity
+import com.earnd.app.data.entity.AppRule
+import com.earnd.app.data.entity.AppRuleEntity
 import com.earnd.app.data.entity.CheckInEntity
+import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.CheckInMode
 import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.RepeatKind
@@ -51,6 +56,21 @@ class RemoteDispatcherTest {
         override suspend fun completeTask(id: Long): TaskEntity? { tasks[id] = tasks[id]!!.copy(completedAt = 1); return null }
         override suspend fun uncompleteTask(id: Long) { tasks[id] = tasks[id]!!.copy(completedAt = null) }
         override suspend fun deleteTask(id: Long) { tasks.remove(id) }
+        val alarms = mutableMapOf<Pair<OwnerKind, Long>, AlarmConfigEntity>()
+        var settings = Settings()
+        val rules = mutableMapOf<String, AppRuleEntity>()
+        override suspend fun alarmConfig(kind: OwnerKind, id: Long) = alarms[kind to id]
+        override suspend fun saveAlarmConfig(cfg: AlarmConfigEntity) { alarms[cfg.ownerKind to cfg.ownerId] = cfg }
+        override suspend fun settings() = settings
+        override suspend fun saveSettings(expected: Settings, new: Settings): Boolean {
+            if (settings != expected) return false
+            settings = new; return true
+        }
+        override suspend fun appRules() = rules.values.toList()
+        override suspend fun blockRule(key: String, label: String, isWebsite: Boolean) {
+            rules[key] = AppRuleEntity(key, AppRule.LEISURE, isWebsite, label)
+        }
+        override suspend fun launchableApps() = listOf("YouTube" to "com.google.android.youtube")
         override suspend fun appendAudit(entryJson: String) { audit += entryJson }
         override suspend fun auditLog() = audit
     }
@@ -82,10 +102,72 @@ class RemoteDispatcherTest {
         assertTrue(d.handle("tasks.list", emptyMap()).contains("\\u2713"))
     }
 
-    @Test fun rewardFieldsAreForbidden() = runTest {
-        val out = d.handle("tasks.create", mapOf("title" to "x", "reward" to "500"))
-        assertTrue(out, out.contains("\"error\":\"forbidden\""))
-        assertTrue(b.tasks.isEmpty())
+    @Test fun taskRewardOnCreateThenOnlyLower() = runTest {
+        assertTrue(d.handle("tasks.create", mapOf("title" to "x", "reward" to "500")).contains("bad_args"))
+        assertTrue(d.handle("tasks.create", mapOf("title" to "x", "rewardMinutes" to "20", "offsets" to "60,15", "nag" to "fixed")).startsWith("{\"ok\":true"))
+        val t = b.tasks.values.single()
+        assertEquals(20, t.rewardMinutes)
+        assertEquals("60,15", b.alarms.getValue(OwnerKind.TASK to t.id).offsetsBeforeMin)
+        assertTrue(d.handle("tasks.update", mapOf("id" to "${t.id}", "reward" to "30")).contains("forbidden_weaken"))
+        assertEquals(20, b.tasks.getValue(t.id).rewardMinutes)
+        assertTrue(d.handle("tasks.update", mapOf("id" to "${t.id}", "reward" to "10")).startsWith("{\"ok\":true"))
+        assertEquals(10, b.tasks.getValue(t.id).rewardMinutes)
+    }
+
+    @Test fun habitCreateWithRewardAndReminders() = runTest {
+        val out = d.handle(
+            "habits.create",
+            mapOf("name" to "Water", "minutes" to "15", "times" to "3", "reminders" to "21:00,08:00,14:00", "remind_days" to "mon,tue", "message" to "Drink!", "photo" to "true"),
+        )
+        assertTrue(out, out.startsWith("{\"ok\":true"))
+        val h = b.habits.values.single()
+        assertEquals(15, h.rewardMinutes)
+        assertEquals(0b11, h.reminderDays)
+        assertEquals("Drink!", h.reminderMessage)
+        assertEquals(CheckInMode.PHOTO, h.checkInMode)
+        val cfg = b.alarms.getValue(OwnerKind.HABIT to h.id)
+        assertEquals(21 * 60, cfg.habitReminderMinuteOfDay)
+        assertEquals("780,420", cfg.offsetsBeforeMin)
+        assertTrue(d.handle("habits.get", mapOf("id" to "${h.id}")).contains("\"reminders\":[\"08:00\",\"14:00\",\"21:00\"]"))
+        // Raising the reward or dropping photo proof is weakening; lowering is fine.
+        assertTrue(d.handle("habits.update", mapOf("id" to "${h.id}", "minutes" to "16")).contains("forbidden_weaken"))
+        assertTrue(d.handle("habits.update", mapOf("id" to "${h.id}", "photo" to "false")).contains("forbidden_weaken"))
+        assertTrue(d.handle("habits.update", mapOf("id" to "${h.id}", "minutes" to "5", "reminders" to "none", "nag" to "off")).startsWith("{\"ok\":true"))
+        assertEquals(5, b.habits.getValue(h.id).rewardMinutes)
+        assertEquals(null, b.alarms.getValue(OwnerKind.HABIT to h.id).habitReminderMinuteOfDay)
+    }
+
+    @Test fun blockingCanOnlyGrow() = runTest {
+        assertTrue(d.handle("rules.block_app", mapOf("pkg" to "com.google.android.youtube")).contains("\"label\":\"YouTube\""))
+        assertTrue(d.handle("rules.block_site", mapOf("domain" to "https://www.Reddit.com/r/all")).contains("\"domain\":\"reddit.com\""))
+        assertTrue(d.handle("rules.block_site", mapOf("domain" to "not a host")).contains("bad_args"))
+        assertTrue(d.handle("rules.block_app", mapOf("pkg" to "x; rm")).contains("bad_args"))
+        assertEquals(setOf("com.google.android.youtube", "reddit.com"), b.rules.keys)
+        val list = d.handle("rules.list", emptyMap())
+        assertTrue(list, list.contains("reddit.com") && list.contains("\"alwaysOpen\":[]"))
+        for (cmd in listOf("rules.unblock", "rules.remove", "rules.allow", "rules.always_open", "unblock.app", "apps.allow")) {
+            assertTrue(cmd, d.handle(cmd, mapOf("pkg" to "com.google.android.youtube")).contains("\"error\":\"forbidden\""))
+        }
+        assertEquals(2, b.rules.size)
+    }
+
+    @Test fun settingsCanOnlyTighten() = runTest {
+        assertTrue(d.handle("settings.get", emptyMap()).contains("\"unlockCapMin\":null"))
+        assertTrue(d.handle("settings.tighten", mapOf("unlockCapMin" to "30", "hardMode" to "on")).contains("\"changed\":true"))
+        assertEquals(30, b.settings.unlockCapMin)
+        assertTrue(b.settings.hardMode)
+        assertTrue(d.handle("settings.tighten", mapOf("unlockCapMin" to "20")).startsWith("{\"ok\":true"))
+        for (weaken in listOf("unlockCapMin" to "45", "unlockCapMin" to "none", "hardMode" to "false", "blockingEnabled" to "false")) {
+            assertTrue(weaken.toString(), d.handle("settings.tighten", mapOf(weaken)).contains("forbidden_weaken"))
+        }
+        assertTrue(d.handle("settings.tighten", mapOf("themeMode" to "DARK")).contains("forbidden_weaken"))
+        assertTrue(d.handle("settings.tighten", mapOf("vacationToDay" to "1")).contains("forbidden_weaken"))
+        assertTrue(d.handle("settings.tighten", mapOf("removalPuzzle" to "bogus")).contains("bad_args"))
+        assertTrue(d.handle("settings.tighten", mapOf("bedtimeEnabled" to "true", "bedtimeStartMin" to "22:30")).contains("\"changed\":true"))
+        assertEquals(22 * 60 + 30, b.settings.bedtimeStartMin)
+        assertTrue(d.handle("settings.set", mapOf("hardMode" to "false")).contains("\"error\":\"forbidden\""))
+        assertEquals(20, b.settings.unlockCapMin)
+        assertTrue(b.settings.hardMode)
     }
 
     @Test fun weeklyTaskGetsDays() = runTest {
