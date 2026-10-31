@@ -11,11 +11,11 @@ import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.NagMode
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.Priority
-import com.earnd.app.data.entity.RepeatKind
 import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.data.entity.TaskEntity
 import com.earnd.app.domain.HabitProgress
 import com.earnd.app.domain.HabitSchedule
+import com.earnd.app.domain.Recurrence
 import com.earnd.app.domain.TaskBucket
 import com.earnd.app.domain.TaskService
 import com.earnd.app.ui.apps.normalizeHost
@@ -130,6 +130,17 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 ok("id" to t.id)
             }
         }
+        "tasks.skip" -> {
+            val t = taskOr404(a.requireLong("id"))
+            when {
+                t.completedAt != null -> fail("already_done")
+                !t.repeats || t.parentId != null -> bad("only open recurring tasks can be skipped")
+                else -> {
+                    val next = backend.skipTask(t.id)
+                    ok("id" to t.id, "due" to next?.toString(), "ended" to (next == null))
+                }
+            }
+        }
         "tasks.delete" -> {
             val t = taskOr404(a.requireLong("id"))
             backend.deleteTask(t.id)
@@ -168,6 +179,9 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 "schedule" to h.scheduleKind,
                 "days" to RemoteArgs.maskToDays(h.weekdayMask),
                 "every" to h.everyNDays,
+                "rule" to h.scheduleRule,
+                "perWeek" to if (h.scheduleKind == ScheduleKind.TIMES_PER_WEEK) h.timesPerWeek else null,
+                "scheduleSummary" to HabitSchedule.summary(h),
                 "anchor" to LocalDate.ofEpochDay(h.anchorEpochDay).toString(),
                 "segment" to h.segment,
                 "target" to h.targetQuantity,
@@ -195,8 +209,15 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             anchorEpochDay = today.toEpochDay(),
             createdAt = backend.now(),
         )
-        val schedule = a.enum<ScheduleKind>("schedule")
-            ?: if (a.has("days")) ScheduleKind.WEEKDAYS else base.scheduleKind
+        val habitRule = RecurrenceArgs.habitRule(a, LocalDate.ofEpochDay(base.anchorEpochDay))
+        val schedule = a.enum<ScheduleKind>("schedule") ?: when {
+            habitRule != null -> ScheduleKind.RULE
+            a.has("per_week") -> ScheduleKind.TIMES_PER_WEEK
+            a.has("days") -> ScheduleKind.WEEKDAYS
+            else -> base.scheduleKind
+        }
+        if (schedule == ScheduleKind.RULE && habitRule == null && base.scheduleRule == null) bad("schedule=RULE needs rule=, weeks= or monthdays=")
+        if (schedule == ScheduleKind.TIMES_PER_WEEK && !a.has("per_week") && base.timesPerWeek == 0) bad("schedule=TIMES_PER_WEEK needs per_week=")
         val h = base.copy(
             name = name,
             iconKey = a.text("icon") ?: base.iconKey,
@@ -205,6 +226,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             scheduleKind = schedule,
             weekdayMask = a.weekdayMask("days") ?: base.weekdayMask,
             everyNDays = a.int("every", 1..365) ?: base.everyNDays,
+            scheduleRule = habitRule?.toString() ?: base.scheduleRule,
+            timesPerWeek = a.int("per_week", 1..7) ?: base.timesPerWeek,
             anchorEpochDay = (a.date("start", today) as? RemoteArgs.Field.Set)?.value ?: base.anchorEpochDay,
             segment = a.enum<DaySegment>("segment") ?: base.segment,
             targetQuantity = if (a.has("target")) a.str("target")?.takeIf { it != "none" }?.let { a.double("target", QTY_RANGE) } else base.targetQuantity,
@@ -295,9 +318,11 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         "due" to t.dueEpochDay?.let { LocalDate.ofEpochDay(it).toString() },
         "time" to t.dueMinuteOfDay?.let { "%02d:%02d".format(it / 60, it % 60) },
         "priority" to t.priority,
-        "repeat" to t.repeatKind,
-        "repeatDays" to if (t.repeatKind == RepeatKind.WEEKLY) RemoteArgs.maskToDays(t.repeatWeekdayMask) else null,
-        "repeatInterval" to t.repeatInterval,
+        "repeat" to t.repeatRule,
+        "repeatFrom" to if (!t.repeats) null else if (t.repeatFromCompletion) "completion" else "due",
+        "repeatSummary" to Recurrence.summary(t),
+        "repeatStart" to t.repeatAnchorEpochDay?.let { LocalDate.ofEpochDay(it).toString() },
+        "occurrence" to if (t.repeats) t.repeatOccurrence else null,
         "rewardMinutes" to t.rewardMinutes,
         "done" to (t.completedAt != null),
     )
@@ -311,7 +336,6 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             pid
         }
         val base = existing ?: TaskEntity(title = title, parentId = parent, createdAt = backend.now())
-        val repeat = a.enum<RepeatKind>("repeat") ?: base.repeatKind
         val due = when (val d = a.date("due", today)) {
             is RemoteArgs.Field.Set -> d.value
             RemoteArgs.Field.Absent -> base.dueEpochDay
@@ -320,22 +344,28 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             is RemoteArgs.Field.Set -> t.value
             RemoteArgs.Field.Absent -> base.dueMinuteOfDay
         }
-        var mask = a.weekdayMask("days") ?: base.repeatWeekdayMask
-        if (repeat == RepeatKind.WEEKLY && mask == 0) {
-            mask = 1 shl (LocalDate.ofEpochDay(due ?: today.toEpochDay()).dayOfWeek.value - 1)
+        val repeatChanged = REPEAT_KEYS.any(a::has)
+        val rule: String? = if (repeatChanged) {
+            RecurrenceArgs.rule(a, base, LocalDate.ofEpochDay(due ?: today.toEpochDay()))?.toString()
+        } else base.repeatRule
+        val fromCompletion = when (a.str("repeat_from")?.lowercase()) {
+            null -> base.repeatFromCompletion
+            "due", "schedule", "date" -> false
+            "completion", "done", "complete" -> true
+            else -> bad("repeat_from must be due or completion")
         }
-        if (repeat != RepeatKind.NONE && due == null && base.parentId == null) bad("repeating tasks need a due date")
+        if (rule != null && due == null && base.parentId == null) bad("repeating tasks need a due date")
         val t = base.copy(
             title = title,
             notes = if (a.has("notes")) a.str("notes").orEmpty() else base.notes,
             dueEpochDay = due,
             dueMinuteOfDay = if (due == null) null else time,
             priority = a.enum<Priority>("priority") ?: base.priority,
-            repeatKind = repeat,
-            repeatWeekdayMask = mask,
-            repeatInterval = a.int("interval", 1..365) ?: base.repeatInterval,
+            repeatRule = rule,
+            repeatFromCompletion = fromCompletion,
             // Re-anchor the series when its rule or date changes; save() fills it from due.
-            repeatAnchorEpochDay = if (repeat != base.repeatKind || due != base.dueEpochDay) null else base.repeatAnchorEpochDay,
+            repeatAnchorEpochDay = if (rule != base.repeatRule || due != base.dueEpochDay) null else base.repeatAnchorEpochDay,
+            repeatOccurrence = if (rule != base.repeatRule) 1 else base.repeatOccurrence,
         ).let { t -> a.intOrNone(REWARD_KEYS, REWARD_RANGE)?.let { t.copy(rewardMinutes = it.value) } ?: t }
         if (existing != null && (t.rewardMinutes ?: 0) > (existing.rewardMinutes ?: 0)) {
             throw WeakenForbidden("task reward can only be lowered remotely")
@@ -479,7 +509,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "habits.unarchive", "habits.reorder",
             "habits.checkin", "habits.undo",
             "tasks.list", "tasks.get", "tasks.create", "tasks.update",
-            "tasks.complete", "tasks.uncomplete", "tasks.delete",
+            "tasks.complete", "tasks.uncomplete", "tasks.skip", "tasks.delete",
             "rules.list", "rules.block_app", "rules.block_site", "rules.blockable_apps",
             "settings.get", "settings.tighten",
         )
@@ -503,6 +533,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         private val GUARDED_ROOTS = setOf("rules", "settings")
 
         private val REWARD_KEYS = listOf("minutes", "rewardMinutes", "reward")
+        private val REPEAT_KEYS = listOf("repeat", "days", "interval", "monthday", "nth", "count", "until")
         private val PHOTO_KEYS = listOf("photo", "photoRequired")
         private val REWARD_RANGE = 0..240
         private val ALARM_KEYS = listOf("alarm", "at_due", "offsets", "nag", "nag_every", "nag_max", "vibrate", "snooze_max")

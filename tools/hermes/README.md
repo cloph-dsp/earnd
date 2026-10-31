@@ -122,8 +122,10 @@ in the agent's environment). Invoke with `/earnd` or just ask about your tasks.
 Notes are cleaned of internal reference junk (lines/prefixes like `[id:12]` or `adhd-34`);
 notes that end up empty are dropped.
 
-Recurrence mapping: `FREQ=DAILY` -> daily (or every N days with INTERVAL), `FREQ=WEEKLY;BYDAY=..`
--> weekly on those days (`INTERVAL=n` -> `interval=n`, every n weeks), `FREQ=MONTHLY` -> monthly,
-`FREQ=YEARLY` (incl. BYMONTH/BYMONTHDAY) -> yearly on the due date. Other rules are imported without repeat
-and listed in the summary. Habits (from the export's habit section, if present) become daily
-or weekday habits.
+Recurrence: TickTick RRULEs are passed through as-is (FREQ DAILY/WEEKLY/MONTHLY/YEARLY with
+INTERVAL, BYDAY incl. ordinals like `2TU`/`-1FR`, BYMONTHDAY, BYMONTH, BYSETPOS with one weekday,
+COUNT, UNTIL); other parts (WKST, TT_*) are dropped and listed. TickTick `repeatFrom == "1"` is
+imported as `repeat_from=completion` (assumed from exports; anything else = from due date). A rule
+the app rejects is imported without repeat and listed in the summary. Habits: `TT_TIMES=n` ->
+n times per week, weekly every N weeks -> `weeks=N days=..`, weekdays -> WEEKDAYS, every N days ->
+EVERY_N_DAYS, other monthly/yearly rules -> `rule=`.

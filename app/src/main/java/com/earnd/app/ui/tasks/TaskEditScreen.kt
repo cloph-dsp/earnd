@@ -32,7 +32,9 @@ import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.Priority
-import com.earnd.app.data.entity.RepeatKind
+import com.earnd.app.domain.RRule
+import com.earnd.app.ui.common.RecurrencePicker
+import java.time.LocalDate
 import com.earnd.app.data.entity.TaskEntity
 import com.earnd.app.domain.today
 import com.earnd.app.ui.alarms.AlarmConfigEditor
@@ -132,6 +134,9 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
         if (!isNew) {
             Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { confirmDelete = true }) { Text("Delete") }
+                if (t.repeats && !isSub && t.completedAt == null) {
+                    Button(onClick = { launchUi { sl.taskService.skip(t.id); onDone() } }) { Text("Skip this one") }
+                }
             }
         }
     }
@@ -175,30 +180,18 @@ private fun DueEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
 
 @Composable
 private fun RepeatEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
-    ChoiceChips(RepeatKind.values().toList(), t.repeatKind, {
-        when (it) {
-            RepeatKind.NONE -> "Once"; RepeatKind.DAILY -> "Daily"; RepeatKind.WEEKLY -> "Weekly"
-            RepeatKind.MONTHLY -> "Monthly"; RepeatKind.EVERY_N_DAYS -> "Every few days"; RepeatKind.YEARLY -> "Yearly"
-        }
-    }) { k ->
-        val today = ServiceLocator.clock.today()
+    val today = ServiceLocator.clock.today()
+    val start = t.dueEpochDay?.let(LocalDate::ofEpochDay) ?: today
+    RecurrencePicker(RRule.parseOrNull(t.repeatRule), t.repeatFromCompletion, start) { r, fromCompletion ->
         set(t.copy(
-            repeatKind = k,
+            repeatRule = r?.toString(),
+            repeatFromCompletion = r != null && fromCompletion,
             repeatAnchorEpochDay = null,
-            repeatWeekdayMask = if (k == RepeatKind.WEEKLY && t.repeatWeekdayMask == 0) 1 shl (today.dayOfWeek.value - 1) else t.repeatWeekdayMask,
-            dueEpochDay = if (k != RepeatKind.NONE && t.dueEpochDay == null) today.toEpochDay() else t.dueEpochDay,
+            repeatOccurrence = 1,
+            dueEpochDay = if (r != null && t.dueEpochDay == null) today.toEpochDay() else t.dueEpochDay,
         ))
     }
-    when (t.repeatKind) {
-        RepeatKind.WEEKLY -> {
-            WeekdayPicker(t.repeatWeekdayMask) { set(t.copy(repeatWeekdayMask = it)) }
-            NumberField("Every how many weeks", t.repeatInterval, { set(t.copy(repeatInterval = (it ?: 1).coerceAtLeast(1), repeatAnchorEpochDay = null)) })
-        }
-        RepeatKind.MONTHLY -> NumberField("Every how many months", t.repeatInterval, { set(t.copy(repeatInterval = (it ?: 1).coerceAtLeast(1))) })
-        RepeatKind.EVERY_N_DAYS -> NumberField("Every how many days", t.repeatInterval, { set(t.copy(repeatInterval = (it ?: 1).coerceAtLeast(1))) })
-        else -> Unit
-    }
-    if (t.repeatKind != RepeatKind.NONE) {
+    if (t.repeats) {
         Text("If a day is missed, it moves on to the next one by itself.", style = MaterialTheme.typography.bodySmall)
     }
 }

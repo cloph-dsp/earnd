@@ -25,34 +25,34 @@ DAYS = {"MO": "mon", "TU": "tue", "WE": "wed", "TH": "thu", "FR": "fri", "SA": "
 PRIORITY = {0: "NONE", 1: "LOW", 3: "MEDIUM", 5: "HIGH"}
 
 
+SUPPORTED_KEYS = ("FREQ", "INTERVAL", "BYDAY", "BYMONTHDAY", "BYMONTH", "BYSETPOS", "COUNT", "UNTIL")
+
+
+def rrule_parts(rule):
+    body = (rule or "").strip()
+    body = body.split("RRULE:", 1)[-1]
+    return {k.strip().upper(): v.strip() for k, v in (p.split("=", 1) for p in body.split(";") if "=" in p)}
+
+
 def parse_rrule(rule):
-    """Map an RRULE to earnd-cli args. Returns (args, note) where note explains a fallback."""
+    """Map a TickTick RRULE to earnd-cli args: the rule is passed through (FREQ, INTERVAL,
+    BYDAY incl. ordinals, BYMONTHDAY, BYMONTH, BYSETPOS, COUNT, UNTIL). Returns (args, note)."""
     if not rule:
         return {}, None
-    body = rule.split("RRULE:", 1)[-1]
-    parts = dict(p.split("=", 1) for p in body.split(";") if "=" in p)
+    parts = rrule_parts(rule)
     freq = parts.get("FREQ", "").upper()
-    interval = int(parts.get("INTERVAL", "1") or 1)
-    if freq == "DAILY":
-        return ({"repeat": "DAILY"} if interval == 1 else {"repeat": "EVERY_N_DAYS", "interval": str(interval)}), None
-    if freq == "WEEKLY":
-        days = [DAYS[d[-2:]] for d in parts.get("BYDAY", "").split(",") if d[-2:] in DAYS]
-        args = {"repeat": "WEEKLY"}
-        if days:
-            args["days"] = ",".join(days)
-        if interval != 1:
-            args["interval"] = str(interval)
-        return args, None
-    if freq == "MONTHLY":
-        note = "BYDAY/BYSETPOS monthly rule imported as same day each month" if ("BYDAY" in parts or "BYSETPOS" in parts) else None
-        return {"repeat": "MONTHLY", "interval": str(interval)}, note
-    if freq == "YEARLY":
-        # Earnd repeats on the due date's month/day; BYMONTH/BYMONTHDAY normally match it.
-        note = f"every {interval} years imported as yearly" if interval != 1 else None
-        if "BYDAY" in parts or "BYSETPOS" in parts:
-            note = "BYDAY yearly rule imported as same date each year"
-        return {"repeat": "YEARLY"}, note
-    return {}, f"unsupported rule {body!r}, imported without repeat"
+    if freq not in ("DAILY", "WEEKLY", "MONTHLY", "YEARLY"):
+        return {}, f"unsupported rule {rule!r}, imported without repeat"
+    dropped = sorted(k for k in parts if k not in SUPPORTED_KEYS and k != "WKST")
+    kept = ";".join(f"{k}={parts[k]}" for k in SUPPORTED_KEYS if parts.get(k))
+    note = f"ignored rule parts {', '.join(dropped)}" if dropped else None
+    return {"repeat": kept}, note
+
+
+def repeat_from(task):
+    """TickTick repeatFrom: "1" = from the completion date; "0"/"2"/missing = from the due date
+    (assumed from observed exports; not formally documented)."""
+    return "completion" if str(task.get("repeatFrom", "")).strip() == "1" else "due"
 
 
 # Internal reference junk some TickTick notes carry, e.g. "[id:12]" or "adhd-34".
@@ -169,10 +169,18 @@ def import_task(earnd, t, notes):
     rep, note = parse_rrule(t.get("repeatFlag"))
     if rep and "due" not in args:
         note, rep = "repeating task without a due date imported without repeat", {}
+    if rep and repeat_from(t) == "completion":
+        rep["repeat_from"] = "completion"
     args.update(rep)
     if note:
         notes.append(f"{args['title']}: {note}")
     res = earnd.run("tasks.create", args)
+    if not res.get("ok") and rep and res.get("error") == "bad_args":
+        # The app rejected the rule (e.g. BYSETPOS over several days): keep the task, drop the repeat.
+        notes.append(f"{args['title']}: rule {rep['repeat']!r} not accepted ({res.get('message', '')}), imported without repeat")
+        for k in ("repeat", "repeat_from"):
+            args.pop(k, None)
+        res = earnd.run("tasks.create", args)
     if res.get("ok"):
         for item in t.get("items", []) or []:
             if item.get("status", 0) == 0 and item.get("title"):
@@ -181,18 +189,31 @@ def import_task(earnd, t, notes):
 
 
 def import_habit(earnd, h, notes):
-    rep, note = parse_rrule(h.get("repeatRule"))
     args = {"name": h.get("name", "").strip() or "(habit)"}
-    if rep.get("repeat") == "WEEKLY" and rep.get("interval"):
-        notes.append(f"{args['name']}: every {rep['interval']} weeks imported as every week")
-    if rep.get("repeat") == "WEEKLY" and rep.get("days"):
-        args.update({"schedule": "WEEKDAYS", "days": rep["days"]})
-    elif rep.get("repeat") == "EVERY_N_DAYS":
-        args.update({"schedule": "EVERY_N_DAYS", "every": rep["interval"]})
-    elif rep and rep.get("repeat") != "DAILY":
-        notes.append(f"{args['name']}: rule imported as daily")
-    if note:
-        notes.append(f"{args['name']}: {note}")
+    rule = h.get("repeatRule") or ""
+    parts = rrule_parts(rule)
+    freq = parts.get("FREQ", "").upper()
+    interval = parts.get("INTERVAL", "1") or "1"
+    byday = [d.strip().upper() for d in parts.get("BYDAY", "").split(",") if d.strip()]
+    # Plain weekdays only; ordinal forms such as 2TU go through as a rule below.
+    days = [DAYS[d] for d in byday if d in DAYS] if all(d in DAYS for d in byday) else []
+    if parts.get("TT_TIMES"):
+        # TickTick "X times per week" (any days).
+        args.update({"schedule": "TIMES_PER_WEEK", "per_week": parts["TT_TIMES"]})
+    elif freq == "WEEKLY" and days and interval != "1":
+        args.update({"weeks": interval, "days": ",".join(days)})
+    elif freq == "WEEKLY" and days:
+        args.update({"schedule": "WEEKDAYS", "days": ",".join(days)})
+    elif freq == "DAILY" and interval != "1":
+        args.update({"schedule": "EVERY_N_DAYS", "every": interval})
+    elif freq in ("WEEKLY", "MONTHLY", "YEARLY"):
+        rep, note = parse_rrule(rule)
+        if rep:
+            args["rule"] = rep["repeat"]
+        if note:
+            notes.append(f"{args['name']}: {note}")
+    elif rule and freq != "DAILY":
+        notes.append(f"{args['name']}: rule {rule!r} imported as daily")
     goal = h.get("goal")
     if isinstance(goal, (int, float)) and goal > 1 and float(goal).is_integer() and goal <= 20:
         args["times"] = str(int(goal))

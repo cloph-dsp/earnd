@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.Priority
-import com.earnd.app.data.entity.RepeatKind
 import com.earnd.app.data.entity.TaskEntity
 import com.earnd.app.domain.TaskBucket
 import com.earnd.app.domain.today
@@ -160,6 +159,6 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
             }
             if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
         }
-        if (t.repeatKind != RepeatKind.NONE) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.size(16.dp))
+        if (t.repeats) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.size(16.dp))
     }
 }

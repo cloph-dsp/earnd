@@ -43,7 +43,19 @@ class HabitService(
         val today = clock.today()
         return combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
             val byHabit = cs.groupBy { it.habitId }
-            hs.filter { isScheduled(it, today) }.map { dayOf(it, byHabit[it.id].orEmpty()) }
+            val week = weekDoneBefore(hs, today)
+            hs.filter { HabitSchedule.isDueOn(it, today, week[it.id] ?: 0) }.map { dayOf(it, byHabit[it.id].orEmpty()) }
+        }
+    }
+
+    /** Per TIMES_PER_WEEK habit: complete days in [day]'s week before [day]. */
+    private suspend fun weekDoneBefore(hs: List<HabitEntity>, day: LocalDate): Map<Long, Int> {
+        val flexible = hs.filter { it.scheduleKind == com.earnd.app.data.entity.ScheduleKind.TIMES_PER_WEEK }
+        val mon = HabitSchedule.weekStart(day)
+        if (flexible.isEmpty() || mon == day) return emptyMap()
+        val byHabitDay = checkIns.between(mon.toEpochDay(), day.toEpochDay() - 1).groupBy { it.habitId }
+        return flexible.associate { h ->
+            h.id to byHabitDay[h.id].orEmpty().groupBy { it.epochDay }.count { (_, cs) -> HabitProgress.isComplete(h, cs) }
         }
     }
 
@@ -52,7 +64,9 @@ class HabitService(
     /** Progress of every habit scheduled on [day]. */
     suspend fun daySummary(day: LocalDate): List<HabitDay> {
         val byHabit = checkIns.forDay(day.toEpochDay()).groupBy { it.habitId }
-        return habits.active().filter { isScheduled(it, day) }.map { dayOf(it, byHabit[it.id].orEmpty()) }
+        val hs = habits.active()
+        val week = weekDoneBefore(hs, day)
+        return hs.filter { HabitSchedule.isDueOn(it, day, week[it.id] ?: 0) }.map { dayOf(it, byHabit[it.id].orEmpty()) }
     }
 
     /**

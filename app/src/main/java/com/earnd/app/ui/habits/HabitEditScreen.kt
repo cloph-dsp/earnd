@@ -41,6 +41,8 @@ import com.earnd.app.data.entity.DaySegment
 import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.ScheduleKind
+import com.earnd.app.domain.HabitSchedule
+import com.earnd.app.domain.RRule
 import com.earnd.app.domain.today
 import com.earnd.app.ui.alarms.AlarmConfigEditor
 import com.earnd.app.ui.alarms.AlarmConfigs
@@ -109,11 +111,22 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
 
         SectionTitle("When")
         ChoiceChips(ScheduleKind.values().toList(), h.scheduleKind, {
-            when (it) { ScheduleKind.DAILY -> "Every day"; ScheduleKind.WEEKDAYS -> "Some days"; ScheduleKind.EVERY_N_DAYS -> "Every few days" }
-        }) { set(h.copy(scheduleKind = it)) }
+            when (it) {
+                ScheduleKind.DAILY -> "Every day"; ScheduleKind.WEEKDAYS -> "Some days"; ScheduleKind.EVERY_N_DAYS -> "Every few days"
+                ScheduleKind.TIMES_PER_WEEK -> "Times per week"; ScheduleKind.RULE -> "Custom"
+            }
+        }) { k ->
+            set(h.copy(
+                scheduleKind = k,
+                timesPerWeek = if (k == ScheduleKind.TIMES_PER_WEEK && h.timesPerWeek == 0) 3 else h.timesPerWeek,
+                scheduleRule = if (k == ScheduleKind.RULE && h.scheduleRule == null) RRule.weekly(listOf(java.time.LocalDate.ofEpochDay(h.anchorEpochDay).dayOfWeek), 2).toString() else h.scheduleRule,
+            ))
+        }
         when (h.scheduleKind) {
             ScheduleKind.WEEKDAYS -> WeekdayPicker(h.weekdayMask) { set(h.copy(weekdayMask = it)) }
             ScheduleKind.EVERY_N_DAYS -> NumberField("Every how many days", h.everyNDays, { set(h.copy(everyNDays = (it ?: 1).coerceAtLeast(1))) })
+            ScheduleKind.TIMES_PER_WEEK -> NumberField("Days per week (any days)", h.timesPerWeek, { set(h.copy(timesPerWeek = (it ?: 1).coerceIn(1, 7))) })
+            ScheduleKind.RULE -> HabitRuleEditor(h, set)
             ScheduleKind.DAILY -> Unit
         }
         Text("Part of the day", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
@@ -191,4 +204,31 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Keep") } },
         )
     }
+}
+
+/** Custom habit schedule: every N weeks on chosen days, or chosen days of the month. */
+@Composable
+private fun HabitRuleEditor(h: HabitEntity, set: (HabitEntity) -> Unit) {
+    val rule = RRule.parseOrNull(h.scheduleRule) ?: RRule.weekly(listOf(java.time.DayOfWeek.MONDAY))
+    val save = { r: RRule -> set(h.copy(scheduleRule = r.toString())) }
+    ChoiceChips(listOf(RRule.Freq.WEEKLY, RRule.Freq.MONTHLY), if (rule.freq == RRule.Freq.MONTHLY) rule.freq else RRule.Freq.WEEKLY, {
+        if (it == RRule.Freq.WEEKLY) "Weeks" else "Days of month"
+    }) { f ->
+        save(if (f == RRule.Freq.WEEKLY) RRule.weekly(listOf(java.time.DayOfWeek.MONDAY)) else RRule(RRule.Freq.MONTHLY, byMonthDay = listOf(1)))
+    }
+    if (rule.freq == RRule.Freq.MONTHLY) {
+        var text by remember(h.id) { mutableStateOf(rule.byMonthDay.joinToString(", ") { if (it == -1) "last" else "$it" }) }
+        OutlinedTextField(text, { v ->
+            text = v
+            val days = v.split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+                .mapNotNull { if (it == "last") -1 else it.toIntOrNull()?.takeIf { d -> d in 1..31 } }.distinct()
+            if (days.isNotEmpty()) save(RRule(RRule.Freq.MONTHLY, byMonthDay = days))
+        }, label = { Text("Days of month (e.g. 1, 15, last)") }, singleLine = true)
+    } else {
+        NumberField("Every how many weeks", rule.interval, { save(rule.copy(interval = (it ?: 1).coerceIn(1, 52))) })
+        WeekdayPicker(RRule.daysToMask(rule.byDay.map { it.day })) { m ->
+            if (m != 0) save(RRule.weekly(RRule.maskToDays(m), rule.interval))
+        }
+    }
+    Text(HabitSchedule.summary(h), style = MaterialTheme.typography.bodySmall)
 }

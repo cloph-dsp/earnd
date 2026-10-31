@@ -1,7 +1,6 @@
 package com.earnd.app.domain
 
 import com.earnd.app.data.entity.HabitEntity
-import com.earnd.app.data.entity.RepeatKind
 import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.data.entity.TaskEntity
 import org.junit.Assert.assertEquals
@@ -12,9 +11,10 @@ import org.junit.Test
 import java.time.LocalDate
 
 class RecurrenceTest {
+    /** The pre-RRULE kinds, kept here to prove the migrated rules behave as before. */
+    private enum class RepeatKind { NONE, DAILY, WEEKLY, MONTHLY, EVERY_N_DAYS, YEARLY }
     private fun task(kind: RepeatKind, due: LocalDate?, mask: Int = 0, interval: Int = 1) = TaskEntity(
-        title = "t", dueEpochDay = due?.toEpochDay(), repeatKind = kind, repeatWeekdayMask = mask,
-        repeatInterval = interval, createdAt = 0,
+        title = "t", dueEpochDay = due?.toEpochDay(), repeatRule = RRule.fromLegacy(kind.name, mask, interval), createdAt = 0,
     )
     private val wed = LocalDate.of(2026, 3, 4)
 

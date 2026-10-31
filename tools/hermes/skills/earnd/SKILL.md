@@ -53,7 +53,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `status` | - |
 | `habits.list` | `all=true` to include archived |
 | `habits.get` | `id` |
-| `habits.create` | `name` (required), `times` (1-20/day), `schedule` = DAILY, WEEKDAYS, EVERY_N_DAYS, `days` = mon,wed,fri / weekdays / weekends (implies schedule=WEEKDAYS), `every` (N), `start` (date), `segment` = NONE, MORNING, AFTERNOON, EVENING, `target`, `unit`, `icon`, `color` (#RRGGBB), `mode` = TAP, PHOTO |
+| `habits.create` | `name` (required), `times` (1-20/day), `schedule` = DAILY, WEEKDAYS, EVERY_N_DAYS, TIMES_PER_WEEK, RULE, `days` = mon,wed,fri / weekdays / weekends (implies schedule=WEEKDAYS), `every` (N days), `per_week` (1-7, any days; implies TIMES_PER_WEEK), `weeks` (N, with `days`: every N weeks), `monthdays` (e.g. `1,15,last`), `rule` (RRULE), `start` (date), `segment` = NONE, MORNING, AFTERNOON, EVENING, `target`, `unit`, `icon`, `color` (#RRGGBB), `mode` = TAP, PHOTO |
 | (habits.create, more) | `minutes` (reward per check-in, 0-240), `photo` = true/false, `reminders` = HH:MM list e.g. `08:00,14:00,21:00` or `none`, `remind_days` = mon,tue / all, `message` (reminder text) |
 | `habits.update` | `id` plus any create field (`minutes` only lower, `photo` only on) |
 | alarm keys (habits and tasks create/update) | `alarm` = SILENT, NOTIFICATION, FULL_SCREEN, `at_due`, `offsets` (minutes before, tasks: `60,15`), `nag` = OFF, PROGRESSIVE, FIXED, `nag_every`, `nag_max` (or none), `vibrate`, `snooze_max` |
@@ -63,7 +63,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `habits.undo` | `id` (undoes today's latest check-in) |
 | `tasks.list` | optional `bucket` = OVERDUE, TODAY, UPCOMING, NO_DATE |
 | `tasks.get` | `id` (includes subtasks) |
-| `tasks.create` | `title` (required), `notes`, `due` (YYYY-MM-DD, today, tomorrow, none), `time` (HH:MM), `priority` = NONE, LOW, MEDIUM, HIGH, `repeat` = NONE, DAILY, WEEKLY, MONTHLY, EVERY_N_DAYS, YEARLY, `days` (weekly), `interval` (days / weeks / months), `parent` (id, makes a subtask) |
+| `tasks.create` | `title` (required), `notes`, `due` (YYYY-MM-DD, today, tomorrow, none), `time` (HH:MM), `priority` = NONE, LOW, MEDIUM, HIGH, `repeat` = NONE, DAILY, WEEKDAYS, WEEKLY, MONTHLY, YEARLY, EVERY_N_DAYS or an RRULE (`FREQ=MONTHLY;BYDAY=-1FR`), `days` (weekly), `interval` (N days/weeks/months/years), `monthday` (`15`, `1,15,last`), `nth` (`2TU`, `-1FR`, `last fri`), `count` (N times or none), `until` (date or none), `repeat_from` = due, completion, `parent` (id, makes a subtask) |
 | (tasks.create, more) | `reward` (minutes, 0-240) plus alarm keys |
 | `tasks.update` | `id` plus any create field (`reward` only lower) |
 | `rules.list` | blocked apps, blocked sites, always-open apps |
@@ -72,10 +72,10 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `rules.block_site` | `domain` (e.g. reddit.com; URLs are reduced to the host) |
 | `settings.get` | all settings plus the list of tightenable keys |
 | `settings.tighten` | `key=value` pairs: unlockCapMin, hardMode, blockingEnabled, allDoneUnlock, resetPeriod, weakenCooldownMin, bedtimeEnabled, bedtimeStartMin/EndMin (HH:MM ok), bedtimeGraceMin, defaultTaskRewardMin, defaultHabitRewardMin, rewardMode, photoRequiredDefault, removalPuzzle |
-| `tasks.complete` / `tasks.uncomplete` / `tasks.delete` | `id` |
+| `tasks.complete` / `tasks.uncomplete` / `tasks.skip` / `tasks.delete` | `id` (`skip` moves a recurring task to its next occurrence without reward) |
 | `audit.list` | optional `limit` (1-500); recent remote changes |
 
-Dates are in the phone's local time zone. Repeating tasks need a due date. WEEKLY with `interval=N` repeats every N weeks counted from the first due week; YEARLY keeps month/day (Feb 29 -> Feb 28 in non-leap years).
+Dates are in the phone's local time zone. Repeating tasks need a due date; the first due date anchors the series (every-N-weeks parity, Nth weekday, yearly date). Monthly day 31 and yearly Feb 29 clamp to the month's last day. `repeat_from=completion` counts the next date from when it is done ("3 days after completion"). Task JSON reports `repeat` (canonical RRULE), `repeatFrom`, `repeatSummary` (e.g. "Monthly on the last Friday, 6 times") and `occurrence`; habits report `rule`, `perWeek` and `scheduleSummary`.
 Limits: at most 24 arguments; `title` 200 chars, `name` 80, `unit` 24, `notes` 4000, other
 values 200. Over-limit input returns `bad_args`.
 
@@ -85,7 +85,12 @@ earnd-cli tasks.list bucket=TODAY
 earnd-cli tasks.create title="Renew passport" due=2026-11-15 priority=high
 earnd-cli tasks.create title="Water plants" due=today repeat=WEEKLY days=mon,thu
 earnd-cli tasks.create title="Bins" due=2026-11-01 repeat=WEEKLY interval=2 days=sun   # every other Sunday
-earnd-cli tasks.create title="Birthday" due=2027-02-28 repeat=YEARLY   # Feb 29 falls back to Feb 28
+earnd-cli tasks.create title="Birthday" due=2028-02-29 repeat=YEARLY   # Feb 28 in non-leap years
+earnd-cli tasks.create title="Team report" due=2026-11-27 repeat="FREQ=MONTHLY;BYDAY=-1FR"   # last Friday
+earnd-cli tasks.create title="Pay rent" due=2026-11-01 repeat=MONTHLY monthday=1 count=12
+earnd-cli tasks.create title="Water cactus" due=today repeat=DAILY interval=10 repeat_from=completion
+earnd-cli habits.create name="Gym" per_week=3
+earnd-cli habits.create name="Long run" weeks=2 days=sun
 earnd-cli tasks.update id=42 due=tomorrow time=none
 earnd-cli habits.create name="Read 20 pages" schedule=WEEKDAYS days=weekdays segment=EVENING
 earnd-cli habits.checkin id=3

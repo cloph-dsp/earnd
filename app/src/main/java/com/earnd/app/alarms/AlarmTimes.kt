@@ -4,7 +4,6 @@ import com.earnd.app.data.Settings
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.TaskEntity
 import com.earnd.app.domain.Clock
-import com.earnd.app.domain.startOfDay
 import java.time.LocalDate
 
 /** Small pure helpers for turning items into instants. */
@@ -15,10 +14,15 @@ internal object AlarmTimes {
     fun taskDueAt(t: TaskEntity, settings: Settings, clock: Clock): Long? {
         val day = t.dueEpochDay ?: return null
         val min = t.dueMinuteOfDay ?: settings.quietEndMin
-        return clock.startOfDay(LocalDate.ofEpochDay(day)) + min * MINUTE
+        return at(LocalDate.ofEpochDay(day), min, clock)
     }
 
-    fun at(day: LocalDate, minuteOfDay: Int, clock: Clock): Long = clock.startOfDay(day) + minuteOfDay * MINUTE
+    /**
+     * Local wall-clock time on [day]. Built from the local date-time (not start of day + offset)
+     * so DST days keep e.g. 09:00 at 09:00; a time inside a spring-forward gap moves later.
+     */
+    fun at(day: LocalDate, minuteOfDay: Int, clock: Clock): Long =
+        day.atStartOfDay().plusMinutes(minuteOfDay.toLong()).atZone(clock.zone()).toInstant().toEpochMilli()
 
     fun offsets(cfg: AlarmConfigEntity): List<Int> =
         cfg.offsetsBeforeMin.split(',').mapNotNull { it.trim().toIntOrNull() }.filter { it > 0 }.distinct()

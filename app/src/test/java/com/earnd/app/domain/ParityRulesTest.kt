@@ -4,7 +4,6 @@ import com.earnd.app.data.Settings
 import com.earnd.app.data.entity.CheckInEntity
 import com.earnd.app.data.entity.DaySegment
 import com.earnd.app.data.entity.HabitEntity
-import com.earnd.app.data.entity.RepeatKind
 import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.data.entity.TaskEntity
 import org.junit.Assert.assertEquals
@@ -90,17 +89,17 @@ class ParityRulesTest {
     }
 
     @Test fun recurrenceIntervalsAndMonthEnd() {
-        fun t(kind: RepeatKind, due: LocalDate?, interval: Int) =
-            TaskEntity(title = "t", dueEpochDay = due?.toEpochDay(), repeatKind = kind, repeatInterval = interval, createdAt = 0)
+        fun t(kind: String, due: LocalDate?, interval: Int) =
+            TaskEntity(title = "t", dueEpochDay = due?.toEpochDay(), repeatRule = RRule.fromLegacy(kind, 0, interval), createdAt = 0)
         val jan31 = LocalDate.of(2026, 1, 31)
-        assertEquals(LocalDate.of(2026, 2, 28), Recurrence.next(t(RepeatKind.MONTHLY, jan31, 0), jan31))
-        assertEquals(LocalDate.of(2026, 3, 31), Recurrence.next(t(RepeatKind.MONTHLY, jan31, 1), LocalDate.of(2026, 2, 28)))
-        assertEquals(LocalDate.of(2027, 2, 28), Recurrence.next(t(RepeatKind.MONTHLY, LocalDate.of(2024, 2, 29), 12), LocalDate.of(2026, 3, 1)))
-        assertEquals(LocalDate.of(2036, 1, 31), Recurrence.next(t(RepeatKind.MONTHLY, LocalDate.of(1990, 1, 31), 12), LocalDate.of(2035, 6, 1)))
-        assertEquals(LocalDate.of(2035, 7, 31), Recurrence.next(t(RepeatKind.MONTHLY, LocalDate.of(1990, 1, 31), 1), LocalDate.of(2035, 6, 30)))
-        assertEquals(wed.plusDays(1), Recurrence.next(t(RepeatKind.EVERY_N_DAYS, wed, 0), wed))
-        assertEquals(wed, Recurrence.next(t(RepeatKind.EVERY_N_DAYS, wed, 3), wed.minusDays(5)))
-        assertEquals(wed.plusDays(6), Recurrence.next(t(RepeatKind.EVERY_N_DAYS, wed, 3), wed.plusDays(4)))
+        assertEquals(LocalDate.of(2026, 2, 28), Recurrence.next(t("MONTHLY", jan31, 0), jan31))
+        assertEquals(LocalDate.of(2026, 3, 31), Recurrence.next(t("MONTHLY", jan31, 1), LocalDate.of(2026, 2, 28)))
+        assertEquals(LocalDate.of(2027, 2, 28), Recurrence.next(t("MONTHLY", LocalDate.of(2024, 2, 29), 12), LocalDate.of(2026, 3, 1)))
+        assertEquals(LocalDate.of(2036, 1, 31), Recurrence.next(t("MONTHLY", LocalDate.of(1990, 1, 31), 12), LocalDate.of(2035, 6, 1)))
+        assertEquals(LocalDate.of(2035, 7, 31), Recurrence.next(t("MONTHLY", LocalDate.of(1990, 1, 31), 1), LocalDate.of(2035, 6, 30)))
+        assertEquals(wed.plusDays(1), Recurrence.next(t("EVERY_N_DAYS", wed, 0), wed))
+        assertEquals(wed, Recurrence.next(t("EVERY_N_DAYS", wed, 3), wed.minusDays(5)))
+        assertEquals(wed.plusDays(6), Recurrence.next(t("EVERY_N_DAYS", wed, 3), wed.plusDays(4)))
     }
 
     @Test fun segmentUnlockAllows() {

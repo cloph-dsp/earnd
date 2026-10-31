@@ -8,7 +8,6 @@ import com.earnd.app.data.entity.CheckInEntity
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.CheckInMode
 import com.earnd.app.data.entity.HabitEntity
-import com.earnd.app.data.entity.RepeatKind
 import com.earnd.app.data.entity.TaskEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -56,6 +55,12 @@ class RemoteDispatcherTest {
         override suspend fun completeTask(id: Long): TaskEntity? { tasks[id] = tasks[id]!!.copy(completedAt = 1); return null }
         override suspend fun uncompleteTask(id: Long) { tasks[id] = tasks[id]!!.copy(completedAt = null) }
         override suspend fun deleteTask(id: Long) { tasks.remove(id) }
+        override suspend fun skipTask(id: Long): LocalDate? {
+            val t = tasks.getValue(id)
+            val next = com.earnd.app.domain.Recurrence.following(t, day) ?: run { tasks.remove(id); return null }
+            tasks[id] = t.copy(dueEpochDay = next.toEpochDay(), repeatOccurrence = t.repeatOccurrence + 1)
+            return next
+        }
         val alarms = mutableMapOf<Pair<OwnerKind, Long>, AlarmConfigEntity>()
         var settings = Settings()
         val rules = mutableMapOf<String, AppRuleEntity>()
@@ -173,18 +178,59 @@ class RemoteDispatcherTest {
     @Test fun weeklyTaskGetsDays() = runTest {
         d.handle("tasks.create", mapOf("title" to "Gym", "due" to "2026-03-10", "repeat" to "weekly", "days" to "mon,thu"))
         val t = b.tasks.values.single()
-        assertEquals(RepeatKind.WEEKLY, t.repeatKind)
-        assertEquals(0b1001, t.repeatWeekdayMask)
+        assertEquals("FREQ=WEEKLY;BYDAY=MO,TH", t.repeatRule)
     }
 
     @Test fun yearlyAndBiweeklyTasks() = runTest {
         d.handle("tasks.create", mapOf("title" to "Bday", "due" to "2026-05-20", "repeat" to "YEARLY"))
         d.handle("tasks.create", mapOf("title" to "Bins", "due" to "2026-03-08", "repeat" to "WEEKLY", "interval" to "2", "days" to "sun"))
         val (y, w) = b.tasks.values.sortedBy { it.id }
-        assertEquals(RepeatKind.YEARLY, y.repeatKind)
-        assertEquals(RepeatKind.WEEKLY, w.repeatKind)
-        assertEquals(2, w.repeatInterval)
-        assertEquals(1 shl 6, w.repeatWeekdayMask)
+        assertEquals("FREQ=YEARLY", y.repeatRule)
+        assertEquals("FREQ=WEEKLY;INTERVAL=2;BYDAY=SU", w.repeatRule)
+    }
+
+    @Test fun rruleRepeatFromAndSummary() = runTest {
+        val out = d.handle("tasks.create", mapOf("title" to "Report", "due" to "2026-03-27", "repeat" to "FREQ=MONTHLY;BYDAY=-1FR", "count" to "6"))
+        assertTrue(out, out.startsWith("{\"ok\":true"))
+        val t = b.tasks.values.single()
+        assertEquals("FREQ=MONTHLY;BYDAY=-1FR;COUNT=6", t.repeatRule)
+        val got = d.handle("tasks.get", mapOf("id" to "${t.id}"))
+        assertTrue(got, got.contains("\"repeatSummary\":\"Monthly on the last Friday, 6 times\""))
+        assertTrue(got, got.contains("\"repeatFrom\":\"due\""))
+        d.handle("tasks.update", mapOf("id" to "${t.id}", "repeat" to "DAILY", "interval" to "3", "repeat_from" to "completion"))
+        val u = b.tasks.getValue(t.id)
+        assertEquals("FREQ=DAILY;INTERVAL=3", u.repeatRule)
+        assertTrue(u.repeatFromCompletion)
+        d.handle("tasks.update", mapOf("id" to "${t.id}", "repeat" to "MONTHLY", "nth" to "2tue", "repeat_from" to "due"))
+        assertEquals("FREQ=MONTHLY;BYDAY=2TU", b.tasks.getValue(t.id).repeatRule)
+        d.handle("tasks.update", mapOf("id" to "${t.id}", "monthday" to "last"))
+        assertEquals("FREQ=MONTHLY;BYMONTHDAY=-1", b.tasks.getValue(t.id).repeatRule)
+        assertTrue(d.handle("tasks.update", mapOf("id" to "${t.id}", "repeat" to "FREQ=HOURLY")).contains("bad_args"))
+        d.handle("tasks.update", mapOf("id" to "${t.id}", "repeat" to "none"))
+        assertEquals(null, b.tasks.getValue(t.id).repeatRule)
+    }
+
+    @Test fun skipMovesToNextOccurrence() = runTest {
+        d.handle("tasks.create", mapOf("title" to "Gym", "due" to "2026-03-10", "repeat" to "WEEKLY", "days" to "tue", "count" to "2"))
+        val t = b.tasks.values.single()
+        val out = d.handle("tasks.skip", mapOf("id" to "${t.id}"))
+        assertTrue(out, out.contains("\"due\":\"2026-03-17\""))
+        assertTrue(d.handle("tasks.skip", mapOf("id" to "${t.id}")).contains("\"ended\":true"))
+        assertTrue(b.tasks.isEmpty())
+    }
+
+    @Test fun habitFlexibleSchedules() = runTest {
+        d.handle("habits.create", mapOf("name" to "Gym", "per_week" to "3"))
+        d.handle("habits.create", mapOf("name" to "Plants", "weeks" to "2", "days" to "sun"))
+        d.handle("habits.create", mapOf("name" to "Bills", "monthdays" to "1,last"))
+        d.handle("habits.create", mapOf("name" to "Review", "rule" to "FREQ=MONTHLY;BYDAY=1MO"))
+        val (gym, plants, bills, review) = b.habits.values.sortedBy { it.id }
+        assertEquals(com.earnd.app.data.entity.ScheduleKind.TIMES_PER_WEEK, gym.scheduleKind)
+        assertEquals(3, gym.timesPerWeek)
+        assertEquals("FREQ=WEEKLY;INTERVAL=2;BYDAY=SU", plants.scheduleRule)
+        assertEquals("FREQ=MONTHLY;BYMONTHDAY=1,-1", bills.scheduleRule)
+        assertEquals(com.earnd.app.data.entity.ScheduleKind.RULE, review.scheduleKind)
+        assertTrue(d.handle("habits.get", mapOf("id" to "${plants.id}")).contains("\"scheduleSummary\":\"Every 2 weeks on Sun\""))
     }
 
     @Test fun habitDaysWithoutScheduleMeansWeekdays() = runTest {

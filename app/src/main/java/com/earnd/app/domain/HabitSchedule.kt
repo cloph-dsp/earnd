@@ -21,8 +21,42 @@ object HabitSchedule {
                 val diff = day.toEpochDay() - anchorOf(h)
                 diff >= 0 && diff % h.everyNDays.coerceAtLeast(1) == 0L
             }
+            ScheduleKind.RULE -> RRule.parseOrNull(h.scheduleRule)?.occursOn(LocalDate.ofEpochDay(anchorOf(h)), day) ?: true
+            // Flexible: any day counts; [isDueToday] hides it once the week's quota is met.
+            ScheduleKind.TIMES_PER_WEEK -> true
         }
     }
+
+    /** Human-readable schedule, e.g. "Every 2 weeks on Mon, Thu" or "3 times a week". */
+    fun summary(h: HabitEntity): String = when (h.scheduleKind) {
+        ScheduleKind.DAILY -> "Every day"
+        ScheduleKind.WEEKDAYS -> RRule.weekly(RRule.maskToDays(h.weekdayMask)).summary()
+        ScheduleKind.EVERY_N_DAYS -> if (h.everyNDays <= 1) "Every day" else "Every ${h.everyNDays} days"
+        ScheduleKind.RULE -> RRule.parseOrNull(h.scheduleRule)?.summary(start = LocalDate.ofEpochDay(anchorOf(h))) ?: "Every day"
+        ScheduleKind.TIMES_PER_WEEK -> "${h.timesPerWeek.coerceAtLeast(1)} times a week"
+    }
+
+    /** Monday of [day]'s week. */
+    fun weekStart(day: LocalDate): LocalDate = day.with(java.time.DayOfWeek.MONDAY)
+
+    /**
+     * Whether the habit still needs doing on [day], given how many days of that week (before
+     * [day]) are already complete. Only TIMES_PER_WEEK depends on the week.
+     */
+    fun isDueOn(h: HabitEntity, day: LocalDate, completeDaysThisWeekBefore: Int): Boolean =
+        isScheduled(h, day) && (h.scheduleKind != ScheduleKind.TIMES_PER_WEEK ||
+            completeDaysThisWeekBefore < h.timesPerWeek.coerceAtLeast(1))
+
+    private fun weekMet(h: HabitEntity, day: LocalDate, countsByDay: Map<Long, Int>): Boolean {
+        val mon = weekStart(day)
+        val done = (0L..6L).count { (countsByDay[mon.plusDays(it).toEpochDay()] ?: 0) >= h.timesPerDay.coerceAtLeast(1) }
+        return done >= h.timesPerWeek.coerceAtLeast(1)
+    }
+
+    /** A missed scheduled day breaks a streak, except flexible weeks that are open or met. */
+    private fun missBreaks(h: HabitEntity, day: LocalDate, current: LocalDate, countsByDay: Map<Long, Int>): Boolean =
+        h.scheduleKind != ScheduleKind.TIMES_PER_WEEK ||
+            (weekStart(day) != weekStart(current) && !weekMet(h, day, countsByDay))
 
     /**
      * Consecutive scheduled days completed, counting back from [today]. Today only adds to the
@@ -43,7 +77,7 @@ object HabitSchedule {
                 val done = (countsByDay[day.toEpochDay()] ?: 0) >= h.timesPerDay
                 when {
                     done -> streak++
-                    day != today -> return streak
+                    day != today && missBreaks(h, day, today, countsByDay) -> return streak
                 }
             }
             day = day.minusDays(1)
@@ -74,7 +108,7 @@ object HabitSchedule {
                 if ((countsByDay[day.toEpochDay()] ?: 0) >= h.timesPerDay.coerceAtLeast(1)) {
                     cur++
                     best = maxOf(best, cur)
-                } else if (day != to) cur = 0
+                } else if (day != to && missBreaks(h, day, to, countsByDay)) cur = 0
             }
             day = day.plusDays(1)
         }

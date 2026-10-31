@@ -44,7 +44,9 @@ tier.
 
 ## 4. Tasks
 - Separate entity from habits: title, notes, optional due date (+ optional time), priority, subtasks,
-  simple recurrence (daily / weekly on days / monthly / every N days), optional reward minutes,
+  flexible recurrence (RRULE subset: every N days/weeks/months/years, chosen weekdays, weekdays-only,
+  day of month incl. last day, Nth weekday e.g. "last Friday", yearly; from due date or after completion;
+  ends never / until a date / after N times; skip an occurrence), optional reward minutes,
   per-task alarm settings (see §5). Completing a recurring task creates the next occurrence.
 - Overdue recurring tasks never get stuck: an unfinished past occurrence of a recurring task rolls
   forward automatically to the next valid occurrence.

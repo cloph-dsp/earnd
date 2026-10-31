@@ -4,7 +4,6 @@ import com.earnd.app.data.SettingsRepository
 import com.earnd.app.data.dao.TaskDao
 import com.earnd.app.data.entity.LedgerKind
 import com.earnd.app.data.entity.OwnerKind
-import com.earnd.app.data.entity.RepeatKind
 import com.earnd.app.data.entity.TaskEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -34,14 +33,14 @@ class TaskService(
     /** Inserts or updates. New top-level tasks without a reward get the default reward. */
     suspend fun save(t: TaskEntity): Long {
         var toSave = t
-        if (t.repeatKind != RepeatKind.NONE && t.repeatAnchorEpochDay == null && t.dueEpochDay != null) {
+        if (t.repeats && t.repeatAnchorEpochDay == null && t.dueEpochDay != null) {
             toSave = toSave.copy(repeatAnchorEpochDay = t.dueEpochDay)
         }
         if (t.id == 0L && t.rewardMinutes == null && t.parentId == null) {
             toSave = toSave.copy(rewardMinutes = settings.current().defaultTaskRewardMin)
         }
         val id = tasks.upsert(toSave).let { if (t.id != 0L) t.id else it }
-        if (toSave.repeatKind != RepeatKind.NONE && toSave.seriesId == null) {
+        if (toSave.repeats && toSave.seriesId == null) {
             tasks.upsert(toSave.copy(id = id, seriesId = id))
         }
         bus.emit(ChangeKind.TASKS)
@@ -81,11 +80,30 @@ class TaskService(
     suspend fun rollForward(today: LocalDate): Int {
         val stale = tasks.openRecurringDueBefore(today.toEpochDay())
         stale.forEach { t ->
-            val next = Recurrence.next(t, today.minusDays(1)) ?: return@forEach
+            val next = Recurrence.rolledForward(t, today) ?: return@forEach
             tasks.upsert(t.copy(dueEpochDay = next.toEpochDay()))
         }
         if (stale.isNotEmpty()) bus.emit(ChangeKind.TASKS)
         return stale.size
+    }
+
+    /**
+     * Skips this occurrence of a recurring task without completing it (no reward): it moves to
+     * the next occurrence, or is removed when the series has ended. Returns the new due day.
+     */
+    suspend fun skip(taskId: Long): LocalDate? {
+        val t = tasks.get(taskId) ?: return null
+        if (t.completedAt != null || t.parentId != null || !t.repeats) return null
+        val next = Recurrence.following(t, clock.today())
+        if (next == null) {
+            deleteTree(t.id)
+        } else {
+            tasks.upsert(t.copy(dueEpochDay = next.toEpochDay(), repeatOccurrence = t.repeatOccurrence + 1,
+                repeatAnchorEpochDay = t.repeatAnchorEpochDay ?: t.dueEpochDay, seriesId = t.seriesId ?: t.id))
+            tasks.subtasks(t.id).filter { it.completedAt != null }.forEach { tasks.upsert(it.copy(completedAt = null)) }
+        }
+        bus.emit(ChangeKind.TASKS)
+        return next
     }
 
     /** Deletes the task and its subtasks. */
@@ -100,11 +118,11 @@ class TaskService(
     }
 
     private suspend fun spawnNext(t: TaskEntity, today: LocalDate): TaskEntity? {
-        val due = t.dueEpochDay?.let(LocalDate::ofEpochDay) ?: today
-        val nextDay = Recurrence.next(t, maxOf(due, today)) ?: return null
+        val nextDay = Recurrence.following(t, today) ?: return null
         val seriesId = t.seriesId ?: t.id
         val copy = t.copy(id = 0, dueEpochDay = nextDay.toEpochDay(), completedAt = null,
-            seriesId = seriesId, createdAt = clock.now())
+            seriesId = seriesId, repeatOccurrence = t.repeatOccurrence + 1,
+            repeatAnchorEpochDay = t.repeatAnchorEpochDay ?: t.dueEpochDay, createdAt = clock.now())
         val saved = copy.copy(id = tasks.upsert(copy))
         tasks.subtasks(t.id).forEach { sub ->
             tasks.upsert(sub.copy(id = 0, parentId = saved.id, completedAt = null, createdAt = clock.now()))

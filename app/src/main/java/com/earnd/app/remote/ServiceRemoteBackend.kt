@@ -92,6 +92,7 @@ class ServiceRemoteBackend(
     override suspend fun completeTask(id: Long) = tasksSvc.complete(id, creditBank = false)
     override suspend fun uncompleteTask(id: Long) = tasksSvc.uncomplete(id)
     override suspend fun deleteTask(id: Long) = tasksSvc.delete(id)
+    override suspend fun skipTask(id: Long) = tasksSvc.skip(id)
 
     override suspend fun alarmConfig(kind: OwnerKind, id: Long) = db.alarmConfigDao().get(kind, id)
     override suspend fun saveAlarmConfig(cfg: AlarmConfigEntity) = AlarmConfigs.save(cfg)

@@ -35,6 +35,8 @@ interface RemoteBackend {
     suspend fun completeTask(id: Long): TaskEntity?
     suspend fun uncompleteTask(id: Long)
     suspend fun deleteTask(id: Long)
+    /** Skips a recurring occurrence; returns its new due day, null if the series ended. */
+    suspend fun skipTask(id: Long): java.time.LocalDate?
 
     /** Per-item alarm/reminder config, or null when the item follows the defaults. */
     suspend fun alarmConfig(kind: OwnerKind, id: Long): AlarmConfigEntity?

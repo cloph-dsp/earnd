@@ -25,7 +25,7 @@ interface TaskDao {
     @Query("SELECT * FROM task WHERE parentId IS NULL AND completedAt IS NULL ORDER BY dueEpochDay IS NULL, dueEpochDay, dueMinuteOfDay, sortOrder, id")
     suspend fun open(): List<TaskEntity>
 
-    @Query("SELECT * FROM task WHERE parentId IS NULL AND completedAt IS NULL AND repeatKind != 'NONE' AND dueEpochDay < :epochDay")
+    @Query("SELECT * FROM task WHERE parentId IS NULL AND completedAt IS NULL AND repeatRule IS NOT NULL AND dueEpochDay < :epochDay")
     suspend fun openRecurringDueBefore(epochDay: Long): List<TaskEntity>
 
     /** Open occurrence of a series due after [afterDay] (the one a completion spawned). */

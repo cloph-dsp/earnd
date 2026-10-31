@@ -34,4 +34,8 @@ data class HabitEntity(
     val photoRequired: Boolean? = null,
     /** Minutes per check-in override; null follows Settings.defaultHabitRewardMin. */
     val rewardMinutes: Int? = null,
+    /** RRULE for ScheduleKind.RULE (e.g. every 2 weeks on Mon, monthly on the 1st and last day). */
+    val scheduleRule: String? = null,
+    /** Target days per week for ScheduleKind.TIMES_PER_WEEK (any days). */
+    @ColumnInfo(defaultValue = "0") val timesPerWeek: Int = 0,
 )

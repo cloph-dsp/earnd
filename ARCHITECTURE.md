@@ -31,7 +31,6 @@ enum class DaySegment { NONE, MORNING, AFTERNOON, EVENING }
 enum class ScheduleKind { DAILY, WEEKDAYS, EVERY_N_DAYS }
 enum class CheckInMode { TAP, PHOTO }
 enum class Priority { NONE, LOW, MEDIUM, HIGH }
-enum class RepeatKind { NONE, DAILY, WEEKLY, MONTHLY, EVERY_N_DAYS }
 enum class AlarmStyle { SILENT, NOTIFICATION, FULL_SCREEN }
 enum class NagMode { OFF, PROGRESSIVE, FIXED }
 enum class OwnerKind { TASK, HABIT }
@@ -81,9 +80,10 @@ data class TaskEntity(
     val dueEpochDay: Long? = null,
     val dueMinuteOfDay: Int? = null, // null => all-day
     val priority: Priority = Priority.NONE,
-    val repeatKind: RepeatKind = RepeatKind.NONE,
-    val repeatWeekdayMask: Int = 0,
-    val repeatInterval: Int = 1,     // N for EVERY_N_DAYS / months for MONTHLY
+    val repeatRule: String? = null,  // RRULE subset (domain.RRule), null = once; schema v4
+    val repeatFromCompletion: Boolean = false,
+    val repeatAnchorEpochDay: Long? = null, // series start (first due day)
+    val repeatOccurrence: Int = 1,   // 1-based, for COUNT
     val rewardMinutes: Int? = null,  // null => earns nothing
     val completedAt: Long? = null,
     val seriesId: Long? = null,      // shared by all occurrences of a recurring task
@@ -242,7 +242,9 @@ class HabitService(habits: HabitDao, checkIns: CheckInDao, bank: TimeBank, clock
 }
 
 enum class TaskBucket { OVERDUE, TODAY, UPCOMING, NO_DATE, COMPLETED }
-object Recurrence { fun next(t: TaskEntity, afterDay: LocalDate): LocalDate? }
+data class RRule(...)   // FREQ/INTERVAL/BYDAY(+ordinals)/BYMONTHDAY/BYMONTH/COUNT/UNTIL; parse()/toString() lossless;
+                        // next(start, after), occursOn, afterCompletion, summary(). Month-end and Feb 29 clamp.
+object Recurrence { fun next(t, afterDay); fun following(t, on); fun rolledForward(t, today); fun summary(t) }
 class TaskService(tasks: TaskDao, bank: TimeBank, settings: SettingsRepository, clock: Clock, bus: ChangeBus) {
   fun observeBucket(bucket: TaskBucket): Flow<List<TaskEntity>>
   suspend fun save(t: TaskEntity): Long                 // applies default reward when null & new

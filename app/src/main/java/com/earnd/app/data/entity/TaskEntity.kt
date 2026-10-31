@@ -1,5 +1,6 @@
 package com.earnd.app.data.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -15,12 +16,14 @@ data class TaskEntity(
     /** Null => all-day. */
     val dueMinuteOfDay: Int? = null,
     val priority: Priority = Priority.NONE,
-    val repeatKind: RepeatKind = RepeatKind.NONE,
-    val repeatWeekdayMask: Int = 0,
-    /** N for EVERY_N_DAYS, months for MONTHLY, weeks for WEEKLY. */
-    val repeatInterval: Int = 1,
-    /** First due day of the series; anchors WEEKLY intervals and YEARLY dates. Null => use due. */
+    /** Recurrence as an RRULE string (see [com.earnd.app.domain.RRule]); null => does not repeat. */
+    val repeatRule: String? = null,
+    /** True => the next due date counts from the completion day instead of the schedule. */
+    @ColumnInfo(defaultValue = "0") val repeatFromCompletion: Boolean = false,
+    /** First due day of the series (rule start); anchors intervals, ordinals and yearly dates. */
     val repeatAnchorEpochDay: Long? = null,
+    /** 1-based number of this occurrence in its series, for COUNT. */
+    @ColumnInfo(defaultValue = "1") val repeatOccurrence: Int = 1,
     /** Null => earns nothing. */
     val rewardMinutes: Int? = null,
     val completedAt: Long? = null,
@@ -28,4 +31,6 @@ data class TaskEntity(
     val seriesId: Long? = null,
     val sortOrder: Int = 0,
     val createdAt: Long,
-)
+) {
+    val repeats: Boolean get() = repeatRule != null
+}
