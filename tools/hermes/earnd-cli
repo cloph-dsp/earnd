@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# earnd-cli - talk to the Earnd app on an Android phone over adb.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Usage: earnd-cli <command> [key=value ...]
+#   earnd-cli status
+#   earnd-cli tasks.create title="Call the bank" due=tomorrow time=09:30 priority=high
+#   earnd-cli habits.checkin id=3
+#
+# Free-text values (title, notes, name, unit) are base64-encoded automatically.
+# Output: one JSON object on stdout. Exit code 0 when "ok":true, 1 otherwise, 2 on transport errors.
+#
+# Environment:
+#   EARND_ADB_TARGET  host:port of the phone's adb (wireless debugging), e.g. 100.101.102.103:5555.
+#                     If unset, the single USB/attached device is used.
+#   ADB               adb binary (default: adb)
+#   EARND_PACKAGE     application id (default: com.earnd.app)
+
+set -u
+
+ADB="${ADB:-adb}"
+PKG="${EARND_PACKAGE:-com.earnd.app}"
+TEXT_KEYS=" title notes name unit "
+
+die() { printf '{"ok":false,"error":"%s","message":"%s"}\n' "$1" "$2"; exit 2; }
+
+usage() {
+  sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+}
+
+[ $# -ge 1 ] || usage
+case "$1" in -h|--help|help-cli) usage ;; esac
+
+command -v "$ADB" >/dev/null 2>&1 || die "no_adb" "adb not found in PATH"
+
+cmd="$1"; shift
+
+adb_args=()
+if [ -n "${EARND_ADB_TARGET:-}" ]; then
+  # Connect if not already attached; harmless when already connected.
+  if ! "$ADB" devices | awk 'NR>1 && $2=="device" {print $1}' | grep -qxF "$EARND_ADB_TARGET"; then
+    "$ADB" connect "$EARND_ADB_TARGET" >/dev/null 2>&1
+    "$ADB" -s "$EARND_ADB_TARGET" wait-for-device 2>/dev/null &
+    wpid=$!
+    ( sleep 10; kill "$wpid" 2>/dev/null ) &
+    wait "$wpid" 2>/dev/null
+  fi
+  adb_args=(-s "$EARND_ADB_TARGET")
+fi
+
+b64() { printf '%s' "$1" | base64 | tr -d '\n'; }
+
+# Quote a value for the device shell (adb shell joins args into one shell command line).
+shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+
+extras="--es cmd $(shq "$cmd")"
+for kv in "$@"; do
+  case "$kv" in *=*) ;; *) die "bad_args" "expected key=value, got: $kv" ;; esac
+  key="${kv%%=*}"; val="${kv#*=}"
+  case "$key" in *[!A-Za-z0-9_]*|"") die "bad_args" "bad key: $key" ;; esac
+  case "$TEXT_KEYS" in
+    *" $key "*) extras="$extras --es ${key}_b64 $(b64 "$val")" ;;
+    *) extras="$extras --es $key $(shq "$val")" ;;
+  esac
+done
+
+out="$("$ADB" "${adb_args[@]}" shell "am broadcast -n $PKG/.remote.RemoteReceiver -a $PKG.REMOTE $extras" 2>&1)" \
+  || die "adb_failed" "$(printf '%s' "$out" | tr -d '"\r\n' | head -c 200)"
+
+# Expected: Broadcast completed: result=0, data="{...}"
+line="$(printf '%s\n' "$out" | tr -d '\r' | grep -m1 '^Broadcast completed:')"
+case "$line" in
+  *'data="'*) ;;
+  *) die "no_reply" "$(printf '%s' "$out" | tr -d '"\r\n' | head -c 200)" ;;
+esac
+json="${line#*data=\"}"
+json="${json%\"}"
+
+printf '%s\n' "$json"
+case "$json" in *'"ok":true'*) exit 0 ;; *) exit 1 ;; esac
