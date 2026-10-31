@@ -15,29 +15,37 @@
 #                     If unset, the single USB/attached device is used.
 #   ADB               adb binary (default: adb)
 #   EARND_PACKAGE     application id (default: com.earnd.app)
+#   EARND_DRY_RUN=1   print the device shell command instead of running it (for tests)
 
 set -u
 
 ADB="${ADB:-adb}"
 PKG="${EARND_PACKAGE:-com.earnd.app}"
-TEXT_KEYS=" title notes name unit "
+TEXT_KEYS=" title notes name unit message "
 
 die() { printf '{"ok":false,"error":"%s","message":"%s"}\n' "$1" "$2"; exit 2; }
 
 usage() {
-  sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
 [ $# -ge 1 ] || usage
 case "$1" in -h|--help|help-cli) usage ;; esac
 
-command -v "$ADB" >/dev/null 2>&1 || die "no_adb" "adb not found in PATH"
-
 cmd="$1"; shift
+# Command names are lowercase words joined by one dot (e.g. tasks.list); anything else is refused
+# before it reaches the phone.
+printf '%s' "$cmd" | grep -Eqx '[a-z][a-z0-9_]{0,23}([.][a-z][a-z0-9_]{0,23})?' \
+  || die "bad_command" "bad command name"
+case "$PKG" in *[!A-Za-z0-9_.]*|"") die "bad_args" "bad EARND_PACKAGE" ;; esac
+
+if [ "${EARND_DRY_RUN:-}" != "1" ]; then
+  command -v "$ADB" >/dev/null 2>&1 || die "no_adb" "adb not found in PATH"
+fi
 
 adb_args=()
-if [ -n "${EARND_ADB_TARGET:-}" ]; then
+if [ -n "${EARND_ADB_TARGET:-}" ] && [ "${EARND_DRY_RUN:-}" != "1" ]; then
   # Connect if not already attached; harmless when already connected.
   if ! "$ADB" devices | awk 'NR>1 && $2=="device" {print $1}' | grep -qxF "$EARND_ADB_TARGET"; then
     "$ADB" connect "$EARND_ADB_TARGET" >/dev/null 2>&1
@@ -51,12 +59,13 @@ fi
 
 b64() { printf '%s' "$1" | base64 | tr -d '\n'; }
 
-# Quote a value for the device shell (adb shell joins args into one shell command line).
+# Quote a value for the device shell: adb shell joins its args into ONE command line that the
+# phone's sh parses again, so every user value is single-quoted, with each ' written as '\''.
 shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 
 extras="--es cmd $(shq "$cmd")"
 for kv in "$@"; do
-  case "$kv" in *=*) ;; *) die "bad_args" "expected key=value, got: $kv" ;; esac
+  case "$kv" in *=*) ;; *) die "bad_args" "expected key=value" ;; esac
   key="${kv%%=*}"; val="${kv#*=}"
   case "$key" in *[!A-Za-z0-9_]*|"") die "bad_args" "bad key: $key" ;; esac
   case "$TEXT_KEYS" in
@@ -65,7 +74,13 @@ for kv in "$@"; do
   esac
 done
 
-out="$("$ADB" "${adb_args[@]}" shell "am broadcast -n $PKG/.remote.RemoteReceiver -a $PKG.REMOTE $extras" 2>&1)" \
+remote_cmd="am broadcast -n $PKG/.remote.RemoteReceiver -a $PKG.REMOTE $extras"
+if [ "${EARND_DRY_RUN:-}" = "1" ]; then
+  printf '%s\n' "$remote_cmd"
+  exit 0
+fi
+
+out="$("$ADB" "${adb_args[@]}" shell "$remote_cmd" 2>&1)" \
   || die "adb_failed" "$(printf '%s' "$out" | tr -d '"\r\n' | head -c 200)"
 
 # Expected: Broadcast completed: result=0, data="{...}"

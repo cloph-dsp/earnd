@@ -9,12 +9,13 @@ phone. Everything goes through adb; Earnd has no network permission and no serve
 
 ## What remote access can and cannot do
 
-Allowed: read status (balance, lock state, counts; read-only), list/get/create/update/archive
-habits, check in and undo, list/get/create/update/complete/uncomplete/delete tasks.
+Allowed: read status (balance, lock state, counts; read-only), list/get/create/update/archive/
+unarchive/reorder habits, check in (with quantity) and undo, list/get/create/update/complete/uncomplete/delete tasks.
 
-Always refused with `forbidden`: unlocking, changing the balance or reward minutes, changing
-blocked apps, disabling blocking, bedtime, vacation, hard mode and all other settings. Photo
-habits must be checked in on the phone. Remote access is **off by default**; turn it on in
+Always refused with `forbidden`: unlocking, changing the balance or reward minutes, reward
+mode, segment mode, changing blocked apps, disabling blocking, bedtime, vacation, hard mode and
+all other settings. Photo habits must be checked in on the phone, and photo proof can only be
+turned off there. Remote access is **off by default**; turn it on in
 Earnd's settings. Every remote change (and every refusal) is kept in an audit log on the
 phone (last 200 entries; `earnd-cli audit.list`).
 
@@ -24,6 +25,13 @@ The command receiver is exported but requires `android.permission.DUMP`. Only th
 user and the system hold it, so other apps on the phone cannot call it. The real security
 boundary is therefore **who can reach adb**: anyone with adb access to the phone can do far
 more than this tool. Treat adb access like a root password.
+
+Defence in depth: on Android 14+ the receiver also refuses senders whose UID the platform
+reports as anything other than shell (2000) or root (0). The app caps argument count and
+length and validates every number. `earnd-cli` validates the command name and keys, base64-
+encodes free text and single-quotes every other value, because `adb shell` hands one command
+line to the phone's `sh`. Run `./test-earnd-cli.sh` to check the quoting offline
+(`EARND_DRY_RUN=1 earnd-cli ...` prints the exact device command without running it).
 
 ## Setup
 
