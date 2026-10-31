@@ -88,3 +88,32 @@ tier.
 ## 9. Non-goals
 Notification-only design; rigid schedules; heavy gamification; AI for its own sake; multi-service
 architecture; tasks blocking the phone indiscriminately.
+
+## 10. Additional features (parity pass, 2026-10-31)
+Described in our own words; design independently.
+- Habits: custom icon (pick from a built-in icon set) and color; optional quantity target with unit
+  (e.g. 2 L, 20 pages) where check-ins add amounts; manual reordering of habits; archive/unarchive with
+  an archived list; per-habit reminders on chosen weekdays with optional custom message.
+- Day segments: optional "segment mode" where finishing all habits of the current segment (morning /
+  afternoon / evening, with configurable start times) unlocks leisure apps until the next segment.
+- Reward behavior setting: minutes per check-in (global default + per-habit override), or "only when
+  everything is done".
+- Photo-required as a global default for new habits ("I promise to prove it" commitment toggle), plus
+  per-habit override.
+- Morning nudge: optional daily notification at a chosen time summarizing today's habits, with a small
+  rotating set of short original messages.
+- Daily report: optional evening notification with what was done/missed and leisure time used.
+- Screen-time report screen: using Usage Access (optional permission), show today's most-used apps and
+  an hour-by-hour bar chart of phone use, plus earned vs spent minutes.
+- Habit detail: calendar/history of check-ins, current and best streak, "perfect days" count (days
+  where everything scheduled was done).
+- "Blocking is off" safeguard: if the accessibility service gets disabled (or after an app update
+  resets it), post a persistent notification that opens the right settings screen, and remind again
+  after ~30 minutes if still off.
+- Onboarding includes a short "how it works" explainer, and OEM battery guidance (detect common
+  aggressive manufacturers — e.g. Xiaomi, Samsung, Nothing, OnePlus, Huawei — and show the specific
+  steps to set battery to unrestricted).
+- Theme: system / light / dark selector.
+- Restricted-settings guidance: on Android 13+, sideloaded apps must "Allow restricted settings" in App
+  info before the accessibility service can be enabled; onboarding must explain this with a button to
+  App info.
