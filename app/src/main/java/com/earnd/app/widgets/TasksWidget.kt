@@ -31,6 +31,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -109,6 +110,17 @@ class TasksWidget : GlanceAppWidget() {
                     fontSize = 13.sp,
                 ),
             )
+            if (row.whenLabel.isNotEmpty()) {
+                Text(
+                    row.whenLabel,
+                    modifier = GlanceModifier.padding(start = 6.dp),
+                    style = TextStyle(
+                        color = if (row.overdue) WidgetColors.accent else WidgetColors.muted,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                    ),
+                )
+            }
         }
     }
 }
