@@ -46,18 +46,8 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
         if (cfg.ownerKind == OwnerKind.HABIT) {
             TimeField("Daily reminder at", cfg.habitReminderMinuteOfDay, { onChange(cfg.copy(habitReminderMinuteOfDay = it)) })
         } else {
-            SwitchRow("Remind at the due time", cfg.atDue, { onChange(cfg.copy(atDue = it)) })
-            var offsets by remember { mutableStateOf(cfg.offsetsBeforeMin) }
-            OutlinedTextField(
-                value = offsets,
-                onValueChange = { t ->
-                    offsets = t.filter { it.isDigit() || it == ',' }
-                    onChange(cfg.copy(offsetsBeforeMin = normalizeCsv(offsets)))
-                },
-                label = { Text("Also remind before (minutes, e.g. 60,15)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Text("Reminders", style = MaterialTheme.typography.labelLarge)
+            ReminderChips(cfg, onChange)
         }
         Text("Style", style = MaterialTheme.typography.labelLarge)
         ChoiceChips(AlarmStyle.values().toList(), cfg.style, ::styleLabel) { onChange(cfg.copy(style = it)) }
@@ -90,8 +80,6 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
     }
 }
 
-private fun normalizeCsv(t: String): String =
-    t.split(',').mapNotNull { it.trim().toIntOrNull() }.filter { it > 0 }.distinct().sortedDescending().joinToString(",")
 
 private fun soundTitle(c: android.content.Context, uri: String): String =
     runCatching { RingtoneManager.getRingtone(c, Uri.parse(uri))?.getTitle(c) }.getOrNull() ?: "Custom"
