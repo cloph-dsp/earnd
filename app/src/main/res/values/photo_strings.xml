@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="photo_take">Take photo</string>
+    <string name="photo_saving">Saving…</string>
+    <string name="photo_cancel">Cancel</string>
+    <string name="photo_allow">Allow camera</string>
+    <string name="photo_failed">That photo didn\'t save. Want to try again?</string>
+    <string name="photo_permission_title">Camera access</string>
+    <string name="photo_permission_body">Earnd uses the camera only for check-in photos. They stay on this device.</string>
+</resources>
