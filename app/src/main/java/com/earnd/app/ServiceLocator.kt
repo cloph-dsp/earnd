@@ -27,6 +27,7 @@ object ServiceLocator {
     val changeBus: ChangeBus by lazy { ChangeBus() }
     val clock: Clock by lazy { SystemTimeClock }
     val db: EarndDatabase by lazy { EarndDatabase.build(appContext) }
+    val backup: com.earnd.app.backup.BackupStore by lazy { com.earnd.app.backup.BackupStore(db) }
     val settings: SettingsRepository by lazy { SettingsRepository(db.settingDao(), clock, changeBus) }
     /** Serializes TimeBank read-then-write steps in-process and runs them in one Room transaction. */
     val transactor: Transactor by lazy {

@@ -56,6 +56,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.earnd.app.alarms.AlarmPermissions
 import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.data.entity.ThemeMode
+import com.earnd.app.data.entity.ListDensity
+import com.earnd.app.data.entity.PuzzleKind
+import com.earnd.app.domain.UnlockCap
+import com.earnd.app.ui.common.rememberPuzzleGate
 
 @Composable
 fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
@@ -67,17 +71,25 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
     val scope = rememberCoroutineScope()
     LaunchedEffect(s, refresh) { pendingAt = sl.settings.pendingWeakeningAt()?.takeIf { it > 0 } }
 
-    val change: ((Settings) -> Settings) -> Unit = { transform ->
+    val gate = rememberPuzzleGate()
+    val weaken: ((Settings) -> Settings) -> Unit = { transform ->
         launchUi {
-            val cur = sl.settings.current()
-            if (SettingsChanges.isWeakening(cur, transform(cur))) {
-                val at = sl.settings.requestWeakening(transform)
-                refresh++
-                if (at > sl.clock.now()) scope.launch {
-                    snackbar.showSnackbar("Hard mode: this change applies at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.")
-                }
-            } else {
-                sl.settings.update(transform)
+            val at = sl.settings.requestWeakening(transform)
+            refresh++
+            if (at > sl.clock.now()) scope.launch {
+                snackbar.showSnackbar("Hard mode: this change applies at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.")
+            }
+        }
+    }
+    val change: ((Settings) -> Settings) -> Unit = { transform ->
+        val shown = s
+        // Loosening first passes the removal puzzle (if set), then the hard-mode cooldown.
+        if (shown != null && SettingsChanges.isWeakening(shown, transform(shown))) {
+            gate { weaken(transform) }
+        } else {
+            launchUi {
+                val cur = sl.settings.current()
+                if (SettingsChanges.isWeakening(cur, transform(cur))) weaken(transform) else sl.settings.update(transform)
             }
         }
     }
@@ -114,6 +126,14 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
                     { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { v -> change { it.copy(weekStartsOn = v) } }
             }
             SwitchRow("Open everything when today's habits are done", cur.allDoneUnlock, { v -> change { it.copy(allDoneUnlock = v) } })
+            Text("Longest single unlock", style = MaterialTheme.typography.labelLarge)
+            ChoiceChips(UnlockCap.CHOICES, UnlockCap.normalize(cur.unlockCapMin), { it?.let { m -> "$m min" } ?: "No cap" }) { v ->
+                change { it.copy(unlockCapMin = v) }
+            }
+            Text(
+                "Unlocks stop after this long. Minutes you don't use stay banked for the next one.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             NumberField("Default task reward (minutes, blank = none)", cur.defaultTaskRewardMin, { v -> change { it.copy(defaultTaskRewardMin = v) } }, Modifier.fillMaxWidth())
 
             SectionTitle("Habits")
@@ -145,6 +165,10 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
                 hint = "Minutes can't be spent by hand; leisure opens only when everything is done. Loosening any setting waits for the cooldown.",
             )
             NumberField("Cooldown before loosening (minutes)", cur.weakenCooldownMin, { v -> change { it.copy(weakenCooldownMin = (v ?: 0).coerceIn(1, 24 * 60)) } }, Modifier.fillMaxWidth())
+            Text("Puzzle before removing a block or loosening a rule", style = MaterialTheme.typography.labelLarge)
+            ChoiceChips(PuzzleKind.entries, cur.removalPuzzle, {
+                when (it) { PuzzleKind.NONE -> "None"; PuzzleKind.ARITHMETIC -> "Arithmetic"; PuzzleKind.SENTENCE -> "Type a sentence" }
+            }) { v -> change { it.copy(removalPuzzle = v) } }
 
             SectionTitle("Bedtime")
             SwitchRow("Lock leisure apps at night", cur.bedtimeEnabled, { v -> change { it.copy(bedtimeEnabled = v) } })
@@ -183,12 +207,19 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
             ChoiceChips(ThemeMode.entries, cur.themeMode, {
                 when (it) { ThemeMode.SYSTEM -> "Follow system"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" }
             }) { v -> change { it.copy(themeMode = v) } }
+            Text("Habit list", style = MaterialTheme.typography.labelLarge)
+            ChoiceChips(ListDensity.entries, cur.listDensity, {
+                if (it == ListDensity.COMPACT) "Compact" else "Comfortable"
+            }) { v -> change { it.copy(listDensity = v) } }
 
             SectionTitle("Remote control")
             RemoteSection()
 
             SectionTitle("System")
             OutlinedButton(onClick = onOpenPermissions) { Text("Permissions") }
+
+            SectionTitle("Backup")
+            BackupSection(snackbar)
             Text(
                 "Earnd is free software (GPL-3.0). Everything stays on this phone.",
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 24.dp),
