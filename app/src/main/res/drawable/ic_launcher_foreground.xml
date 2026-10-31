@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Earnd mark: an open teal ring (time) with a coral check sweeping into it. 108dp adaptive canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#0FA3A3" android:strokeWidth="7" android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,30 A24,24 0 1,1 31.4,46" />
+    <path android:fillColor="#5FD4D2"
+        android:pathData="M50.5,30 a3.5,3.5 0 1,1 7,0 a3.5,3.5 0 1,1 -7,0z" />
+    <path android:strokeColor="#FF7A5C" android:strokeWidth="7" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:fillColor="#00000000"
+        android:pathData="M43,54 L51,62 L66,45" />
+</vector>
