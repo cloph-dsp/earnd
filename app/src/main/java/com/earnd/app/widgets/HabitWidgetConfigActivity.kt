@@ -94,7 +94,8 @@ class HabitWidgetConfigActivity : ComponentActivity() {
 
     private suspend fun choose(appWidgetId: Int, habitId: Long) {
         val ctx = applicationContext
-        val glanceId = GlanceAppWidgetManager(ctx).getGlanceIdBy(appWidgetId)
+        val glanceId = runCatching { GlanceAppWidgetManager(ctx).getGlanceIdBy(appWidgetId) }.getOrNull()
+        if (glanceId == null) { setResult(RESULT_CANCELED, result(appWidgetId)); finish(); return }
         updateAppWidgetState(ctx, PreferencesGlanceStateDefinition, glanceId) { prefs: Preferences ->
             prefs.toMutablePreferences().apply { this[HabitWidget.HABIT_ID] = habitId }
         }

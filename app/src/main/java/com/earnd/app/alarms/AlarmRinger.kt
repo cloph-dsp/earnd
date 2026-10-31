@@ -12,26 +12,34 @@ import android.os.VibratorManager
 
 /** Loops alarm sound and vibration until [stop] is called (Done or Snooze). */
 internal object AlarmRinger {
+    private val lock = Any()
     private var player: MediaPlayer? = null
     private var vibrator: Vibrator? = null
 
-    @Synchronized
-    fun start(context: Context, soundUri: String?, vibrate: Boolean) {
-        stop()
-        // A custom sound may be gone (file deleted, permission lost): fall back to defaults.
-        player = listOfNotNull(
+    /** Bumped by every [stop]; a [start] whose generation is stale never leaves anything playing. */
+    @Volatile var generation: Long = 0L
+        private set
+
+    /** Prepares outside the lock (may block), then installs only if [gen] is still current. */
+    fun start(context: Context, soundUri: String?, vibrate: Boolean, gen: Long = generation) {
+        if (gen != generation) return
+        val mp = listOfNotNull(
             soundUri?.let(Uri::parse),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-        ).firstNotNullOfOrNull { tryPlay(context, it) }
-        if (vibrate) {
-            vibrator = vibratorOf(context).also {
+        ).firstNotNullOfOrNull { tryPrepare(context, it) }
+        synchronized(lock) {
+            if (gen != generation) { mp?.release(); return }
+            stopLocked()
+            mp?.runCatching { start() }
+            player = mp
+            if (vibrate) vibrator = vibratorOf(context).also {
                 it.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 500), 0))
             }
         }
     }
 
-    private fun tryPlay(context: Context, uri: Uri): MediaPlayer? {
+    private fun tryPrepare(context: Context, uri: Uri): MediaPlayer? {
         val mp = MediaPlayer()
         return runCatching {
             mp.apply {
@@ -40,13 +48,17 @@ internal object AlarmRinger {
                 setDataSource(context, uri)
                 isLooping = true
                 prepare()
-                start()
             }
         }.onFailure { mp.release() }.getOrNull()
     }
 
-    @Synchronized
+    /** Never waits on a prepare(): it only invalidates the generation and stops what is installed. */
     fun stop() {
+        generation++
+        synchronized(lock) { stopLocked() }
+    }
+
+    private fun stopLocked() {
         player?.runCatching { stop(); release() }
         player = null
         vibrator?.cancel()

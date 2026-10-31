@@ -135,7 +135,9 @@ class HabitCheckInAction : ActionCallback {
         if (habit == null || habit.archived) return
         val s = ServiceLocator.settings.current()
         if (ServiceLocator.habitService.photoRequired(habit, s)) {
-            context.startActivity(WidgetLinks.checkIn(context, id))
+            // Background activity starts are blocked on Android 14+: re-render so the next tap
+            // uses actionStartActivity for the photo check-in.
+            WidgetRefresher.updateAll(context)
             return
         }
         ServiceLocator.habitService.checkIn(id)

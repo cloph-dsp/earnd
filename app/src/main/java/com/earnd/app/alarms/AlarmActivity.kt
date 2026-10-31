@@ -8,6 +8,9 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.earnd.app.alarms.AlarmKeys.putOwner
 import com.earnd.app.data.entity.OwnerKind
@@ -38,23 +41,25 @@ class AlarmActivity : ComponentActivity() {
 
     private fun bind(intent: Intent) {
         val o = AlarmKeys.ownerOf(intent) ?: return finish()
-        lifecycleScope.launch {
-            val actions = AlarmsModule.actions
-            val label = runCatching { actions.labelOf(o.first, o.second) }.getOrDefault("")
-                .ifBlank { intent.getStringExtra(AlarmKeys.EXTRA_LABEL).orEmpty() }
-            val left = runCatching { actions.snoozesLeft(o.first, o.second) }.getOrDefault(0)
-            setContent {
-                EarndTheme {
-                    AlarmScreen(
-                        label = label,
-                        snoozesLeft = left,
-                        snoozeMinutes = NagSchedule.SNOOZE_MIN,
-                        onStop = { act(null) },
-                        onSnooze = { act { actions.snooze(o.first, o.second) } },
-                        onDone = { act { actions.done(o.first, o.second) } },
-                    )
-                }
+        val actions = AlarmsModule.actions
+        var label by mutableStateOf(intent.getStringExtra(AlarmKeys.EXTRA_LABEL).orEmpty())
+        var left by mutableStateOf(0)
+        // Show Stop immediately; label and snoozes fill in after the DB read.
+        setContent {
+            EarndTheme {
+                AlarmScreen(
+                    label = label,
+                    snoozesLeft = left,
+                    snoozeMinutes = NagSchedule.SNOOZE_MIN,
+                    onStop = { act(null) },
+                    onSnooze = { act { actions.snooze(o.first, o.second) } },
+                    onDone = { act { actions.done(o.first, o.second) } },
+                )
             }
+        }
+        lifecycleScope.launch {
+            runCatching { actions.labelOf(o.first, o.second) }.getOrNull()?.takeIf { it.isNotBlank() }?.let { label = it }
+            left = runCatching { actions.snoozesLeft(o.first, o.second) }.getOrDefault(0)
         }
     }
 

@@ -15,6 +15,7 @@ import com.earnd.app.alarms.AlarmKeys.putOwner
 import com.earnd.app.data.entity.OwnerKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -31,6 +32,7 @@ class AlarmRingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var owner: Pair<OwnerKind, Long>? = null
     private var label: String = ""
+    private var ringJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -51,7 +53,15 @@ class AlarmRingService : Service() {
         handler.removeCallbacksAndMessages(null)
         handler.postDelayed({ onTimeout() }, timeout)
         launchScreen(o)
-        scope.launch {
+        if (!AlarmPermissions.ringVisible(this)) {
+            // No visible notification = no way to stop it: ring briefly, then record a missed alarm.
+            handler.removeCallbacksAndMessages(null)
+            handler.postDelayed({ onTimeout() }, INVISIBLE_TIMEOUT_MS)
+        }
+        AlarmRinger.stop() // invalidates any earlier start still preparing
+        val gen = AlarmRinger.generation
+        ringJob?.cancel()
+        ringJob = scope.launch {
             val cfg = runCatching { ServiceLocator.db.alarmConfigDao().get(o.first, o.second) }.getOrNull()
             val left = runCatching { AlarmsModule.actions.snoozesLeft(o.first, o.second) }.getOrDefault(0)
             if (owner == o) runCatching {
@@ -59,8 +69,7 @@ class AlarmRingService : Service() {
                     .notify(AlarmKeys.NOTIF_RING, Ringing.build(this@AlarmRingService, o.first, o.second, label, left))
             }
             // prepare() on a content URI can block: keep it off the main thread.
-            withContext(Dispatchers.IO) { AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, cfg?.vibrate ?: true) }
-            if (owner == null) AlarmRinger.stop() // stopped while preparing
+            withContext(Dispatchers.IO) { AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, cfg?.vibrate ?: true, gen) }
         }
         return START_NOT_STICKY
     }
@@ -72,6 +81,8 @@ class AlarmRingService : Service() {
     private fun launchScreen(o: Pair<OwnerKind, Long>) {
         val locked = getSystemService(KeyguardManager::class.java).isKeyguardLocked
         if (locked && AlarmPermissions.canUseFullScreenIntent(this)) return
+        // Unlocked, Android 14+ blocks background activity starts unless the app may draw overlays;
+        // without it the full-screen intent shows as a heads-up with Stop / Snooze.
         runCatching { startActivity(AlarmActivity.intent(this, o.first, o.second)) }
     }
 
@@ -115,6 +126,7 @@ class AlarmRingService : Service() {
 
     companion object {
         private const val FGS_TYPE = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+        private const val INVISIBLE_TIMEOUT_MS = 20_000L
         private const val MAX_WAKE_MS = 60 * 60_000L
 
         /** Starts ringing. Returns false if the system refused to start the service. */

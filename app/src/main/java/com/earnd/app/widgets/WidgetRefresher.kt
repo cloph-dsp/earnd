@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 object WidgetRefresher {
     private const val PERIODIC = "widgets_periodic"
     private const val SESSION_END = "widgets_session_end"
+    private const val MIDNIGHT = "widgets_midnight"
     private val relevant = setOf(
         ChangeKind.TASKS, ChangeKind.BALANCE, ChangeKind.SESSION, ChangeKind.SETTINGS,
         ChangeKind.CHECKINS, ChangeKind.HABITS,
@@ -43,6 +44,7 @@ object WidgetRefresher {
         if (!started.compareAndSet(false, true)) return
         val app = context.applicationContext
         schedulePeriodic(app)
+        scheduleMidnight(app, ExistingWorkPolicy.KEEP)
         scope.launch {
             ServiceLocator.changeBus.events
                 .filter { it in relevant }
@@ -55,6 +57,17 @@ object WidgetRefresher {
         val req = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(15, TimeUnit.MINUTES).build()
         WorkManager.getInstance(context)
             .enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, req)
+    }
+
+    /** One refresh just after the next local midnight, so daily progress resets. */
+    fun scheduleMidnight(context: Context, policy: ExistingWorkPolicy) {
+        val zone = java.time.ZoneId.systemDefault()
+        val now = java.time.ZonedDateTime.now(zone)
+        val next = now.toLocalDate().plusDays(1).atStartOfDay(zone)
+        val delay = java.time.Duration.between(now, next).toMillis() + 5_000
+        val req = OneTimeWorkRequestBuilder<MidnightWidgetWorker>()
+            .setInitialDelay(delay, TimeUnit.MILLISECONDS).build()
+        WorkManager.getInstance(context).enqueueUniqueWork(MIDNIGHT, policy, req)
     }
 
     /** Schedules a refresh just after the running session ends; cancels it when none runs. */
@@ -77,6 +90,15 @@ class WidgetUpdateWorker(context: Context, params: WorkerParameters) : Coroutine
         // Closes an expired session so the lock state flips.
         ServiceLocator.timeBank.activeSession(ServiceLocator.clock.now())
         WidgetRefresher.updateAll(applicationContext)
+        return Result.success()
+    }
+}
+
+class MidnightWidgetWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        runCatching { WidgetRefresher.updateAll(applicationContext) }
+        // Chains after this run (REPLACE would cancel the running worker).
+        WidgetRefresher.scheduleMidnight(applicationContext, ExistingWorkPolicy.APPEND_OR_REPLACE)
         return Result.success()
     }
 }

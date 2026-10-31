@@ -56,8 +56,16 @@ object AlarmPermissions {
     fun notificationSettingsIntent(context: Context): Intent =
         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
 
+    /** True if the ringing notification (and its Stop button) can actually be shown. */
+    fun ringVisible(context: Context): Boolean {
+        val nm = context.getSystemService(NotificationManager::class.java)
+        if (!nm.areNotificationsEnabled()) return false
+        val ch = nm.getNotificationChannel(AlarmChannels.RING) ?: return true
+        return ch.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
     /** Everything the alarm feature needs, for a single "setup" card in the UI. */
-    fun allGood(context: Context): Boolean = canScheduleExact(context) && notificationsEnabled(context) &&
+    fun allGood(context: Context): Boolean = canScheduleExact(context) && notificationsEnabled(context) && ringVisible(context) &&
         isIgnoringBatteryOptimizations(context) && canUseFullScreenIntent(context)
 
     private fun pkgUri(context: Context) = Uri.parse("package:${context.packageName}")
