@@ -13,6 +13,7 @@ object AlarmChannels {
     const val PENDING_QUIET = "alarms_pending_quiet"
     const val UPCOMING = "alarms_upcoming"
     const val RING = "alarms_ring"
+    const val GUARD = "alarms_guard_off"
 
     fun ensure(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
@@ -33,6 +34,10 @@ object AlarmChannels {
                 AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
             setBypassDnd(true)
         }
-        nm.createNotificationChannels(listOf(pending, quiet, upcoming, ring))
+        val guard = NotificationChannel(GUARD, context.getString(R.string.alarms_channel_guard),
+            NotificationManager.IMPORTANCE_HIGH).apply {
+            description = context.getString(R.string.alarms_channel_guard_desc)
+        }
+        nm.createNotificationChannels(listOf(pending, quiet, upcoming, ring, guard))
     }
 }

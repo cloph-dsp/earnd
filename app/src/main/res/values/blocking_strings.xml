@@ -25,4 +25,6 @@
     <string name="blocking_grace_used">You\'ve already used tonight\'s couple of minutes.</string>
     <string name="blocking_not_bedtime">Bedtime is over, you can carry on.</string>
     <string name="blocking_try_again">That didn\'t work, please try again.</string>
+    <string name="blocking_guard_off_title">Blocking is off</string>
+    <string name="blocking_guard_off_text">Earnd cannot lock leisure apps right now. Tap to switch the Earnd service back on in Accessibility settings.</string>
 </resources>

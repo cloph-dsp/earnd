@@ -11,9 +11,16 @@ import com.earnd.app.data.entity.OwnerKind
 
 /** Posts the full-screen-intent notification that opens [AlarmActivity] over the lock screen. */
 internal object Ringing {
+    /** Posts the ringing notification through [AlarmRingService]; falls back to a plain notification. */
     suspend fun show(context: Context, kind: OwnerKind, id: Long) {
         AlarmChannels.ensure(context)
         val label = AlarmsModule.actions.labelOf(kind, id).ifBlank { context.getString(R.string.alarms_ring_fallback) }
+        if (AlarmRingService.start(context, kind, id, label)) return
+        val n = build(context, kind, id, label).apply { flags = flags or android.app.Notification.FLAG_INSISTENT }
+        context.getSystemService(NotificationManager::class.java).notify(AlarmKeys.NOTIF_RING, n)
+    }
+
+    fun build(context: Context, kind: OwnerKind, id: Long, label: String): android.app.Notification {
         val open = PendingIntent.getActivity(
             context, 0, AlarmActivity.intent(context, kind, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -24,7 +31,7 @@ internal object Ringing {
                 .setData(AlarmKeys.uri(kind, id, "done-ring")).putOwner(kind, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val n = NotificationCompat.Builder(context, AlarmChannels.RING)
+        return NotificationCompat.Builder(context, AlarmChannels.RING)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(label)
@@ -36,12 +43,11 @@ internal object Ringing {
             .setOngoing(true)
             .addAction(0, context.getString(R.string.alarms_done_action, PendingNotifier.ellipsize(label, 22)), done)
             .build()
-        context.getSystemService(NotificationManager::class.java).notify(AlarmKeys.NOTIF_RING, n)
     }
 
     @Suppress("UNUSED_PARAMETER")
     fun dismiss(context: Context, kind: OwnerKind, id: Long) {
-        AlarmRinger.stop()
+        AlarmRingService.stop(context)
         context.getSystemService(NotificationManager::class.java).cancel(AlarmKeys.NOTIF_RING)
         AlarmActivity.finishCurrent()
     }

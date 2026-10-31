@@ -17,6 +17,7 @@ import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.domain.Clock
+import com.earnd.app.domain.HabitProgress
 import com.earnd.app.domain.HabitSchedule
 import com.earnd.app.domain.localDate
 import com.earnd.app.domain.today
@@ -81,10 +82,10 @@ class AlarmPlanner(
         val lead = AlarmTimes.offsets(cfg).maxOrNull()?.let { AlarmTimes.minutes(it) } ?: 0L
         for (i in 0..14L) {
             val day = today.plusDays(i)
-            if (!HabitSchedule.isScheduled(h, day) || s.onVacation(day.toEpochDay())) continue
+            if (!HabitSchedule.remindsOn(h, day) || s.onVacation(day.toEpochDay())) continue
             val at = AlarmTimes.at(day, minute, clock)
             if (at <= now && at - lead <= now) continue
-            if (i == 0L && checkIns.countFor(h.id, day.toEpochDay()) >= h.timesPerDay) continue
+            if (i == 0L && habitDone(h, day)) continue
             return at
         }
         return null
@@ -98,7 +99,6 @@ class AlarmPlanner(
         cancelArmed()
         val uris = planned.map { arm(it) }
         settings.rawPut(KEY_ARMED, uris.joinToString("\n"))
-        NagTicker.ensure(context)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -116,7 +116,7 @@ class AlarmPlanner(
                 OwnerKind.HABIT -> {
                     val h = habits.get(st.ownerId)
                     h != null && !h.archived && clock.localDate(st.dueAt) == today &&
-                        checkIns.countFor(h.id, today.toEpochDay()) < h.timesPerDay
+                        !habitDone(h, today)
                 }
             }
             if (!stillPending) nag.resolve(st.ownerKind, st.ownerId)
@@ -133,13 +133,16 @@ class AlarmPlanner(
         if (s.onVacation(today.toEpochDay())) return
         for (h in habits.active()) {
             val minute = cfgs[OwnerKind.HABIT to h.id]?.habitReminderMinuteOfDay ?: continue
-            if (!HabitSchedule.isScheduled(h, today)) continue
+            if (!HabitSchedule.remindsOn(h, today)) continue
             val due = AlarmTimes.at(today, minute, clock)
             if (due > now || tracked.containsKey(OwnerKind.HABIT to h.id)) continue
-            if (checkIns.countFor(h.id, today.toEpochDay()) >= h.timesPerDay) continue
+            if (habitDone(h, today)) continue
             nag.onDue(OwnerKind.HABIT, h.id, due)
         }
     }
+
+    private suspend fun habitDone(h: HabitEntity, day: java.time.LocalDate): Boolean =
+        HabitProgress.isComplete(h, checkIns.forHabitDay(h.id, day.toEpochDay()))
 
     private fun alarmManager() = context.getSystemService(AlarmManager::class.java)
 

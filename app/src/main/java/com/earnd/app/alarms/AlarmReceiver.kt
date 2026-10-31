@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-/** Receives the exact alarms armed by [AlarmPlanner] and the [NagTicker] heartbeat. */
+/** Receives the exact alarms armed by [AlarmPlanner] (and a legacy heartbeat tick, if still armed). */
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val actions = AlarmsModule.actions
@@ -13,6 +13,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 NagTicker.ensure(context)
                 actions.nagPass()
             }
+            AlarmKeys.ACTION_GUARD -> launchAsync { GuardReminder.onFired(context) }
             AlarmKeys.ACTION_FIRE -> launchAsync {
                 val slot = intent.getStringExtra(AlarmKeys.EXTRA_SLOT) ?: PlannedAlarm.SLOT_DUE
                 val owner = AlarmKeys.ownerOf(intent)

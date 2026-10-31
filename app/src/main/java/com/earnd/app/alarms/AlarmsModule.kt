@@ -34,6 +34,7 @@ object AlarmsModule {
     @OptIn(FlowPreview::class)
     fun start(context: Context, scope: CoroutineScope) {
         AlarmChannels.ensure(context)
+        AlarmPermissions.refresh(context)
         NagTicker.ensure(context)
         scope.launch { resync() }
         scope.launch {

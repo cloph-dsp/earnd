@@ -27,6 +27,8 @@ data class BlockFacts(
     val sessionActive: Boolean,
     val allDoneUnlock: Boolean,
     val nothingScheduled: Boolean,
+    /** Segment mode: every habit of the current day segment is done. */
+    val segmentUnlock: Boolean = false,
 )
 
 /** Pure decision table; the order here is the contract. */
@@ -38,6 +40,7 @@ object BlockRules {
         f.inBedtime && !f.graceActive -> BlockDecision.Block(BlockCause.BEDTIME, f.bedtimeEndsAt)
         f.sessionActive -> BlockDecision.Allow
         f.allDoneUnlock -> BlockDecision.Allow
+        f.segmentUnlock -> BlockDecision.Allow
         f.nothingScheduled -> BlockDecision.Allow
         else -> BlockDecision.Block(BlockCause.NO_BALANCE, null)
     }
@@ -91,6 +94,8 @@ class BlockPolicy(
         return BlockRules.decide(f.copy(
             allDoneUnlock = s.allDoneUnlock && habits.allDone(today),
             nothingScheduled = !habits.anythingScheduled(today),
+            segmentUnlock = s.segmentMode &&
+                habits.segmentDone(today, Segments.current(clock.minuteOfDay(now), s)),
         ))
     }
 

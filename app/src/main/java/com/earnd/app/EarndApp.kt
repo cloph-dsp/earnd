@@ -14,6 +14,7 @@ class EarndApp : Application() {
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.init(this)
+        ServiceLocator.timeBank // registers the period-change hook on settings before anything edits them
         AlarmsModule.start(this, appScope)     // re-plans alarms on task/habit/settings changes
         WidgetRefresher.start(this, appScope)  // refreshes widgets on balance/session/task changes
     }

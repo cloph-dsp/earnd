@@ -13,3 +13,7 @@ enum class ResetPeriod { DAILY, WEEKLY }
 
 /** User-chosen app/website rule. Essential apps are hardcoded and never stored. */
 enum class AppRule { LEISURE, ALLOWED }
+
+/** How habit check-ins pay out: per check-in, or one lump sum when everything scheduled today is done. */
+enum class RewardMode { PER_CHECKIN, ALL_DONE }
+enum class ThemeMode { SYSTEM, LIGHT, DARK }

@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.view.accessibility.AccessibilityEvent
 import com.earnd.app.ServiceLocator
+import com.earnd.app.alarms.GuardReminder
 import com.earnd.app.domain.BlockDecision
 import com.earnd.app.domain.ChangeKind
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +32,7 @@ class GuardAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         ServiceLocator.init(applicationContext)
+        GuardWatch.clear(this)
         scope.launch {
             ServiceLocator.changeBus.events.collect { kind ->
                 if (kind == ChangeKind.BLOCKLIST) ServiceLocator.essentialApps.refresh()
@@ -98,6 +100,8 @@ class GuardAccessibilityService : AccessibilityService() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         scope.cancel()
+        // Switched off: let the safeguard re-check shortly, once the system setting has settled.
+        runCatching { GuardReminder.schedule(this, System.currentTimeMillis() + 5_000L, replace = true) }
         return super.onUnbind(intent)
     }
 

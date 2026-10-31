@@ -13,6 +13,9 @@ import com.earnd.app.domain.HabitService
 import com.earnd.app.domain.SystemTimeClock
 import com.earnd.app.domain.TaskService
 import com.earnd.app.domain.TimeBank
+import com.earnd.app.domain.MutexTransactor
+import com.earnd.app.domain.Transactor
+import androidx.room.withTransaction
 
 /**
  * Minimal manual DI. Feature areas add lazily-built singletons here.
@@ -25,7 +28,13 @@ object ServiceLocator {
     val clock: Clock by lazy { SystemTimeClock }
     val db: EarndDatabase by lazy { EarndDatabase.build(appContext) }
     val settings: SettingsRepository by lazy { SettingsRepository(db.settingDao(), clock, changeBus) }
-    val timeBank: TimeBank by lazy { TimeBank(db.ledgerDao(), db.sessionDao(), settings, clock, changeBus) }
+    /** Serializes TimeBank read-then-write steps in-process and runs them in one Room transaction. */
+    val transactor: Transactor by lazy {
+        MutexTransactor(object : Transactor {
+            override suspend fun <T> run(block: suspend () -> T): T = db.withTransaction { block() }
+        })
+    }
+    val timeBank: TimeBank by lazy { TimeBank(db.ledgerDao(), db.sessionDao(), settings, clock, changeBus, transactor) }
     val habitService: HabitService by lazy {
         HabitService(db.habitDao(), db.checkInDao(), timeBank, clock, changeBus, settings)
     }

@@ -10,6 +10,7 @@ internal object AlarmKeys {
     const val ACTION_TICK = "com.earnd.app.alarms.TICK"
     const val ACTION_DONE = "com.earnd.app.alarms.DONE"
     const val ACTION_OPEN_RING = "com.earnd.app.alarms.OPEN_RING"
+    const val ACTION_GUARD = "com.earnd.app.alarms.GUARD"
 
     const val EXTRA_KIND = "kind"
     const val EXTRA_ID = "id"
@@ -18,6 +19,7 @@ internal object AlarmKeys {
 
     const val NOTIF_PENDING = 4100
     const val NOTIF_RING = 4101
+    const val NOTIF_GUARD_OFF = 4102
     const val NOTIF_UPCOMING_BASE = 4200
 
     /** Distinct data URI per alarm slot so PendingIntents never collide. */

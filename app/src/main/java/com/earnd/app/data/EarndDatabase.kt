@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.earnd.app.data.dao.*
 import com.earnd.app.data.entity.*
 
@@ -14,7 +16,7 @@ import com.earnd.app.data.entity.*
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
         AppRuleEntity::class, SettingEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -30,6 +32,19 @@ abstract class EarndDatabase : RoomDatabase() {
 
     companion object {
         fun build(context: Context): EarndDatabase =
-            Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db").build()
+            Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
+
+        /** Parity pass: habit reminders, photo and reward overrides. Existing rewards move to rewardMinutes. */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habit ADD COLUMN reminderDays INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE habit ADD COLUMN reminderMessage TEXT")
+                db.execSQL("ALTER TABLE habit ADD COLUMN photoRequired INTEGER")
+                db.execSQL("ALTER TABLE habit ADD COLUMN rewardMinutes INTEGER")
+                db.execSQL("UPDATE habit SET rewardMinutes = minutesPerCheckIn")
+            }
+        }
     }
 }

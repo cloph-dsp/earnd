@@ -11,7 +11,9 @@ class RearmReceiver : BroadcastReceiver() {
         if (intent.action !in HANDLED) return
         launchAsync {
             AlarmChannels.ensure(context)
+            AlarmPermissions.refresh(context)
             AlarmsModule.resync()
+            com.earnd.app.blocking.GuardWatch.check(context)
         }
     }
 

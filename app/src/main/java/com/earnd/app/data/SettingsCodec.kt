@@ -1,6 +1,8 @@
 package com.earnd.app.data
 
 import com.earnd.app.data.entity.ResetPeriod
+import com.earnd.app.data.entity.RewardMode
+import com.earnd.app.data.entity.ThemeMode
 import java.time.DayOfWeek
 
 /** Maps [Settings] to and from flat string key/values stored in the `setting` table. */
@@ -21,6 +23,18 @@ internal object SettingsCodec {
         put("quietStartMin", s.quietStartMin.toString())
         put("quietEndMin", s.quietEndMin.toString())
         put("blockingEnabled", s.blockingEnabled.toString())
+        put("segmentMode", s.segmentMode.toString())
+        put("morningStartMin", s.morningStartMin.toString())
+        put("afternoonStartMin", s.afternoonStartMin.toString())
+        put("eveningStartMin", s.eveningStartMin.toString())
+        put("rewardMode", s.rewardMode.name)
+        put("defaultHabitRewardMin", s.defaultHabitRewardMin.toString())
+        put("photoRequiredDefault", s.photoRequiredDefault.toString())
+        put("morningNudgeEnabled", s.morningNudgeEnabled.toString())
+        put("morningNudgeMin", s.morningNudgeMin.toString())
+        put("dailyReportEnabled", s.dailyReportEnabled.toString())
+        put("dailyReportMin", s.dailyReportMin.toString())
+        put("themeMode", s.themeMode.name)
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -45,6 +59,18 @@ internal object SettingsCodec {
             quietStartMin = int("quietStartMin", d.quietStartMin),
             quietEndMin = int("quietEndMin", d.quietEndMin),
             blockingEnabled = bool("blockingEnabled", d.blockingEnabled),
+            segmentMode = bool("segmentMode", d.segmentMode),
+            morningStartMin = int("morningStartMin", d.morningStartMin),
+            afternoonStartMin = int("afternoonStartMin", d.afternoonStartMin),
+            eveningStartMin = int("eveningStartMin", d.eveningStartMin),
+            rewardMode = m["rewardMode"]?.let { v -> RewardMode.entries.find { it.name == v } } ?: d.rewardMode,
+            defaultHabitRewardMin = int("defaultHabitRewardMin", d.defaultHabitRewardMin),
+            photoRequiredDefault = bool("photoRequiredDefault", d.photoRequiredDefault),
+            morningNudgeEnabled = bool("morningNudgeEnabled", d.morningNudgeEnabled),
+            morningNudgeMin = int("morningNudgeMin", d.morningNudgeMin),
+            dailyReportEnabled = bool("dailyReportEnabled", d.dailyReportEnabled),
+            dailyReportMin = int("dailyReportMin", d.dailyReportMin),
+            themeMode = m["themeMode"]?.let { v -> ThemeMode.entries.find { it.name == v } } ?: d.themeMode,
         )
     }
 }

@@ -1,6 +1,8 @@
 package com.earnd.app.data
 
 import com.earnd.app.data.entity.ResetPeriod
+import com.earnd.app.data.entity.RewardMode
+import com.earnd.app.data.entity.ThemeMode
 import java.time.DayOfWeek
 
 /** Typed user settings. Minute-of-day values are 0..1439 local time. */
@@ -20,6 +22,21 @@ data class Settings(
     val quietStartMin: Int = 0,
     val quietEndMin: Int = 8 * 60,
     val blockingEnabled: Boolean = true,
+    /** Finishing the current segment's habits unlocks leisure apps until the next segment starts. */
+    val segmentMode: Boolean = false,
+    val morningStartMin: Int = 5 * 60,
+    val afternoonStartMin: Int = 12 * 60,
+    val eveningStartMin: Int = 18 * 60,
+    val rewardMode: RewardMode = RewardMode.PER_CHECKIN,
+    /** Minutes per check-in for habits without their own override. */
+    val defaultHabitRewardMin: Int = 5,
+    /** "I promise to prove it": new habits default to photo check-ins. */
+    val photoRequiredDefault: Boolean = false,
+    val morningNudgeEnabled: Boolean = false,
+    val morningNudgeMin: Int = 8 * 60,
+    val dailyReportEnabled: Boolean = false,
+    val dailyReportMin: Int = 21 * 60,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
 ) {
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false

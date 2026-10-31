@@ -7,7 +7,6 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
-import com.earnd.app.ServiceLocator
 import com.earnd.app.alarms.AlarmKeys.putOwner
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.ui.theme.EarndTheme
@@ -39,8 +38,8 @@ class AlarmActivity : ComponentActivity() {
             val actions = AlarmsModule.actions
             val label = actions.labelOf(o.first, o.second)
             val left = actions.snoozesLeft(o.first, o.second)
-            val cfg = ServiceLocator.db.alarmConfigDao().get(o.first, o.second)
-            AlarmRinger.start(this@AlarmActivity, cfg?.soundUri, cfg?.vibrate ?: true)
+            // Idempotent: the service is normally already ringing; this covers opening from the notification.
+            AlarmRingService.start(this@AlarmActivity, o.first, o.second, label)
             setContent {
                 EarndTheme {
                     AlarmScreen(
@@ -56,7 +55,7 @@ class AlarmActivity : ComponentActivity() {
     }
 
     private fun act(block: suspend () -> Unit) {
-        AlarmRinger.stop()
+        AlarmRingService.stop(this)
         lifecycleScope.launch {
             block()
             finish()

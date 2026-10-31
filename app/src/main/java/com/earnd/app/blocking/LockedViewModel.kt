@@ -3,9 +3,10 @@ package com.earnd.app.blocking
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.earnd.app.ServiceLocator
-import com.earnd.app.data.entity.CheckInMode
 import com.earnd.app.domain.BlockCause
 import com.earnd.app.domain.HabitDay
+import com.earnd.app.domain.HabitProgress
+import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.domain.SpendResult
 import com.earnd.app.domain.TaskBucket
 import com.earnd.app.domain.today
@@ -21,10 +22,8 @@ import kotlinx.coroutines.launch
 /** One way to earn time, shown on the lock screen. */
 sealed interface EarnItem {
     val minutes: Int
-    data class Habit(val day: HabitDay) : EarnItem {
-        override val minutes get() = day.habit.minutesPerCheckIn
-        val needsPhoto get() = day.habit.checkInMode == CheckInMode.PHOTO
-    }
+    /** [minutes] is what one check-in earns now (0 in "only when everything is done" mode). */
+    data class Habit(val day: HabitDay, override val minutes: Int, val needsPhoto: Boolean) : EarnItem
     data class Task(val id: Long, val title: String, override val minutes: Int, val overdue: Boolean) : EarnItem
 }
 
@@ -54,8 +53,11 @@ class LockedViewModel(val cause: BlockCause) : ViewModel() {
             .map { (t, late) -> EarnItem.Task(t.id, t.title, t.rewardMinutes ?: 0, late) }
     }
 
-    private val habitItems = habits.observeToday().map { days ->
-        days.filter { !it.complete && it.habit.minutesPerCheckIn > 0 }.map { EarnItem.Habit(it) }
+    private val habitItems = combine(habits.observeToday(), ServiceLocator.settings.settings) { days, s ->
+        days.filter { !it.complete }.map { d ->
+            val minutes = if (s.rewardMode == RewardMode.ALL_DONE) 0 else HabitProgress.rewardMinutes(d.habit, s)
+            EarnItem.Habit(d, minutes, habits.photoRequired(d.habit, s))
+        }.filter { it.minutes > 0 || s.rewardMode == RewardMode.ALL_DONE }
     }
 
     val ui: StateFlow<LockedUi> = combine(

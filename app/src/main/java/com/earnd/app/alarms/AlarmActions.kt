@@ -53,6 +53,7 @@ class AlarmActions(private val context: Context) {
     suspend fun housekeeping() {
         runCatching { ServiceLocator.timeBank.resetIfPeriodRolled() }
         runCatching { ServiceLocator.taskService.rollForward(clock.today()) }
+        runCatching { com.earnd.app.blocking.GuardWatch.check(context) }
     }
 
     /** "Done" from the notification or the ringing screen: completes via the domain services. */
@@ -86,7 +87,7 @@ class AlarmActions(private val context: Context) {
 
     suspend fun labelOf(kind: OwnerKind, id: Long): String = when (kind) {
         OwnerKind.TASK -> db.taskDao().get(id)?.title
-        OwnerKind.HABIT -> db.habitDao().get(id)?.name
+        OwnerKind.HABIT -> db.habitDao().get(id)?.let { h -> h.reminderMessage?.takeIf { it.isNotBlank() } ?: h.name }
     }.orEmpty()
 
     suspend fun styleOf(kind: OwnerKind, id: Long): AlarmStyle =

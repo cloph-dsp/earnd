@@ -12,6 +12,17 @@ import android.provider.Settings
 
 /** Status checks and settings intents for the UI (exact alarms, battery, full-screen, notifications). */
 object AlarmPermissions {
+    private val _exactAllowed = kotlinx.coroutines.flow.MutableStateFlow(true)
+
+    /**
+     * Whether exact alarms are allowed, for a status row in the UI. Refreshed on app start,
+     * when the permission state changes (via [RearmReceiver]) and whenever [refresh] is called
+     * (e.g. from onResume after returning from the settings screen).
+     */
+    val exactAllowed: kotlinx.coroutines.flow.StateFlow<Boolean> = _exactAllowed
+
+    fun refresh(context: Context): Boolean = canScheduleExact(context).also { _exactAllowed.value = it }
+
     fun canScheduleExact(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()

@@ -26,9 +26,24 @@ class SettingsRepository(
         return decode(dao.all())
     }
 
+    /**
+     * Called after the reset period or week start changed, with the old and new settings.
+     * TimeBank registers itself here to close the old period.
+     */
+    @Volatile var periodChangeListener: (suspend (old: Settings, new: Settings) -> Unit)? = null
+
     suspend fun update(transform: (Settings) -> Settings) {
-        write(PREFIX, transform(decode(dao.all())))
+        val old = decode(dao.all())
+        val new = transform(old)
+        write(PREFIX, new)
+        notifyPeriodChange(old, new)
         bus?.emit(ChangeKind.SETTINGS)
+    }
+
+    private suspend fun notifyPeriodChange(old: Settings, new: Settings) {
+        if (old.resetPeriod != new.resetPeriod || old.weekStartsOn != new.weekStartsOn) {
+            periodChangeListener?.invoke(old, new)
+        }
     }
 
     /**
@@ -58,8 +73,11 @@ class SettingsRepository(
         if (now < at) return false
         val pending = dao.all().filter { it.key.startsWith(PENDING) }
             .associate { it.key.removePrefix(PENDING) to it.value }
-        write(PREFIX, SettingsCodec.decode(pending))
+        val old = decode(dao.all())
+        val new = SettingsCodec.decode(pending)
+        write(PREFIX, new)
         cancelPendingWeakening()
+        notifyPeriodChange(old, new)
         bus?.emit(ChangeKind.SETTINGS)
         return true
     }

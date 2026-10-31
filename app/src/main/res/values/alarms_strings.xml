@@ -32,4 +32,6 @@
         <item quantity="other">Snooze %1$d min (%2$d left)</item>
     </plurals>
     <string name="alarms_ring_no_snooze">No snoozes left for this one. You have got this.</string>
+    <string name="alarms_channel_guard">Blocking is off</string>
+    <string name="alarms_channel_guard_desc">Tells you when the blocking service has been switched off.</string>
 </resources>

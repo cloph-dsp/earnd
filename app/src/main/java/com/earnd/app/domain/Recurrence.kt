@@ -25,8 +25,10 @@ object Recurrence {
             }
             RepeatKind.MONTHLY -> {
                 // Step from the anchor so a 31st clamps per month without drifting.
-                var k = 0L
-                var d = anchor
+                // Skip whole intervals up front so an old anchor does not loop month by month.
+                val months = java.time.temporal.ChronoUnit.MONTHS.between(anchor, afterDay).coerceAtLeast(0)
+                var k = (months / interval - 1).coerceAtLeast(0) * interval
+                var d = anchor.plusMonths(k)
                 while (!d.isAfter(afterDay)) {
                     k += interval
                     d = anchor.plusMonths(k)
