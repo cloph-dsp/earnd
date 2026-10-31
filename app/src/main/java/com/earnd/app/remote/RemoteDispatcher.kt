@@ -21,11 +21,17 @@ import java.time.LocalDate
  */
 class RemoteDispatcher(private val backend: RemoteBackend) {
 
-    suspend fun handle(command: String?, raw: Map<String, String>): String {
+    /**
+     * @param callerUid the sending app's UID when the platform reports it, else null. Only the
+     *   shell and root may call; the manifest's DUMP permission is the primary guard.
+     */
+    suspend fun handle(command: String?, raw: Map<String, String>, callerUid: Int? = null): String {
         val cmd = command?.trim()?.lowercase().orEmpty()
         val result: Map<String, Any?> = try {
             when {
+                !RemoteCaller.isAllowed(callerUid) -> fail("forbidden_caller")
                 cmd.isEmpty() -> fail("missing_command")
+                !COMMAND_SHAPE.matches(cmd) -> fail("bad_command")
                 isForbidden(cmd) -> fail("forbidden")
                 cmd !in COMMANDS -> fail("unknown_command", "known: ${COMMANDS.sorted().joinToString(" ")}")
                 !backend.remoteEnabled() -> fail("disabled", "Remote access is turned off in Earnd settings")
@@ -45,7 +51,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         if (cmd !in READ_ONLY || !ok) {
             runCatching {
                 backend.appendAudit(
-                    RemoteAudit.entry(backend.now(), cmd.ifEmpty { "?" }, ok, result["id"] as? Long, result["error"] as? String),
+                    RemoteAudit.entry(backend.now(), cmd.takeIf { COMMAND_SHAPE.matches(it) } ?: "?", ok, result["id"] as? Long, result["error"] as? String),
                 )
             }
         }
@@ -55,7 +61,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     private suspend fun run(cmd: String, a: RemoteArgs): Map<String, Any?> = when (cmd) {
         "help" -> ok("commands" to COMMANDS.sorted())
         "status" -> ok("status" to backend.status())
-        "audit.list" -> ok("entries" to backend.auditLog().takeLast(a.int("limit") ?: 50).map(::RawJson))
+        "audit.list" -> ok("entries" to backend.auditLog().takeLast(a.int("limit", 1..500) ?: 50).map(::RawJson))
         "habits.list" -> habitsList(a)
         "habits.get" -> ok("habit" to habitJson(habitOr404(a.requireLong("id")), detailed = true))
         "habits.create" -> habitSave(a, null)
@@ -65,6 +71,12 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             backend.archiveHabit(h.id)
             ok("id" to h.id)
         }
+        "habits.unarchive" -> {
+            val h = habitOr404(a.requireLong("id"))
+            if (h.archived) backend.saveHabit(h.copy(archived = false))
+            ok("id" to h.id)
+        }
+        "habits.reorder" -> habitReorder(a)
         "habits.checkin" -> habitCheckIn(a)
         "habits.undo" -> habitUndo(a)
         "tasks.list" -> tasksList(a)
@@ -117,6 +129,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "complete" to (done.size >= h.timesPerDay),
             "mode" to h.checkInMode,
             "minutesPerCheckIn" to h.minutesPerCheckIn,
+            "order" to h.sortOrder,
         )
         if (detailed) {
             m += Json.obj(
@@ -137,7 +150,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     }
 
     private suspend fun habitSave(a: RemoteArgs, existing: HabitEntity?): Map<String, Any?> {
-        rejectRewardFields(a, "minutes", "minutesPerCheckIn")
+        rejectRewardFields(a, *HABIT_LOCKED_FIELDS)
         val today = backend.today()
         val name = a.text("name") ?: existing?.name ?: bad("missing name")
         val base = existing ?: HabitEntity(
@@ -152,16 +165,20 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             name = name,
             iconKey = a.text("icon") ?: base.iconKey,
             colorArgb = a.str("color")?.let(::parseColor) ?: base.colorArgb,
-            timesPerDay = (a.int("times") ?: base.timesPerDay).also { if (it !in 1..20) bad("times must be 1..20") },
+            timesPerDay = a.int("times", 1..20) ?: base.timesPerDay,
             scheduleKind = schedule,
             weekdayMask = a.weekdayMask("days") ?: base.weekdayMask,
-            everyNDays = (a.int("every") ?: base.everyNDays).also { if (it !in 1..365) bad("every must be 1..365") },
+            everyNDays = a.int("every", 1..365) ?: base.everyNDays,
             anchorEpochDay = (a.date("start", today) as? RemoteArgs.Field.Set)?.value ?: base.anchorEpochDay,
             segment = a.enum<DaySegment>("segment") ?: base.segment,
-            targetQuantity = if (a.has("target")) a.str("target")?.takeIf { it != "none" }?.let { a.double("target") } else base.targetQuantity,
+            targetQuantity = if (a.has("target")) a.str("target")?.takeIf { it != "none" }?.let { a.double("target", QTY_RANGE) } else base.targetQuantity,
             unit = if (a.has("unit")) a.text("unit") else base.unit,
             checkInMode = a.enum<CheckInMode>("mode") ?: base.checkInMode,
         )
+        // Dropping photo proof weakens a habit, so only the phone may do it.
+        if (existing?.checkInMode == CheckInMode.PHOTO && h.checkInMode != CheckInMode.PHOTO) {
+            throw ForbiddenField("photo proof can only be turned off on the phone")
+        }
         val id = backend.saveHabit(h)
         return ok("id" to id)
     }
@@ -171,7 +188,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         if (h.archived) return fail("archived")
         // Photo habits need proof taken on the phone itself.
         if (h.checkInMode == CheckInMode.PHOTO) return fail("photo_required", "This habit is checked in with a photo on the phone")
-        val c = backend.checkIn(h.id, a.double("qty"))
+        val c = backend.checkIn(h.id, a.double("qty", QTY_RANGE))
         return ok("id" to h.id, "checkInId" to c.id, "minutesEarned" to c.minutesEarned)
     }
 
@@ -180,6 +197,20 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         val last = backend.checkInsToday(h.id).maxByOrNull { it.at } ?: return fail("nothing_to_undo")
         backend.undoCheckIn(last.id)
         return ok("id" to h.id, "checkInId" to last.id)
+    }
+
+    /** `ids=3,1,2` puts those habits first, in that order; the rest keep their relative order. */
+    private suspend fun habitReorder(a: RemoteArgs): Map<String, Any?> {
+        val ids = a.ids("ids") ?: bad("missing ids")
+        val all = backend.habits(includeArchived = true)
+        val byId = all.associateBy { it.id }
+        ids.firstOrNull { it !in byId }?.let { throw NotFound("habit $it") }
+        val ordered = reorder(all.sortedWith(compareBy({ it.sortOrder }, { it.id })).map { it.id }, ids)
+        ordered.forEachIndexed { i, id ->
+            val h = byId.getValue(id)
+            if (h.sortOrder != i) backend.saveHabit(h.copy(sortOrder = i))
+        }
+        return ok("order" to ordered)
     }
 
     // ---- tasks ----
@@ -210,7 +241,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     )
 
     private suspend fun taskSave(a: RemoteArgs, existing: TaskEntity?): Map<String, Any?> {
-        rejectRewardFields(a, "reward", "rewardMinutes")
+        rejectRewardFields(a, *TASK_LOCKED_FIELDS)
         val today = backend.today()
         val title = a.text("title") ?: existing?.title ?: bad("missing title")
         val parent = a.long("parent")?.let { pid ->
@@ -241,7 +272,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             priority = a.enum<Priority>("priority") ?: base.priority,
             repeatKind = repeat,
             repeatWeekdayMask = mask,
-            repeatInterval = (a.int("interval") ?: base.repeatInterval).also { if (it !in 1..365) bad("interval must be 1..365") },
+            repeatInterval = a.int("interval", 1..365) ?: base.repeatInterval,
         )
         return ok("id" to backend.saveTask(t))
     }
@@ -250,19 +281,20 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
 
     /** Rewards feed the time bank, so they can only be changed on the phone. */
     private fun rejectRewardFields(a: RemoteArgs, vararg keys: String) {
-        if (keys.any(a::has)) throw ForbiddenField()
+        keys.firstOrNull(a::has)?.let { throw ForbiddenField("$it can only be changed on the phone") }
     }
 
     private suspend fun habitOr404(id: Long) = backend.habit(id) ?: throw NotFound("habit $id")
     private suspend fun taskOr404(id: Long) = backend.task(id) ?: throw NotFound("task $id")
 
     private class NotFound(message: String) : Exception(message)
-    private class ForbiddenField : Exception("reward minutes can only be changed on the phone")
+    private class ForbiddenField(message: String) : Exception(message)
 
     companion object {
         val COMMANDS = setOf(
             "help", "status", "audit.list",
             "habits.list", "habits.get", "habits.create", "habits.update", "habits.archive",
+            "habits.unarchive", "habits.reorder",
             "habits.checkin", "habits.undo",
             "tasks.list", "tasks.get", "tasks.create", "tasks.update",
             "tasks.complete", "tasks.uncomplete", "tasks.delete",
@@ -274,7 +306,23 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "unlock", "lock", "session", "sessions", "spend", "balance", "bank", "ledger",
             "apps", "app", "rules", "block", "blocking", "blocklist", "bedtime", "vacation",
             "settings", "setting", "hardmode", "remote",
+            "reward", "rewards", "segment", "segments", "guard", "notify",
         )
+
+        /** Habit fields that feed the time bank or weaken proof: phone only. */
+        private val HABIT_LOCKED_FIELDS = arrayOf(
+            "minutes", "minutesPerCheckIn", "reward", "rewardMinutes", "photo", "photoRequired",
+        )
+        private val TASK_LOCKED_FIELDS = arrayOf("reward", "rewardMinutes")
+
+        private val COMMAND_SHAPE = Regex("[a-z][a-z0-9_]{0,23}([.][a-z][a-z0-9_]{0,23})?")
+        private val QTY_RANGE = 0.0..1_000_000.0
+
+        /** [wanted] first in the given order, then the remaining ids of [current] in their order. */
+        fun reorder(current: List<Long>, wanted: List<Long>): List<Long> {
+            val w = wanted.toSet()
+            return wanted.filter { it in current } + current.filterNot { it in w }
+        }
 
         fun isForbidden(cmd: String): Boolean = cmd.substringBefore('.') in FORBIDDEN_ROOTS
 

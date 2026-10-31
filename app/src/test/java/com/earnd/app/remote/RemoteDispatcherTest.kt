@@ -138,4 +138,64 @@ class RemoteDispatcherTest {
         assertEquals(listOf("{\"n\":2}", "{\"n\":3}", "{\"n\":4}"), RemoteAudit.parse(s))
         assertFalse(RemoteDispatcher.isForbidden("tasks.list"))
     }
+
+    @Test fun callerUidMustBeShellOrRoot() = runTest {
+        assertTrue(d.handle("status", emptyMap(), callerUid = 10123).contains("forbidden_caller"))
+        assertTrue(d.handle("status", emptyMap(), callerUid = 2000).startsWith("{\"ok\":true"))
+        assertTrue(d.handle("status", emptyMap(), callerUid = 0).startsWith("{\"ok\":true"))
+        assertTrue(d.handle("status", emptyMap(), callerUid = -1).startsWith("{\"ok\":true"))
+    }
+
+    @Test fun malformedCommandNamesAreRejected() = runTest {
+        for (cmd in listOf("tasks list", "a".repeat(80), "tasks.list;rm", "x.y.z")) {
+            assertTrue(cmd, d.handle(cmd, emptyMap()).contains("bad_command"))
+        }
+    }
+
+    @Test fun argumentLimits() = runTest {
+        val many = (1..40).associate { "k$it" to "v" }
+        assertTrue(d.handle("tasks.create", many).contains("too many arguments"))
+        assertTrue(d.handle("tasks.create", mapOf("title" to "x".repeat(201))).contains("bad_args"))
+        assertTrue(d.handle("habits.create", mapOf("name" to "ok", "times" to "21")).contains("bad_args"))
+        assertTrue(d.handle("audit.list", mapOf("limit" to "100000")).contains("bad_args"))
+        assertTrue(d.handle("tasks.create", mapOf("title" to "x", "bad-key" to "1")).contains("bad_args"))
+        assertTrue(b.tasks.isEmpty() && b.habits.isEmpty())
+    }
+
+    @Test fun quantityRangeIsChecked() = runTest {
+        val id = b.saveHabit(HabitEntity(name = "w", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0))
+        assertTrue(d.handle("habits.checkin", mapOf("id" to "$id", "qty" to "NaN")).contains("bad_args"))
+        assertTrue(d.handle("habits.checkin", mapOf("id" to "$id", "qty" to "-1")).contains("bad_args"))
+        assertTrue(d.handle("habits.checkin", mapOf("id" to "$id", "qty" to "250")).startsWith("{\"ok\":true"))
+    }
+
+    @Test fun archiveUnarchiveAndReorder() = runTest {
+        val a = b.saveHabit(HabitEntity(name = "a", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, sortOrder = 0))
+        val c = b.saveHabit(HabitEntity(name = "c", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, sortOrder = 1))
+        val e = b.saveHabit(HabitEntity(name = "e", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, sortOrder = 2))
+        d.handle("habits.archive", mapOf("id" to "$c"))
+        assertTrue(b.habits.getValue(c).archived)
+        d.handle("habits.unarchive", mapOf("id" to "$c"))
+        assertFalse(b.habits.getValue(c).archived)
+        val out = d.handle("habits.reorder", mapOf("ids" to "$e,$a"))
+        assertTrue(out, out.contains("\"order\":[$e,$a,$c]"))
+        assertEquals(listOf(e, a, c), b.habits.values.sortedBy { it.sortOrder }.map { it.id })
+        assertTrue(d.handle("habits.reorder", mapOf("ids" to "$a,$a")).contains("bad_args"))
+        assertTrue(d.handle("habits.reorder", mapOf("ids" to "9999")).contains("not_found"))
+    }
+
+    @Test fun weakeningHabitFieldsIsForbidden() = runTest {
+        val id = b.saveHabit(HabitEntity(name = "p", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, checkInMode = CheckInMode.PHOTO))
+        assertTrue(d.handle("habits.update", mapOf("id" to "$id", "mode" to "tap")).contains("forbidden"))
+        assertTrue(d.handle("habits.update", mapOf("id" to "$id", "photoRequired" to "false")).contains("forbidden"))
+        assertTrue(d.handle("habits.update", mapOf("id" to "$id", "rewardMinutes" to "60")).contains("forbidden"))
+        for (cmd in listOf("reward.mode", "segment.enable", "guard.off")) {
+            assertTrue(d.handle(cmd, emptyMap()).contains("forbidden"))
+        }
+        assertEquals(CheckInMode.PHOTO, b.habits.getValue(id).checkInMode)
+    }
+
+    @Test fun reorderKeepsUnlistedIds() {
+        assertEquals(listOf(3L, 1L, 2L, 4L), RemoteDispatcher.reorder(listOf(1, 2, 3, 4), listOf(3, 1)))
+    }
 }

@@ -8,8 +8,19 @@ import java.util.Base64
  * under the key without the suffix, so `title_b64=SGk=` reads as `title=Hi`.
  */
 class RemoteArgs(raw: Map<String, String>) {
-    private val values: Map<String, String> = raw.entries.associate { (k, v) ->
-        if (k.endsWith(B64)) k.removeSuffix(B64) to decode(k, v) else k to v
+    private val values: Map<String, String>
+
+    init {
+        if (raw.size > MAX_ARGS) bad("too many arguments (max $MAX_ARGS)")
+        values = raw.entries.associate { (k, v) ->
+            if (k.length > MAX_KEY_LEN || k.isEmpty() || !k.all { it.isLetterOrDigit() || it == '_' }) bad("bad key")
+            if (v.length > MAX_RAW_VALUE_LEN) bad("$k is too long")
+            val key = k.removeSuffix(B64)
+            val value = if (k.endsWith(B64)) decode(k, v) else v
+            val cap = TEXT_CAPS[key] ?: MAX_VALUE_LEN
+            if (value.length > cap) bad("$key is too long (max $cap)")
+            key to value
+        }
     }
 
     val keys: Set<String> get() = values.keys
@@ -29,6 +40,24 @@ class RemoteArgs(raw: Map<String, String>) {
     }
 
     fun requireLong(key: String): Long = long(key) ?: bad("missing $key")
+
+    /** Like [int] but rejects values outside [range]. */
+    fun int(key: String, range: IntRange): Int? =
+        int(key)?.also { if (it !in range) bad("$key must be ${range.first}..${range.last}") }
+
+    /** Like [double] but rejects non-finite values and values outside [range]. */
+    fun double(key: String, range: ClosedFloatingPointRange<Double>): Double? =
+        double(key)?.also { if (!it.isFinite() || it !in range) bad("$key must be ${range.start}..${range.endInclusive}") }
+
+    /** Comma-separated ids, e.g. `3,1,2`. Duplicates are rejected. */
+    fun ids(key: String): List<Long>? = str(key)?.let { v ->
+        val ids = v.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            .map { it.toLongOrNull()?.takeIf { n -> n > 0 } ?: bad("bad $key: $it") }
+        if (ids.isEmpty()) bad("empty $key")
+        if (ids.size > MAX_IDS) bad("too many $key (max $MAX_IDS)")
+        if (ids.toSet().size != ids.size) bad("duplicate $key")
+        ids
+    }
 
     inline fun <reified E : Enum<E>> enum(key: String): E? = str(key)?.let { v ->
         enumValues<E>().firstOrNull { it.name.equals(v, ignoreCase = true) } ?: bad("bad $key: $v")
@@ -80,6 +109,17 @@ class RemoteArgs(raw: Map<String, String>) {
 
     companion object {
         const val B64 = "_b64"
+        const val MAX_ARGS = 24
+        const val MAX_KEY_LEN = 40
+        const val MAX_VALUE_LEN = 200
+        const val MAX_IDS = 500
+        /** Encoded size limit (base64 grows text by a third). */
+        const val MAX_RAW_VALUE_LEN = 8_000
+        /** Per-key decoded length caps; other keys use [MAX_VALUE_LEN]. */
+        val TEXT_CAPS = mapOf(
+            "title" to 200, "name" to 80, "unit" to 24, "notes" to 4_000,
+            "message" to 200, "ids" to 4_000,
+        )
         private val DAY_PREFIXES = listOf("mo", "tu", "we", "th", "fr", "sa", "su")
         private val DAY_NAMES = listOf("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
