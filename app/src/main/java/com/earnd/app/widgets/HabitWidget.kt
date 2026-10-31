@@ -90,7 +90,7 @@ class HabitWidget : GlanceAppWidget() {
         val habitColor = ColorProvider(Color(state.colorArgb).copy(alpha = 1f))
         val tap: Action = when {
             state.complete -> actionStartActivity(WidgetLinks.home(context))
-            state.photo || state.quantity -> actionStartActivity(WidgetLinks.checkIn(context, state.id))
+            state.photo || state.quantity || state.choice -> actionStartActivity(WidgetLinks.checkIn(context, state.id))
             else -> actionRunCallback<HabitCheckInAction>(
                 actionParametersOf(HabitCheckInAction.HABIT_ID to state.id),
             )
@@ -158,7 +158,7 @@ class HabitCheckInAction : ActionCallback {
         val id = parameters[HABIT_ID] ?: return
         val habit = ServiceLocator.db.habitDao().get(id)
         if (habit == null || habit.archived) return
-        if ((habit.focusMinutes ?: 0) > 0) {
+        if (com.earnd.app.domain.TimedHabit.isTimed(habit)) {
             // Same as "Start N min" in the app; if the system blocks the activity start, the
             // accessibility guard redirects the launcher to the timer anyway.
             runCatching { com.earnd.app.focus.startFocus(context, id) }

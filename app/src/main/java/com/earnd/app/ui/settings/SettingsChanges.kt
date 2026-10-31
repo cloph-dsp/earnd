@@ -22,7 +22,8 @@ object SettingsChanges {
             (old.photoRequiredDefault && !new.photoRequiredDefault) ||
             segmentLoosened(old, new) ||
             capLoosened(old.unlockCapMin, new.unlockCapMin) ||
-            new.removalPuzzle.ordinal < old.removalPuzzle.ordinal
+            new.removalPuzzle.ordinal < old.removalPuzzle.ordinal ||
+            (!old.comebackBonus && new.comebackBonus)
 
     /** Removing the session cap or raising it lets one unlock run longer. */
     private fun capLoosened(old: Int?, new: Int?): Boolean = when {

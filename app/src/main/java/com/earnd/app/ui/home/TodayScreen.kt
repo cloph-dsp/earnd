@@ -111,10 +111,13 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             onOpen = { onOpenHabit(hd.habit.id) },
             onCheck = {
                 when {
-                    (hd.habit.focusMinutes ?: 0) > 0 -> launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
+                    com.earnd.app.domain.TimedHabit.isTimed(hd.habit) -> launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
                     HabitRules.needsPhoto(hd.habit, settings) -> onPhotoCheckIn(hd.habit.id)
                     hd.habit.targetQuantity != null -> askAmount = hd.habit
-                    else -> launchUi { sl.habitService.checkIn(hd.habit.id) }
+                    else -> launchUi {
+                        val r = sl.habitService.checkInWithBonus(hd.habit.id)
+                        com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
+                    }
                 }
             },
             onUndo = { c -> launchUi { HabitActions.undo(c.id) } },
@@ -272,6 +275,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
                 if (hd.required > 1) add("${hd.done}/${hd.required}")
                 val reward = HabitRules.rewardMinutes(h, settings)
                 if (reward > 0) add("+$reward min")
+                if (!complete && hd.comebackMissed > 0) add(com.earnd.app.domain.Comeback.label(hd.comebackMissed) + " comeback")
                 if (h.targetQuantity != null) {
                     add("${fmtQty(HabitRules.quantityDone(todays))}/${fmtQty(h.targetQuantity)} ${h.unit.orEmpty()}".trim())
                 }
@@ -286,10 +290,9 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
         if (!complete && last != null) {
             IconButton(onClick = { onUndo(last) }) { Icon(Icons.Outlined.Undo, "Undo last check-in", tint = p.muted) }
         }
-        val focusMin = h.focusMinutes ?: 0
         when {
             complete -> Unit
-            focusMin > 0 -> TextButton(onClick = onCheck) { Text("Start $focusMin min", color = p.amber) }
+            com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onCheck) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.amber) }
             HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, "Photo needed", tint = p.muted, modifier = Modifier.size(16.dp))
             h.targetQuantity != null -> Icon(Icons.Outlined.Add, "Add amount", tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Icon(HabitLook.icon(h.iconKey), null, tint = p.muted, modifier = Modifier.size(16.dp))

@@ -49,7 +49,7 @@ fun StatsScreen() {
     }
     val earnedByDay = days.associate { d ->
         d.toEpochDay() to ledger.filter {
-            (it.kind == LedgerKind.EARN_HABIT || it.kind == LedgerKind.EARN_TASK || it.kind == LedgerKind.UNDO) &&
+            (it.kind == LedgerKind.EARN_HABIT || it.kind == LedgerKind.EARN_TASK || it.kind == LedgerKind.COMEBACK || it.kind == LedgerKind.UNDO) &&
                 sl.clock.localDate(it.at) == d
         }.sumOf { it.minutes }.coerceAtLeast(0)
     }

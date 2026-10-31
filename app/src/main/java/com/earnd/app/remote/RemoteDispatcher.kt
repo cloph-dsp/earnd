@@ -3,6 +3,7 @@ package com.earnd.app.remote
 import com.earnd.app.data.Settings
 import com.earnd.app.data.SettingsCodec
 import com.earnd.app.focus.FocusMath
+import com.earnd.app.domain.TimedHabit
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.AppRule
@@ -191,6 +192,10 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 "rewardMinutes" to HabitProgress.rewardMinutes(h, backend.settings()),
                 "photoRequired" to photoOn(h, backend.settings()),
                 "focusMin" to h.focusMinutes,
+                "focusOptions" to TimedHabit.options(h, backend.settings()).map { Json.obj("minutes" to it.minutes, "reward" to it.reward) },
+                "stopwatch" to if (!h.stopwatch) null else Json.obj(
+                    "rate" to TimedHabit.rate(h), "minMinutes" to TimedHabit.minSession(h), "capMinutes" to h.stopwatchCapMin,
+                ),
                 "remindDays" to if (h.reminderDays == 0) null else RemoteArgs.maskToDays(h.reminderDays),
                 "message" to h.reminderMessage,
                 "alarm" to backend.alarmConfig(OwnerKind.HABIT, h.id)?.let(::alarmJson),
@@ -248,6 +253,15 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 rewardMinutes = if (reward != null) reward.value else h.rewardMinutes,
                 focusMinutes = a.intOrNone(FOCUS_KEYS, FocusMath.MINUTES_RANGE).let { if (it != null) it.value else h.focusMinutes },
                 photoRequired = photo ?: h.photoRequired,
+                focusOptions = when (val v = a.str("focus_options")?.trim()) {
+                    null -> h.focusOptions
+                    "", "none" -> null
+                    else -> TimedHabit.format(runCatching { TimedHabit.parse(v) }.getOrElse { bad(it.message ?: "bad focus_options") })
+                },
+                stopwatch = a.bool("stopwatch") ?: h.stopwatch,
+                stopwatchRate = if (a.has("sw_rate")) a.double("sw_rate", TimedHabit.RATE_RANGE) else h.stopwatchRate,
+                stopwatchMinMin = a.int("sw_min", 0..240) ?: h.stopwatchMinMin,
+                stopwatchCapMin = a.intOrNone(listOf("sw_cap"), 1..1440).let { if (it != null) it.value else h.stopwatchCapMin },
                 checkInMode = when {
                     a.has("mode") || photo == null -> h.checkInMode
                     photo -> CheckInMode.PHOTO
@@ -263,10 +277,30 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             if (photoOn(existing, s) && !photoOn(h, s)) {
                 throw WeakenForbidden("photo proof can only be turned off on the phone")
             }
+            timedWeakening(existing, h, s)?.let { throw WeakenForbidden(it) }
         }
         val id = backend.saveHabit(h)
         saveAlarm(a, OwnerKind.HABIT, id, habit = true)
         return ok("id" to id)
+    }
+
+    /**
+     * Timed sessions may only get stricter remotely: no higher earned-per-minute rate than before
+     * (a habit that was not timed may gain sessions paying at most 1 earned min per focused min),
+     * no lower stopwatch minimum, no higher or removed cap, and no turning timing off.
+     */
+    private fun timedWeakening(old: HabitEntity, new: HabitEntity, s: Settings): String? {
+        val oldRate = TimedHabit.maxRate(old, s)
+        val newRate = TimedHabit.maxRate(new, s)
+        return when {
+            TimedHabit.isTimed(old) && !TimedHabit.isTimed(new) -> "timed check-ins can only be turned off on the phone"
+            old.stopwatch && !new.stopwatch -> "stopwatch mode can only be turned off on the phone"
+            newRate != null && newRate > (oldRate ?: 1.0) + 1e-9 -> "focus rewards per minute can only be lowered remotely"
+            old.stopwatch && TimedHabit.minSession(new) < TimedHabit.minSession(old) -> "the minimum session can only be raised remotely"
+            old.stopwatch && old.stopwatchCapMin != null && (new.stopwatchCapMin ?: Int.MAX_VALUE) > old.stopwatchCapMin ->
+                "the session cap can only be lowered remotely"
+            else -> null
+        }
     }
 
     private fun photoOn(h: HabitEntity, s: Settings) = h.checkInMode == CheckInMode.PHOTO || HabitProgress.photoRequired(h, s)
@@ -547,7 +581,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "hardMode", "blockingEnabled", "allDoneUnlock", "resetPeriod", "weakenCooldownMin",
             "bedtimeEnabled", "bedtimeStartMin", "bedtimeEndMin", "bedtimeGraceMin",
             "defaultTaskRewardMin", "defaultHabitRewardMin", "rewardMode", "photoRequiredDefault",
-            "unlockCapMin", "removalPuzzle",
+            "unlockCapMin", "removalPuzzle", "comebackBonus",
         )
 
         private val PACKAGE_SHAPE = Regex("[A-Za-z][A-Za-z0-9_]*([.][A-Za-z][A-Za-z0-9_]*)+")

@@ -23,6 +23,8 @@ internal object WidgetHabit {
         val required: Int,
         val photo: Boolean,
         val quantity: Boolean,
+        /** Several focus durations: the tap opens the app's picker. */
+        val choice: Boolean = false,
     ) {
         val complete: Boolean get() = done >= required
     }
@@ -57,6 +59,7 @@ internal object WidgetHabit {
                         required = HabitProgress.required(h),
                         photo = ServiceLocator.habitService.photoRequired(h, s),
                         quantity = HabitProgress.isQuantity(h),
+                        choice = com.earnd.app.domain.TimedHabit.needsChoice(h, s),
                     )
                 }
             }

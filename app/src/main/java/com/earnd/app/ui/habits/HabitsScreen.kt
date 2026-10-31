@@ -127,6 +127,8 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit) {
 
 @Composable
 private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () -> Unit) {
+    val settings by androidx.compose.runtime.remember { com.earnd.app.ServiceLocator.settings.settings }
+        .collectAsState(initial = com.earnd.app.data.Settings())
     val h = d.habit
     val p = Earnd.palette
     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onOpen), verticalAlignment = Alignment.CenterVertically) {
@@ -135,10 +137,25 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
             Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (d.complete) p.done else p.text)
             val focusing = com.earnd.app.focus.focusLabel(h.id)
             if (focusing != null) com.earnd.app.ui.theme.Num(focusing, color = p.amber)
-            else Text(
-                HabitRules.scheduleSummary(h) + (h.focusMinutes?.let { " · $it min focus" } ?: ""),
-                style = MaterialTheme.typography.bodySmall, color = p.muted,
-            )
+            else Row {
+                Text(
+                    HabitRules.scheduleSummary(h) + when {
+                        h.stopwatch -> " · stopwatch"
+                        else -> com.earnd.app.domain.TimedHabit.options(h, settings).takeIf { it.isNotEmpty() }
+                            ?.let { o -> " · " + o.joinToString("/") { "${it.minutes}" } + " min focus" } ?: ""
+                    },
+                    style = MaterialTheme.typography.bodySmall, color = p.muted,
+                )
+                if (!d.complete && d.comebackMissed > 0) com.earnd.app.ui.theme.Num(
+                    "  " + com.earnd.app.domain.Comeback.label(d.comebackMissed) + " comeback", color = p.amber,
+                )
+            }
+        }
+        if (due && !d.complete && com.earnd.app.domain.TimedHabit.isTimed(h) && !h.archived) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            androidx.compose.material3.TextButton(onClick = { com.earnd.app.ui.common.launchUi { com.earnd.app.focus.startFocus(context, h.id) } }) {
+                Text(com.earnd.app.focus.startLabel(h, settings), color = p.amber)
+            }
         }
         Column(horizontalAlignment = Alignment.End) {
             val today = when {

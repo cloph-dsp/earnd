@@ -340,6 +340,30 @@ class RemoteDispatcherTest {
         assertEquals(CheckInMode.PHOTO, b.habits.getValue(id).checkInMode)
     }
 
+    @Test fun timedFieldsOnlyTightenRemotely() = runTest {
+        val id = b.saveHabit(HabitEntity(name = "ex", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, rewardMinutes = 5))
+        suspend fun ok(m: Map<String, String>) = d.handle("habits.update", mapOf("id" to "$id") + m)
+        // Not timed before: sessions may pay at most 1 earned minute per focused minute.
+        assertTrue(ok(mapOf("focus_options" to "10:15")).contains("forbidden_weaken"))
+        assertTrue(ok(mapOf("focus_min" to "10", "focus_options" to "10:5,20:10,30:15")).startsWith("{\"ok\":true"))
+        assertEquals("10:5,20:10,30:15", b.habits.getValue(id).focusOptions)
+        assertTrue(ok(mapOf("focus_options" to "10:5,20:12")).contains("forbidden_weaken"))
+        assertTrue(ok(mapOf("focus_options" to "20:8")).startsWith("{\"ok\":true"))
+        assertTrue(ok(mapOf("focus_min" to "none", "focus_options" to "none")).contains("forbidden_weaken"))
+
+        val m = b.saveHabit(HabitEntity(name = "music", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0))
+        suspend fun up(a: Map<String, String>) = d.handle("habits.update", mapOf("id" to "$m") + a)
+        assertTrue(up(mapOf("stopwatch" to "on", "sw_rate" to "0.5", "sw_min" to "10")).startsWith("{\"ok\":true"))
+        assertTrue(b.habits.getValue(m).stopwatch)
+        assertTrue(up(mapOf("sw_rate" to "0.6")).contains("forbidden_weaken"))
+        assertTrue(up(mapOf("sw_min" to "5")).contains("forbidden_weaken"))
+        assertTrue(up(mapOf("stopwatch" to "off")).contains("forbidden_weaken"))
+        assertTrue(up(mapOf("sw_cap" to "60")).startsWith("{\"ok\":true"))
+        assertTrue(up(mapOf("sw_cap" to "none")).contains("forbidden_weaken"))
+        assertTrue(d.handle("settings.tighten", mapOf("comebackBonus" to "off")).startsWith("{\"ok\":true"))
+        assertTrue(d.handle("settings.tighten", mapOf("comebackBonus" to "on")).contains("forbidden_weaken"))
+    }
+
     @Test fun reorderKeepsUnlistedIds() {
         assertEquals(listOf(3L, 1L, 2L, 4L), RemoteDispatcher.reorder(listOf(1, 2, 3, 4), listOf(3, 1)))
     }

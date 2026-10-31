@@ -56,7 +56,7 @@ object ServiceLocator {
         }
     }
 
-    val focus: com.earnd.app.focus.FocusManager by lazy { com.earnd.app.focus.FocusManager(appContext, db.focusDao(), db.habitDao(), habitService, clock, changeBus) }
+    val focus: com.earnd.app.focus.FocusManager by lazy { com.earnd.app.focus.FocusManager(appContext, db.focusDao(), db.habitDao(), habitService, clock, changeBus, settings) }
 
     fun init(context: Context) {
         appContext = context.applicationContext

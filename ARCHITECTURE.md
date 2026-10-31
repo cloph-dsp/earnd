@@ -311,6 +311,22 @@ package replaced). Completion = `HabitService.checkIn` + chime + notice. `BlockP
 (own package, user ALLOWED, essentials minus launcher and Settings/installer); a block has
 `BlockCause.FOCUS` and the guard shows `FocusActivity` instead of `LockedActivity`. Emits `ChangeKind.FOCUS`.
 
+DB v6 (migration 5->6, additive): `habit.focusOptions` ("min:reward,..." reward optional), `habit.stopwatch`,
+`stopwatchRate`, `stopwatchMinMin`, `stopwatchCapMin`; `focus_session.stopwatch` and `rewardMinutes`
+(chosen option). Pure rules in `domain/TimedHabit` (options, linear default reward, stopwatch reward,
+max rate). `FocusManager.start(habitId, minutes?)` returns `FocusStart.Choose` when several options exist;
+`FocusPicker`/`FocusPickerHost` (at the nav root) show the picker. Stopwatch sessions have no alarm,
+`FocusMath.isRunning` treats them as running while ACTIVE, and `finishStopwatch()` records the elapsed
+time (`durationMs`) with a conditional update, then checks in with `rewardOverride`.
+
+### Comeback bonus (`domain/Comeback`)
+Pure: `missedOccasions(habit, today, activeDays, skip)` and `bonus(base, n)`. `HabitService.checkInWithBonus`
+(also `rewardOverride` for focus options/stopwatch) earns `LedgerKind.COMEBACK` on the same HABIT source id,
+so `TimeBank.reverse` on undo removes both. `HabitDay.comebackMissed` feeds the row badge. Setting
+`comebackBonus` (tighten-only remotely). Remote habit updates may only tighten timed fields:
+`RemoteDispatcher.timedWeakening` (no higher earned-per-minute rate, at most 1.0 when the habit was not
+timed; no lower minimum, no raised/removed cap, no turning timing off).
+
 ## 5. Manifest fragments
 
 `app/src/main/AndroidManifest.xml` holds only the application + `MainActivity`. Each feature writes

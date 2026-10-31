@@ -151,6 +151,10 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
                 hint = "Habits check in with a photo unless you set otherwise on the habit.",
             )
             SwitchRow(
+                "Comeback bonus", cur.comebackBonus, { v -> change { it.copy(comebackBonus = v) } },
+                hint = "After missed days, the first check-in earns up to double. Skipping never pays more than doing.",
+            )
+            SwitchRow(
                 "Unlock by part of the day", cur.segmentMode, { v -> change { it.copy(segmentMode = v) } },
                 hint = "Finish the morning's habits and leisure apps open until the afternoon starts, and so on.",
             )

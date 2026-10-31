@@ -152,6 +152,27 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         )
         h.focusMinutes?.let { m ->
             NumberField("Minutes", m, { set(h.copy(focusMinutes = (it ?: 1).coerceIn(com.earnd.app.focus.FocusMath.MINUTES_RANGE))) })
+            FocusDurations(h, settings, set)
+        }
+        SwitchRow(
+            "Open-ended (stopwatch)", h.stopwatch, { on -> set(h.copy(stopwatch = on)) },
+            hint = if (!h.stopwatch) "Count up instead, e.g. music practice. Other apps stay closed until you tap Finish."
+            else "Earns minutes x rate on Finish. Shorter than the minimum: no reward, no check-in.",
+        )
+        if (h.stopwatch) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                var rateText by androidx.compose.runtime.remember(h.id) {
+                    androidx.compose.runtime.mutableStateOf((h.stopwatchRate ?: com.earnd.app.domain.TimedHabit.DEFAULT_RATE).toString())
+                }
+                OutlinedTextField(
+                    rateText,
+                    { t -> rateText = t.take(5); t.toDoubleOrNull()?.takeIf { it in com.earnd.app.domain.TimedHabit.RATE_RANGE }?.let { set(h.copy(stopwatchRate = it)) } },
+                    label = { Text("Earned per min") }, singleLine = true, modifier = Modifier.weight(1f),
+                )
+                NumberField("Minimum min", h.stopwatchMinMin ?: com.earnd.app.domain.TimedHabit.DEFAULT_MIN_SESSION,
+                    { set(h.copy(stopwatchMinMin = (it ?: 0).coerceIn(0, 240))) }, Modifier.weight(1f))
+                NumberField("Cap min", h.stopwatchCapMin, { set(h.copy(stopwatchCapMin = it?.coerceIn(1, 1440))) }, Modifier.weight(1f))
+            }
         }
 
         SectionTitle("Reward and check-in")
@@ -242,4 +263,31 @@ private fun HabitRuleEditor(h: HabitEntity, set: (HabitEntity) -> Unit) {
         }
     }
     Text(HabitSchedule.summary(h), style = MaterialTheme.typography.bodySmall)
+}
+
+/** "Durations" chips: extra focus lengths, each with its own (editable) reward. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun FocusDurations(h: HabitEntity, settings: com.earnd.app.data.Settings, set: (HabitEntity) -> Unit) {
+    val extra = com.earnd.app.domain.TimedHabit.parseOrEmpty(h.focusOptions)
+    Text("Durations", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
+    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(10, 15, 20, 30, 45, 60).filter { it != h.focusMinutes }.forEach { m ->
+            val on = extra.any { it.first == m }
+            androidx.compose.material3.FilterChip(
+                selected = on,
+                onClick = {
+                    val next = if (on) extra.filterNot { it.first == m }
+                    else extra + (m to com.earnd.app.domain.TimedHabit.linearReward(h, settings, m))
+                    set(h.copy(focusOptions = com.earnd.app.domain.TimedHabit.format(next)))
+                },
+                label = { Text("$m min") },
+            )
+        }
+    }
+    extra.forEach { (m, r) ->
+        NumberField("Reward for $m min", r ?: com.earnd.app.domain.TimedHabit.linearReward(h, settings, m), { v ->
+            set(h.copy(focusOptions = com.earnd.app.domain.TimedHabit.format(extra.map { if (it.first == m) m to (v ?: 0).coerceIn(0, 600) else it })))
+        }, Modifier.fillMaxWidth())
+    }
 }

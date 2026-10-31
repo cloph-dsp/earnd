@@ -34,12 +34,13 @@ object FocusNotifier {
         val n = Notification.Builder(context, CH_ONGOING)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
-            .setContentTitle("Focusing: $habitName")
-            .setContentText("${(s.durationMs / 60_000L)} min. Leaving early loses the progress.")
-            .setWhen(FocusMath.endAt(s))
+            .setContentTitle(if (s.stopwatch) "Practising: $habitName" else "Focusing: $habitName")
+            .setContentText(if (s.stopwatch) "Open the timer and tap Finish to check in."
+                else "${(s.durationMs / 60_000L)} min. Leaving early loses the progress.")
+            .setWhen(if (s.stopwatch) s.startedAt else FocusMath.endAt(s))
             .setShowWhen(true)
             .setUsesChronometer(true)
-            .setChronometerCountDown(true)
+            .setChronometerCountDown(!s.stopwatch)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setCategory(Notification.CATEGORY_PROGRESS)
@@ -54,13 +55,17 @@ object FocusNotifier {
     }
 
     @SuppressLint("MissingPermission")
-    fun showDone(context: Context, habitName: String, minutes: Int) {
+    fun showDone(context: Context, habitName: String, minutes: Int, earned: Int? = null, bonus: Int = 0) {
         ensure(context)
         val n = Notification.Builder(context, CH_DONE)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle("$habitName: $minutes min done")
-            .setContentText("Checked in.")
+            .setContentText(when {
+                earned == null -> "Checked in."
+                bonus > 0 -> "Checked in. +$earned min, +$bonus comeback bonus."
+                else -> "Checked in. +$earned min."
+            })
             .setAutoCancel(true)
             .setContentIntent(PendingIntent.getActivity(context, 2,
                 context.packageManager.getLaunchIntentForPackage(context.packageName),

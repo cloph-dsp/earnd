@@ -1,5 +1,6 @@
 package com.earnd.app.data.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -13,6 +14,10 @@ data class FocusSessionEntity(
     val startedAt: Long,
     val durationMs: Long,
     val state: FocusState = FocusState.ACTIVE,
+    /** Count-up session: no end time; [durationMs] is set to the elapsed time on finish. */
+    @ColumnInfo(defaultValue = "0") val stopwatch: Boolean = false,
+    /** Reward of the chosen duration option; null = the habit's reward. */
+    val rewardMinutes: Int? = null,
 ) {
     companion object { const val SINGLE = 1L }
 }

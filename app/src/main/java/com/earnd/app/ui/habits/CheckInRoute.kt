@@ -18,7 +18,7 @@ fun CheckInRoute(habitId: Long, onNeedsPhoto: () -> Unit, onDone: () -> Unit) {
         val h = ServiceLocator.db.habitDao().get(habitId)
         when {
             h == null || h.archived -> onDone()
-            (h.focusMinutes ?: 0) > 0 -> { com.earnd.app.focus.startFocus(context, habitId); onDone() }
+            com.earnd.app.domain.TimedHabit.isTimed(h) -> { com.earnd.app.focus.startFocus(context, habitId); onDone() }
             h.checkInMode == CheckInMode.PHOTO -> onNeedsPhoto()
             else -> { ServiceLocator.habitService.checkIn(habitId); onDone() }
         }

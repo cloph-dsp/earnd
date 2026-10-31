@@ -55,7 +55,8 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `habits.get` | `id` |
 | `habits.create` | `name` (required), `times` (1-20/day), `schedule` = DAILY, WEEKDAYS, EVERY_N_DAYS, TIMES_PER_WEEK, RULE, `days` = mon,wed,fri / weekdays / weekends (implies schedule=WEEKDAYS), `every` (N days), `per_week` (1-7, any days; implies TIMES_PER_WEEK), `weeks` (N, with `days`: every N weeks), `monthdays` (e.g. `1,15,last`), `rule` (RRULE), `start` (date), `segment` = NONE, MORNING, AFTERNOON, EVENING, `target`, `unit`, `icon`, `color` (#RRGGBB), `mode` = TAP, PHOTO |
 | (habits.create, more) | `minutes` (reward per check-in, 0-240), `photo` = true/false, `reminders` = HH:MM list e.g. `08:00,14:00,21:00` or `none`, `remind_days` = mon,tue / all, `message` (reminder text) |
-| `habits.update` | `id` plus any create field (`minutes` only lower, `photo` only on) |
+| (habits.create, timed) | `focus_min` (main focus length 1-240 or none), `focus_options` = durations with rewards e.g. `10:5,20:10,30:15` (reward optional = linear) or `none`, `stopwatch` = on/off (open-ended count-up focus), `sw_rate` (earned min per focused min, default 0.5), `sw_min` (minimum session minutes, default 5, 0 = none), `sw_cap` (counted minutes cap or none) |
+| `habits.update` | `id` plus any create field (`minutes` only lower, `photo` only on; timed fields only tighter: rate per minute never higher (max 1.0 if the habit was not timed), `sw_min` only up, `sw_cap` only down, never turn timing/stopwatch off) |
 | alarm keys (habits and tasks create/update) | `alarm` = SILENT, NOTIFICATION, FULL_SCREEN, `at_due`, `offsets` (minutes before, tasks: `60,15`), `nag` = OFF, PROGRESSIVE, FIXED, `nag_every`, `nag_max` (or none), `vibrate`, `snooze_max` |
 | `habits.archive` / `habits.unarchive` | `id` |
 | `habits.reorder` | `ids` = comma-separated habit ids to put first, in that order (others keep their order) |
@@ -103,6 +104,9 @@ earnd-cli rules.blockable_apps
 earnd-cli rules.block_app pkg=com.instagram.android
 earnd-cli rules.block_site domain=reddit.com
 earnd-cli settings.tighten unlockCapMin=30
+earnd-cli habits.update id=6 focus_min=10 focus_options=10:5,20:10,30:15
+earnd-cli habits.update id=5 stopwatch=on sw_rate=0.5 sw_min=10
+earnd-cli settings.tighten comebackBonus=false   # turning it back on is phone-only
 earnd-cli settings.tighten hardMode=true bedtimeEnabled=true bedtimeStartMin=23:00 bedtimeEndMin=07:00
 earnd-cli habits.list all=true   # find archived ids, then: earnd-cli habits.unarchive id=7
 ```

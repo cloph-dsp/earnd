@@ -50,6 +50,22 @@ tier.
   end: short chime + vibration, an ordinary check-in (normal reward), a "Name: N min done" notice, and
   apps unblock. An ongoing notification shows the countdown; its Cancel opens the confirmation. The
   session survives process death and reboot. Remote/CLI may set `focus_min=N` but never start a session.
+- Focus duration options: a timed habit may offer several lengths (e.g. 10/20/30 min), each with its own
+  reward (default scales linearly from the habit reward per main focus minute; editable). Starting with
+  more than one option shows a quick picker (Today, Habits, detail; the 1x1 widget opens the app picker).
+  Editor: "Durations" chips plus a reward field per chip.
+- Open-ended focus ("stopwatch", e.g. music practice): a count-up timer with the same full-screen lock
+  and blocking rules, with Finish (no penalty) and Cancel (nothing credited). Finish credits one check-in
+  worth floor(counted minutes x rate) (rate per habit, default 0.5 earned min per focused min; counted
+  minutes optionally capped). Sessions shorter than the minimum (default 5 min, 0 = none) earn nothing
+  and do not check in. Persists across process death/reboot. Rows show a live "Practising · 23:10".
+- Comeback bonus (Settings toggle, default on; turning it on counts as weakening): after N missed
+  scheduled occasions (TIMES_PER_WEEK: missed whole weeks), the first earning check-in earns an extra
+  base x min(1, 0.25 x N), rounded, as a separate COMEBACK ledger entry reversed by undo. A lapse ends at
+  any day the habit was complete or earned, so it pays once; vacation days are skipped. Since bonus <= base
+  <= k x base, skipping k occasions then returning always earns strictly less than never skipping. Rows
+  show a mono "×1.5 comeback" badge while pending; the check-in confirmation shows the extra minutes.
+  Only in per-check-in reward mode.
 
 ## 4. Tasks
 - Separate entity from habits: title, notes, optional due date (+ optional time), priority, subtasks,

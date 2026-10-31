@@ -40,4 +40,14 @@ data class HabitEntity(
     @ColumnInfo(defaultValue = "0") val timesPerWeek: Int = 0,
     /** Timed focus habit: check-in is a focus session of this many minutes; null = plain check-in. */
     val focusMinutes: Int? = null,
+    /** Extra focus durations "min:reward,min:reward" (reward optional = linear from the per-minute rate). */
+    val focusOptions: String? = null,
+    /** Open-ended (count-up) focus: reward = floor(minutes x [stopwatchRate]). Takes precedence over focus. */
+    @ColumnInfo(defaultValue = "0") val stopwatch: Boolean = false,
+    /** Earned minutes per focused minute; null = 0.5. */
+    val stopwatchRate: Double? = null,
+    /** Shortest session that counts; null = 5 min, 0 = none. */
+    val stopwatchMinMin: Int? = null,
+    /** Focused minutes counted at most per session; null = no cap. */
+    val stopwatchCapMin: Int? = null,
 )

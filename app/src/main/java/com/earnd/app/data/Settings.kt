@@ -47,6 +47,8 @@ data class Settings(
     val listDensity: ListDensity = ListDensity.COMFORTABLE,
     val dateFormat: DateFormatPref = DateFormatPref.DMY,
     val timeFormat: TimeFormatPref = TimeFormatPref.H24,
+    /** First check-in after missed occasions earns a capped bonus (see Comeback). */
+    val comebackBonus: Boolean = true,
 ) {
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false

@@ -44,6 +44,7 @@ internal object SettingsCodec {
         put("listDensity", s.listDensity.name)
         put("dateFormat", s.dateFormat.name)
         put("timeFormat", s.timeFormat.name)
+        put("comebackBonus", s.comebackBonus.toString())
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -85,6 +86,7 @@ internal object SettingsCodec {
             listDensity = m["listDensity"]?.let { v -> ListDensity.entries.find { it.name == v } } ?: d.listDensity,
             dateFormat = m["dateFormat"]?.let { v -> DateFormatPref.entries.find { it.name == v } } ?: d.dateFormat,
             timeFormat = m["timeFormat"]?.let { v -> TimeFormatPref.entries.find { it.name == v } } ?: d.timeFormat,
+            comebackBonus = bool("comebackBonus", d.comebackBonus),
         )
     }
 }

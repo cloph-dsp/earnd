@@ -19,9 +19,12 @@ import java.time.LocalDate
  * A habit's progress for one day. [done] and [required] are comparable units; for quantity
  * habits [quantity] holds the amount logged so far against `habit.targetQuantity`.
  */
-data class HabitDay(val habit: HabitEntity, val done: Int, val required: Int, val quantity: Double = 0.0) {
+data class HabitDay(val habit: HabitEntity, val done: Int, val required: Int, val quantity: Double = 0.0, val comebackMissed: Int = 0) {
     val complete: Boolean get() = done >= required
 }
+
+/** A saved check-in and the comeback bonus it earned on top of `minutesEarned`. */
+data class CheckInResult(val checkIn: CheckInEntity, val bonus: Int)
 
 class HabitService(
     private val habits: HabitDao,
@@ -35,8 +38,23 @@ class HabitService(
 
     private suspend fun settingsNow(): Settings = settings?.current() ?: Settings()
 
-    private fun dayOf(h: HabitEntity, cs: List<CheckInEntity>) =
-        HabitDay(h, HabitProgress.doneUnits(h, cs), HabitProgress.required(h), HabitProgress.quantity(cs))
+    private fun dayOf(h: HabitEntity, cs: List<CheckInEntity>, missed: Int = 0) =
+        HabitDay(h, HabitProgress.doneUnits(h, cs), HabitProgress.required(h), HabitProgress.quantity(cs), missed)
+
+    /** Days on which [h] was complete or a check-in earned minutes. */
+    private fun activeDays(h: HabitEntity, cs: List<CheckInEntity>): Set<Long> =
+        cs.groupBy { it.epochDay }.filter { (_, d) -> HabitProgress.isComplete(h, d) || d.any { it.minutesEarned > 0 } }.keys
+
+    /** Per habit: missed occasions a check-in today would be a comeback from (0 when the bonus does not apply). */
+    private suspend fun comebackMissed(hs: List<HabitEntity>, today: LocalDate, todays: List<CheckInEntity>): Map<Long, Int> {
+        val s = settingsNow()
+        if (!s.comebackBonus || s.rewardMode != RewardMode.PER_CHECKIN || hs.isEmpty()) return emptyMap()
+        val past = checkIns.between(today.minusDays(Comeback.LOOKBACK_DAYS).toEpochDay(), today.toEpochDay() - 1)
+        val byHabit = (past + todays).groupBy { it.habitId }
+        return hs.associate { h ->
+            h.id to Comeback.missedOccasions(h, today, activeDays(h, byHabit[h.id].orEmpty()), skip = { s.onVacation(it.toEpochDay()) })
+        }
+    }
 
     /** Habits scheduled today with their progress. "Today" is fixed at collection time. */
     fun observeToday(): Flow<List<HabitDay>> {
@@ -44,7 +62,9 @@ class HabitService(
         return combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
             val byHabit = cs.groupBy { it.habitId }
             val week = weekDoneBefore(hs, today)
-            hs.filter { HabitSchedule.isDueOn(it, today, week[it.id] ?: 0) }.map { dayOf(it, byHabit[it.id].orEmpty()) }
+            val due = hs.filter { HabitSchedule.isDueOn(it, today, week[it.id] ?: 0) }
+            val missed = comebackMissed(due, today, cs)
+            due.map { dayOf(it, byHabit[it.id].orEmpty(), missed[it.id] ?: 0) }
         }
     }
 
@@ -54,7 +74,8 @@ class HabitService(
         return combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
             val byHabit = cs.groupBy { it.habitId }
             val week = weekDoneBefore(hs, today)
-            hs.map { dayOf(it, byHabit[it.id].orEmpty()) to HabitSchedule.isDueOn(it, today, week[it.id] ?: 0) }
+            val missed = comebackMissed(hs, today, cs)
+            hs.map { dayOf(it, byHabit[it.id].orEmpty(), missed[it.id] ?: 0) to HabitSchedule.isDueOn(it, today, week[it.id] ?: 0) }
         }
     }
 
@@ -85,7 +106,18 @@ class HabitService(
      * done" reward mode single check-ins earn nothing; the day's lump sum is credited once all
      * scheduled habits are complete.
      */
-    suspend fun checkIn(habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true): CheckInEntity {
+    suspend fun checkIn(habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true): CheckInEntity =
+        checkInWithBonus(habitId, quantity, photoPath, creditBank).checkIn
+
+    /**
+     * As [checkIn]; [rewardOverride] replaces the habit reward (focus duration option, stopwatch).
+     * The first earning check-in after a lapse also earns a COMEBACK ledger entry on the same source,
+     * so undoing the check-in reverses both.
+     */
+    suspend fun checkInWithBonus(
+        habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true,
+        rewardOverride: Int? = null,
+    ): CheckInResult {
         val h = requireNotNull(habits.get(habitId)) { "No habit $habitId" }
         val s = settingsNow()
         val now = clock.now()
@@ -95,13 +127,18 @@ class HabitService(
             photoPath = photoPath, minutesEarned = 0)
         val perCheckIn = creditBank && s.rewardMode == RewardMode.PER_CHECKIN &&
             HabitProgress.earns(h, before, before + draft)
-        val minutes = if (perCheckIn) HabitProgress.rewardMinutes(h, s) else 0
+        val minutes = if (perCheckIn) (rewardOverride ?: HabitProgress.rewardMinutes(h, s)).coerceAtLeast(0) else 0
+        val bonus = if (minutes > 0 && s.comebackBonus) {
+            val past = checkIns.forHabitBetween(habitId, day.minusDays(Comeback.LOOKBACK_DAYS).toEpochDay(), day.toEpochDay())
+            Comeback.bonus(minutes, Comeback.missedOccasions(h, day, activeDays(h, past), skip = { s.onVacation(it.toEpochDay()) }))
+        } else 0
         val c = draft.copy(minutesEarned = minutes)
         val saved = c.copy(id = checkIns.insert(c))
         if (minutes > 0) bank.earn(minutes, LedgerKind.EARN_HABIT, OwnerKind.HABIT, saved.id)
+        if (bonus > 0) bank.earn(bonus, LedgerKind.COMEBACK, OwnerKind.HABIT, saved.id)
         if (creditBank && s.rewardMode == RewardMode.ALL_DONE) settleDayBonus(day, s)
         bus.emit(ChangeKind.CHECKINS)
-        return saved
+        return CheckInResult(saved, bonus)
     }
 
     /** Removes a check-in and reverses the minutes it earned. Returns its photo path, if any. */

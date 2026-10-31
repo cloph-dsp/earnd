@@ -88,6 +88,7 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
             }
         },
     ) { padding ->
+        com.earnd.app.focus.FocusPickerHost()
         NavHost(nav, startDestination = startDestination, modifier = Modifier.padding(padding)) {
             val back: () -> Unit = { if (!nav.popBackStack()) nav.navigate(Routes.TODAY) }
             composable(Routes.ONBOARDING) {

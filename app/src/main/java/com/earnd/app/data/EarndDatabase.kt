@@ -16,7 +16,7 @@ import com.earnd.app.data.entity.*
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
         AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -34,8 +34,21 @@ abstract class EarndDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
+
+        /** Focus duration options, stopwatch habits and stopwatch sessions. Existing rows keep their behaviour. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habit ADD COLUMN focusOptions TEXT")
+                db.execSQL("ALTER TABLE habit ADD COLUMN stopwatch INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE habit ADD COLUMN stopwatchRate REAL")
+                db.execSQL("ALTER TABLE habit ADD COLUMN stopwatchMinMin INTEGER")
+                db.execSQL("ALTER TABLE habit ADD COLUMN stopwatchCapMin INTEGER")
+                db.execSQL("ALTER TABLE focus_session ADD COLUMN stopwatch INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE focus_session ADD COLUMN rewardMinutes INTEGER")
+            }
+        }
 
         /** Timed focus habits: optional focus length per habit and the (single) focus session row. */
         val MIGRATION_4_5 = object : Migration(4, 5) {

@@ -33,8 +33,8 @@ class RemoteArgs(raw: Map<String, String>) {
     fun double(key: String): Double? = values[key]?.let { it.toDoubleOrNull() ?: bad("$key must be a number") }
     fun bool(key: String): Boolean? = values[key]?.lowercase()?.let {
         when (it) {
-            "1", "true", "yes" -> true
-            "0", "false", "no" -> false
+            "1", "true", "yes", "on" -> true
+            "0", "false", "no", "off" -> false
             else -> bad("$key must be true/false")
         }
     }

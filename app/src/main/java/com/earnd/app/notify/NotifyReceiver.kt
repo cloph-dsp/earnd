@@ -61,7 +61,7 @@ class NotifyReceiver : BroadcastReceiver() {
         val since = clock.startOfDay(clock.today())
         val today = ServiceLocator.db.ledgerDao().observeRecent(LEDGER_SCAN).first().filter { it.at >= since }
         val used = -today.filter { it.kind == LedgerKind.SPEND }.sumOf { it.minutes }
-        val earned = today.filter { it.kind == LedgerKind.EARN_HABIT || it.kind == LedgerKind.EARN_TASK || it.kind == LedgerKind.UNDO }
+        val earned = today.filter { it.kind == LedgerKind.EARN_HABIT || it.kind == LedgerKind.EARN_TASK || it.kind == LedgerKind.COMEBACK || it.kind == LedgerKind.UNDO }
             .sumOf { it.minutes }
         val msg = NotifyText.report(lines, used, earned) ?: return
         post(context, NotifyChannels.REPORT, NotifyChannels.ID_REPORT, msg)

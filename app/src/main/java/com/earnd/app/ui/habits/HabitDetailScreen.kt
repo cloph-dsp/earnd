@@ -109,14 +109,14 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
             Stat("Days done", perfect, Modifier.weight(1f))
         }
         if (h.archived) Text("Archived. Restore it to see it on Today again.", style = MaterialTheme.typography.bodySmall)
-        val focusMin = h.focusMinutes ?: 0
-        if (!h.archived && focusMin > 0) {
+        if (!h.archived && com.earnd.app.domain.TimedHabit.isTimed(h)) {
+            val st by androidx.compose.runtime.remember { sl.settings.settings }.collectAsState(initial = com.earnd.app.data.Settings())
             val context = androidx.compose.ui.platform.LocalContext.current
             val focusing = com.earnd.app.focus.focusLabel(h.id)
             com.earnd.app.ui.theme.AmberButton(
                 onClick = { launchUi { com.earnd.app.focus.startFocus(context, h.id) } },
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            ) { Text(focusing ?: "Start $focusMin min") }
+            ) { Text(focusing ?: com.earnd.app.focus.startLabel(h, st)) }
         }
 
         val byDay = year.groupBy { it.epochDay }

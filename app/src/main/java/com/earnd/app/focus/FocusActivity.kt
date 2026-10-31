@@ -59,6 +59,7 @@ import kotlinx.coroutines.delay
  */
 class FocusActivity : ComponentActivity() {
     private var askCancel by mutableStateOf(false)
+    private var result by mutableStateOf<StopwatchResult?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +88,8 @@ class FocusActivity : ComponentActivity() {
                         s, keepOn, onKeepOn = { keepOn = it },
                         askCancel = askCancel, onAskCancel = { askCancel = it },
                         onCancel = { launchUi { ServiceLocator.focus.cancel() } },
+                        result = result,
+                        onFinish = { launchUi { result = ServiceLocator.focus.finishStopwatch() } },
                     )
                 }
             }
@@ -118,6 +121,8 @@ private fun FocusScreen(
     askCancel: Boolean,
     onAskCancel: (Boolean) -> Unit,
     onCancel: () -> Unit,
+    result: StopwatchResult? = null,
+    onFinish: () -> Unit = {},
 ) {
     val p = Earnd.palette
     val clock = ServiceLocator.clock
@@ -134,12 +139,17 @@ private fun FocusScreen(
     val done = s.state == FocusState.DONE
     val total = s.durationMs / 60_000L
     val progress = if (done) 1f else FocusMath.progress(s, now)
+    var habit by remember { mutableStateOf<com.earnd.app.data.entity.HabitEntity?>(null) }
+    LaunchedEffect(s.habitId) { habit = ServiceLocator.db.habitDao().get(s.habitId) }
+    var askFinish by remember { mutableStateOf(false) }
+    val minSession = habit?.let { com.earnd.app.domain.TimedHabit.minSession(it) } ?: 0
+    LaunchedEffect(s.stopwatch) { while (s.stopwatch && s.state == FocusState.ACTIVE) { now = clock.now(); delay(500) } }
 
     Column(
         Modifier.fillMaxSize().background(p.bg).safeDrawingPadding().padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(if (done) "Done" else "Focusing", style = MaterialTheme.typography.labelLarge, color = p.secondary)
+        Text(if (done) "Done" else if (s.stopwatch) "Practising" else "Focusing", style = MaterialTheme.typography.labelLarge, color = p.secondary)
         Text(
             name, style = MaterialTheme.typography.titleLarge, color = p.text, textAlign = TextAlign.Center,
             maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp),
@@ -157,10 +167,30 @@ private fun FocusScreen(
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    if (done) "$total min" else FocusMath.clock(FocusMath.remainingMs(s, now)),
+                    when {
+                        done -> "$total min"
+                        s.stopwatch -> FocusMath.clock(FocusMath.elapsedMs(s, now))
+                        else -> FocusMath.clock(FocusMath.remainingMs(s, now))
+                    },
                     style = NumberStyle.copy(fontSize = 52.sp, lineHeight = 56.sp), color = if (done) p.amber else p.text,
                 )
-                Num(if (done) "checked in" else "of $total min", Modifier.padding(top = 4.dp))
+                Num(
+                    when {
+                        done && s.stopwatch -> when {
+                            result == null -> "finished"
+                            result.earned == null -> "too short · no check-in"
+                            result.bonus > 0 -> "checked in · +${result.earned} +${result.bonus} comeback"
+                            else -> "checked in · +${result.earned} min"
+                        }
+                        done -> "checked in"
+                        s.stopwatch -> habit?.let { h ->
+                            val r = com.earnd.app.domain.TimedHabit.stopwatchReward(h, FocusMath.elapsedMs(s, now))
+                            if (r == null) "min $minSession min to count" else "+$r min so far"
+                        } ?: ""
+                        else -> "of $total min"
+                    },
+                    Modifier.padding(top = 4.dp),
+                )
             }
         }
         Spacer(Modifier.weight(1f))
@@ -172,12 +202,36 @@ private fun FocusScreen(
             TextButton(onClick = { onKeepOn(!keepOn) }) {
                 Text(if (keepOn) "Screen stays on" else "Keep screen on", color = if (keepOn) p.amber else p.secondary)
             }
+            if (s.stopwatch) {
+                com.earnd.app.ui.theme.AmberButton(
+                    onClick = { if (FocusMath.elapsedMs(s, now) / 60_000L < minSession) askFinish = true else onFinish() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Finish") }
+            }
             OutlinedButton(onClick = { onAskCancel(true) }, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
         }
         Spacer(Modifier.height(8.dp))
     }
 
-    if (askCancel && !done) {
+    if (askFinish && !done) {
+        AlertDialog(
+            onDismissRequest = { askFinish = false },
+            title = { Text("Finish before $minSession min?") },
+            text = { Text("Sessions shorter than $minSession min earn nothing and don't check in.") },
+            confirmButton = { TextButton(onClick = { askFinish = false; onFinish() }) { Text("Finish anyway") } },
+            dismissButton = { TextButton(onClick = { askFinish = false }) { Text("Keep going") } },
+        )
+    }
+
+    if (askCancel && !done && s.stopwatch) {
+        AlertDialog(
+            onDismissRequest = { onAskCancel(false) },
+            title = { Text("Cancel this session?") },
+            text = { Text("Nothing is credited. Use Finish to keep what you practised.") },
+            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text("Cancel session", color = p.red) } },
+            dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text("Keep going") } },
+        )
+    } else if (askCancel && !done) {
         val lost = FocusMath.minutesLost(s, now)
         AlertDialog(
             onDismissRequest = { onAskCancel(false) },

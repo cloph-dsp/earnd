@@ -18,4 +18,8 @@ interface FocusDao {
     /** Moves an ACTIVE session to [to]; returns 1 only for the caller that won the race. */
     @Query("UPDATE focus_session SET state = :to WHERE id = 1 AND state = 'ACTIVE' AND startedAt = :startedAt")
     suspend fun finish(startedAt: Long, to: FocusState): Int
+
+    /** Finishes an ACTIVE stopwatch session, recording how long it ran; 1 only for the winner. */
+    @Query("UPDATE focus_session SET state = 'DONE', durationMs = :elapsedMs WHERE id = 1 AND state = 'ACTIVE' AND startedAt = :startedAt")
+    suspend fun finishStopwatch(startedAt: Long, elapsedMs: Long): Int
 }

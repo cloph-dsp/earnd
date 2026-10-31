@@ -11,21 +11,27 @@ object FocusMath {
 
     /** Time left, never negative; a non-active session has none. */
     fun remainingMs(s: FocusSessionEntity, now: Long): Long =
-        if (s.state != FocusState.ACTIVE) 0L else (endAt(s) - now).coerceIn(0L, s.durationMs)
+        if (s.state != FocusState.ACTIVE || s.stopwatch) 0L else (endAt(s) - now).coerceIn(0L, s.durationMs)
 
     /** Active and the full duration has elapsed: ready to be credited. */
-    fun isDue(s: FocusSessionEntity, now: Long): Boolean = s.state == FocusState.ACTIVE && now >= endAt(s)
+    fun isDue(s: FocusSessionEntity, now: Long): Boolean = s.state == FocusState.ACTIVE && !s.stopwatch && now >= endAt(s)
+
+    /** Time a session has run (a finished stopwatch keeps its recorded length). */
+    fun elapsedMs(s: FocusSessionEntity, now: Long): Long =
+        if (s.stopwatch && s.state != FocusState.ACTIVE) s.durationMs else (now - s.startedAt).coerceAtLeast(0L)
 
     /** Active and still counting down. */
-    fun isRunning(s: FocusSessionEntity?, now: Long): Boolean = s != null && s.state == FocusState.ACTIVE && now < endAt(s)
+    fun isRunning(s: FocusSessionEntity?, now: Long): Boolean =
+        s != null && s.state == FocusState.ACTIVE && (s.stopwatch || now < endAt(s))
 
     /** 0..1 elapsed fraction, for the progress ring. */
     fun progress(s: FocusSessionEntity, now: Long): Float =
-        if (s.durationMs <= 0) 1f else (1f - remainingMs(s, now).toFloat() / s.durationMs).coerceIn(0f, 1f)
+        if (s.stopwatch) ((elapsedMs(s, now) % 3_600_000L) / 3_600_000f)
+        else if (s.durationMs <= 0) 1f else (1f - remainingMs(s, now).toFloat() / s.durationMs).coerceIn(0f, 1f)
 
     /** Whole minutes of progress that a cancel would throw away (no partial credit). */
     fun minutesLost(s: FocusSessionEntity, now: Long): Int =
-        ((s.durationMs - remainingMs(s, now)) / 60_000L).toInt()
+        ((if (s.stopwatch) elapsedMs(s, now) else s.durationMs - remainingMs(s, now)) / 60_000L).toInt()
 
     /** mm:ss, or h:mm:ss from one hour up. Rounds up so the last second shows 00:01, not 00:00. */
     fun clock(ms: Long): String {
