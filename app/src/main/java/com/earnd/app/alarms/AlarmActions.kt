@@ -5,6 +5,9 @@ import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.domain.DailyWindow
+import com.earnd.app.domain.today
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** What happens when alarms fire or the user acts on them. Shared by receivers, worker and activity. */
 class AlarmActions(private val context: Context) {
@@ -31,7 +34,8 @@ class AlarmActions(private val context: Context) {
     }
 
     /** Nag alarm or heartbeat: bump due items, ring full-screen ones, refresh the notification. */
-    suspend fun nagPass() {
+    suspend fun nagPass() = passLock.withLock {
+        housekeeping()
         val now = clock.now()
         val before = db.nagStateDao().all().associate { (it.ownerKind to it.ownerId) to it.nagCount }
         nag.onFired(now)
@@ -43,6 +47,12 @@ class AlarmActions(private val context: Context) {
         }
         val alert = styles.any { it != AlarmStyle.SILENT } && !inQuiet()
         AlarmsModule.notifier.refresh(alert = alert)
+    }
+
+    /** UI-independent upkeep: period reset and recurring roll-forward, before nags and widgets refresh. */
+    suspend fun housekeeping() {
+        runCatching { ServiceLocator.timeBank.resetIfPeriodRolled() }
+        runCatching { ServiceLocator.taskService.rollForward(clock.today()) }
     }
 
     /** "Done" from the notification or the ringing screen: completes via the domain services. */
@@ -85,5 +95,10 @@ class AlarmActions(private val context: Context) {
     private suspend fun inQuiet(): Boolean {
         val s = ServiceLocator.settings.current()
         return DailyWindow(s.quietStartMin, s.quietEndMin).contains(clock.now(), clock.zone())
+    }
+
+    private companion object {
+        /** Process-wide: receivers, ticker and worker may all run a pass at once. */
+        val passLock = Mutex()
     }
 }

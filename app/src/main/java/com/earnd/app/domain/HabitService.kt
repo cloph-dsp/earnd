@@ -38,11 +38,11 @@ class HabitService(
      * Records a check-in for today. Minutes are earned only up to `timesPerDay` check-ins;
      * extra check-ins are kept for history but earn nothing.
      */
-    suspend fun checkIn(habitId: Long, quantity: Double? = null, photoPath: String? = null): CheckInEntity {
+    suspend fun checkIn(habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true): CheckInEntity {
         val h = requireNotNull(habits.get(habitId)) { "No habit $habitId" }
         val now = clock.now()
         val day = clock.localDate(now).toEpochDay()
-        val earns = checkIns.countFor(habitId, day) < h.timesPerDay
+        val earns = creditBank && checkIns.countFor(habitId, day) < h.timesPerDay
         val minutes = if (earns) h.minutesPerCheckIn.coerceAtLeast(0) else 0
         val c = CheckInEntity(habitId = habitId, epochDay = day, at = now, quantity = quantity,
             photoPath = photoPath, minutesEarned = minutes)

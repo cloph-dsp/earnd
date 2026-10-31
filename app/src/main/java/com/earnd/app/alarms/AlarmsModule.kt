@@ -44,6 +44,7 @@ object AlarmsModule {
     /** Re-plan alarms and refresh the pending notification without alerting. */
     suspend fun resync() {
         runCatching {
+            actions.housekeeping()
             planner.rearmAll()
             notifier.refresh(alert = false)
         }

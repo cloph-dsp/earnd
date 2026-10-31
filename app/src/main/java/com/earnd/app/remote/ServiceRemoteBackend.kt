@@ -70,7 +70,7 @@ class ServiceRemoteBackend(
     override suspend fun streak(habitId: Long) = habitsSvc.streak(habitId, today())
     override suspend fun saveHabit(h: HabitEntity) = habitsSvc.save(h)
     override suspend fun archiveHabit(id: Long) = habitsSvc.archive(id)
-    override suspend fun checkIn(habitId: Long, quantity: Double?) = habitsSvc.checkIn(habitId, quantity)
+    override suspend fun checkIn(habitId: Long, quantity: Double?) = habitsSvc.checkIn(habitId, quantity, creditBank = false)
 
     override suspend fun undoCheckIn(checkInId: Long) {
         val photo = habitsSvc.undoCheckIn(checkInId) ?: return
@@ -81,7 +81,7 @@ class ServiceRemoteBackend(
     override suspend fun task(id: Long) = tasksSvc.get(id)
     override suspend fun subtasks(parentId: Long) = db.taskDao().subtasks(parentId)
     override suspend fun saveTask(t: TaskEntity) = tasksSvc.save(t)
-    override suspend fun completeTask(id: Long) = tasksSvc.complete(id)
+    override suspend fun completeTask(id: Long) = tasksSvc.complete(id, creditBank = false)
     override suspend fun uncompleteTask(id: Long) = tasksSvc.uncomplete(id)
     override suspend fun deleteTask(id: Long) = tasksSvc.delete(id)
 

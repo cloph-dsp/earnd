@@ -44,6 +44,7 @@ class NagEngine(
         for (s in nags.all()) {
             val at = s.nextNagAt ?: continue
             if (at > now) continue
+            if (s.lastNagAt != null && now - s.lastNagAt < 30_000L) continue
             val bumped = s.copy(nagCount = s.nagCount + 1, lastNagAt = now)
             nags.upsert(bumped.copy(nextNagAt = nextNagAt(bumped, configs.get(s.ownerKind, s.ownerId), now)))
         }

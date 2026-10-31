@@ -49,12 +49,12 @@ class TaskService(
      * Marks done, earns the reward (if any) and, for a recurring task, creates the next
      * occurrence (with fresh copies of its subtasks), which is returned.
      */
-    suspend fun complete(taskId: Long): TaskEntity? {
+    suspend fun complete(taskId: Long, creditBank: Boolean = true): TaskEntity? {
         val t = tasks.get(taskId) ?: return null
         if (t.completedAt != null) return null
         val now = clock.now()
         tasks.upsert(t.copy(completedAt = now))
-        t.rewardMinutes?.takeIf { it > 0 }?.let { bank.earn(it, LedgerKind.EARN_TASK, OwnerKind.TASK, t.id) }
+        t.rewardMinutes?.takeIf { creditBank && it > 0 }?.let { bank.earn(it, LedgerKind.EARN_TASK, OwnerKind.TASK, t.id) }
         val next = if (t.parentId == null) spawnNext(t, clock.localDate(now)) else null
         bus.emit(ChangeKind.TASKS)
         return next

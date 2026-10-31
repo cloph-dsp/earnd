@@ -109,7 +109,10 @@ class AlarmPlanner(
         val today = clock.today()
         for (st in nagStates.all()) {
             val stillPending = when (st.ownerKind) {
-                OwnerKind.TASK -> tasks.get(st.ownerId)?.let { it.completedAt == null } ?: false
+                OwnerKind.TASK -> tasks.get(st.ownerId)?.let { t ->
+                    val due = AlarmTimes.taskDueAt(t, s, clock)
+                    t.completedAt == null && due != null && due <= now && due == st.dueAt
+                } ?: false
                 OwnerKind.HABIT -> {
                     val h = habits.get(st.ownerId)
                     h != null && !h.archived && clock.localDate(st.dueAt) == today &&
