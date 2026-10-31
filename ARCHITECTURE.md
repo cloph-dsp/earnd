@@ -18,6 +18,7 @@ add (not rename) members. Times are epoch millis (`Long`) unless noted; local da
 | `widgets` | Glance `LockWidget` (1x1), `TasksWidget` (4x2), receivers, `WidgetRefresher` |
 | `remote` | `RemoteCommandProvider` / receiver reachable from adb shell only, JSON codec |
 | `photo` | CameraX capture screen, `PhotoStore` (app-private `files/photos/`) |
+| `focus` | Timed focus habits: `FocusManager` (start/cancel/complete/restore), `FocusMath`/`FocusRules` (pure), `FocusActivity`, `FocusNotifier`, `FocusChime`, `FocusReceiver` |
 
 `tools/` (repo root): Linux CLI wrapper `earnd-cli` and agent skill.
 
@@ -298,6 +299,17 @@ items overdue > 7 days collapse into one daily digest. Quiet hours shift a nag t
 write (`HABITS, CHECKINS, TASKS, BALANCE, SESSION, SETTINGS, BLOCKLIST, ALARMS`). `EarndApp` starts one
 collector per consumer: widgets (`WidgetRefresher.updateAll`), alarms (`AlarmPlanner.rearmAll`, debounced),
 blocking service (refresh cached rules). UI observes Room flows directly.
+
+### Focus sessions (`focus`, DB v5)
+`habit.focusMinutes` (nullable; migration 4->5 adds it and the single-row `focus_session` table: habitId,
+startedAt, durationMs, state ACTIVE/DONE/CANCELLED). `FocusManager.start` refuses when one is running
+(remote never calls it: `focus` is a forbidden remote root). State changes use a conditional
+`UPDATE ... WHERE state='ACTIVE'`, so exactly one caller completes or cancels. Completion triggers: exact
+alarm (`FocusReceiver`), the timer screen tick, the guard's 30 s tick and `restore()` (app start, boot,
+package replaced). Completion = `HabitService.checkIn` + chime + notice. `BlockPolicy` takes a
+`focusActive` lambda: while true it ignores sessions/vacation and applies `FocusRules.allowed`
+(own package, user ALLOWED, essentials minus launcher and Settings/installer); a block has
+`BlockCause.FOCUS` and the guard shows `FocusActivity` instead of `LockedActivity`. Emits `ChangeKind.FOCUS`.
 
 ## 5. Manifest fragments
 

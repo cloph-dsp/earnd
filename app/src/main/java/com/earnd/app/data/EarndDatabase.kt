@@ -14,9 +14,9 @@ import com.earnd.app.data.entity.*
     entities = [
         HabitEntity::class, CheckInEntity::class, TaskEntity::class, AlarmConfigEntity::class,
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
-        AppRuleEntity::class, SettingEntity::class,
+        AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -29,12 +29,24 @@ abstract class EarndDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun appRuleDao(): AppRuleDao
     abstract fun settingDao(): SettingDao
+    abstract fun focusDao(): FocusDao
 
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
+
+        /** Timed focus habits: optional focus length per habit and the (single) focus session row. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habit ADD COLUMN focusMinutes INTEGER")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `focus_session` (`id` INTEGER NOT NULL, `habitId` INTEGER NOT NULL, " +
+                        "`startedAt` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `state` TEXT NOT NULL, PRIMARY KEY(`id`))",
+                )
+            }
+        }
 
         /**
          * General recurrence: tasks move from repeatKind/repeatWeekdayMask/repeatInterval to an

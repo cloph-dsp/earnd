@@ -143,6 +143,17 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
             OutlinedTextField(h.unit.orEmpty(), { set(h.copy(unit = it.ifBlank { null })) }, label = { Text("Unit") }, singleLine = true, modifier = Modifier.weight(1f))
         }
 
+        SectionTitle("Focus timer")
+        SwitchRow(
+            "Timed focus", h.focusMinutes != null,
+            { on -> set(h.copy(focusMinutes = if (on) 20 else null)) },
+            hint = if (h.focusMinutes == null) "Check-in becomes a timer that keeps other apps closed until it ends."
+            else "Cancelling loses the progress. Calls, messages and maps stay open.",
+        )
+        h.focusMinutes?.let { m ->
+            NumberField("Minutes", m, { set(h.copy(focusMinutes = (it ?: 1).coerceIn(com.earnd.app.focus.FocusMath.MINUTES_RANGE))) })
+        }
+
         SectionTitle("Reward and check-in")
         SwitchRow(
             "Use the default reward", h.rewardMinutes == null,

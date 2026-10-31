@@ -7,13 +7,15 @@ import com.earnd.app.data.dao.SessionDao
 import com.earnd.app.data.entity.AppRule
 import com.earnd.app.data.entity.AppRuleEntity
 import com.earnd.app.data.entity.SessionReason
+import com.earnd.app.focus.FocusRules
 
 sealed interface BlockDecision {
     data object Allow : BlockDecision
     data class Block(val cause: BlockCause, val until: Long?) : BlockDecision
 }
 
-enum class BlockCause { NO_BALANCE, BEDTIME, HARD_MODE }
+/** FOCUS: a timed focus habit is running; the guard shows the focus timer instead of the lock screen. */
+enum class BlockCause { NO_BALANCE, BEDTIME, HARD_MODE, FOCUS }
 
 /** Everything [BlockRules.decide] needs, already resolved. */
 data class BlockFacts(
@@ -67,9 +69,17 @@ class BlockPolicy(
     private val settings: SettingsRepository,
     private val essentials: EssentialApps,
     private val clock: Clock = SystemTimeClock,
+    /** True while a focus session runs at [now]; then only focus-safe apps stay open (sessions are suspended). */
+    private val focusActive: suspend (now: Long) -> Boolean = { false },
+    private val ownPackage: String = "com.earnd.app",
 ) {
     /** [pkg] is the foreground package; [url] is the host (or URL) from a browser bar, or null. */
     suspend fun decide(pkg: String, url: String?, now: Long): BlockDecision {
+        if (focusActive(now)) {
+            val ok = FocusRules.allowed(pkg, ownPackage, essentials.isEssential(pkg), essentials.isLauncher(pkg),
+                BlockRules.isUserAllowed(rules.all(), pkg))
+            return if (ok) BlockDecision.Allow else BlockDecision.Block(BlockCause.FOCUS, null)
+        }
         val s = settings.current()
         val today = clock.localDate(now)
         val all = rules.all()

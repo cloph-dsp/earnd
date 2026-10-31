@@ -38,4 +38,6 @@ data class HabitEntity(
     val scheduleRule: String? = null,
     /** Target days per week for ScheduleKind.TIMES_PER_WEEK (any days). */
     @ColumnInfo(defaultValue = "0") val timesPerWeek: Int = 0,
+    /** Timed focus habit: check-in is a focus session of this many minutes; null = plain check-in. */
+    val focusMinutes: Int? = null,
 )

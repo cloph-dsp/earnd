@@ -41,6 +41,15 @@ tier.
 - Check-in: quick tap, or photo-required (camera capture is the commitment device; no AI verification).
 - Undo a check-in (reverses the minutes it earned).
 - History per habit; streaks kept minimal (no heavy gamification).
+- Timed focus habits (optional focus length, 1-240 min, e.g. "Read 20 min"): the check-in becomes
+  "Start N min". Starting opens a full-screen timer (habit name, countdown, progress ring, Cancel; also
+  over the lock screen). While it runs every app except Earnd, essentials (dialer/in-call, SMS, emergency,
+  maps, system UI) and the user's always-open apps is sent back to the timer; the launcher and Settings
+  are too. Unlock sessions are suspended meanwhile. Cancel asks first ("Cancel and lose 12 min of
+  progress?") and credits nothing; the next start counts from zero. Calls do not stop the timer. At the
+  end: short chime + vibration, an ordinary check-in (normal reward), a "Name: N min done" notice, and
+  apps unblock. An ongoing notification shows the countdown; its Cancel opens the confirmation. The
+  session survives process death and reboot. Remote/CLI may set `focus_min=N` but never start a session.
 
 ## 4. Tasks
 - Separate entity from habits: title, notes, optional due date (+ optional time), priority, subtasks,

@@ -43,7 +43,9 @@ object ServiceLocator {
     val photoStore: com.earnd.app.photo.PhotoStore by lazy { com.earnd.app.photo.PhotoStore(appContext) }
     val essentialApps: SystemEssentialApps by lazy { SystemEssentialApps(appContext) }
     val blockPolicy: BlockPolicy by lazy {
-        BlockPolicy(db.appRuleDao(), db.sessionDao(), habitService, settings, essentialApps, clock)
+        BlockPolicy(db.appRuleDao(), db.sessionDao(), habitService, settings, essentialApps, clock,
+            focusActive = { now -> com.earnd.app.focus.FocusMath.isRunning(db.focusDao().get(), now) },
+            ownPackage = appContext.packageName)
     }
     val nagEngine: NagEngine by lazy {
         NagEngine(db.nagStateDao(), db.alarmConfigDao(), settings, clock) { kind, id ->
@@ -53,6 +55,8 @@ object ServiceLocator {
             } ?: ""
         }
     }
+
+    val focus: com.earnd.app.focus.FocusManager by lazy { com.earnd.app.focus.FocusManager(appContext, db.focusDao(), db.habitDao(), habitService, clock, changeBus) }
 
     fun init(context: Context) {
         appContext = context.applicationContext

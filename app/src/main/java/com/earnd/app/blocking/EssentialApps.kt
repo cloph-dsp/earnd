@@ -3,6 +3,9 @@ package com.earnd.app.blocking
 /** Packages that must never be blocked, whatever the user configured. */
 interface EssentialApps {
     fun isEssential(pkg: String): Boolean
+
+    /** The home launcher: essential normally, but redirected back during a focus session. */
+    fun isLauncher(pkg: String): Boolean = false
 }
 
 /** Fixed system packages that are always essential, independent of device defaults. */

@@ -90,6 +90,22 @@
                 android:resource="@xml/blocking_accessibility_service" />
         </service>
 
+        <!-- Focus (timed focus habits) -->
+        <activity
+            android:name=".focus.FocusActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:taskAffinity="com.earnd.app.focus"
+            android:theme="@style/Theme.Earnd" />
+        <receiver android:name=".focus.FocusReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Alarms -->
         <activity
             android:name=".alarms.AlarmActivity"

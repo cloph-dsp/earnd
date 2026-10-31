@@ -2,6 +2,7 @@ package com.earnd.app.remote
 
 import com.earnd.app.data.Settings
 import com.earnd.app.data.SettingsCodec
+import com.earnd.app.focus.FocusMath
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.AppRule
@@ -189,6 +190,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 "streak" to backend.streak(h.id),
                 "rewardMinutes" to HabitProgress.rewardMinutes(h, backend.settings()),
                 "photoRequired" to photoOn(h, backend.settings()),
+                "focusMin" to h.focusMinutes,
                 "remindDays" to if (h.reminderDays == 0) null else RemoteArgs.maskToDays(h.reminderDays),
                 "message" to h.reminderMessage,
                 "alarm" to backend.alarmConfig(OwnerKind.HABIT, h.id)?.let(::alarmJson),
@@ -244,6 +246,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             val photo = PHOTO_KEYS.firstNotNullOfOrNull(a::bool)
             h.copy(
                 rewardMinutes = if (reward != null) reward.value else h.rewardMinutes,
+                focusMinutes = a.intOrNone(FOCUS_KEYS, FocusMath.MINUTES_RANGE).let { if (it != null) it.value else h.focusMinutes },
                 photoRequired = photo ?: h.photoRequired,
                 checkInMode = when {
                     a.has("mode") || photo == null -> h.checkInMode
@@ -523,7 +526,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "unlock", "lock", "session", "sessions", "spend", "balance", "bank", "ledger",
             "apps", "app", "block", "blocking", "blocklist", "bedtime", "vacation",
             "setting", "hardmode", "remote", "unblock", "allow",
-            "reward", "rewards", "segment", "segments", "guard", "notify",
+            "reward", "rewards", "segment", "segments", "guard", "notify", "focus",
         )
 
         /**
@@ -532,6 +535,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
          */
         private val GUARDED_ROOTS = setOf("rules", "settings")
 
+        private val FOCUS_KEYS = listOf("focus_min")
         private val REWARD_KEYS = listOf("minutes", "rewardMinutes", "reward")
         private val REPEAT_KEYS = listOf("repeat", "days", "interval", "monthday", "nth", "count", "until")
         private val PHOTO_KEYS = listOf("photo", "photoRequired")

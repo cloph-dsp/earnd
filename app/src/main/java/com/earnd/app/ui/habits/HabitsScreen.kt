@@ -133,7 +133,12 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
         Icon(HabitLook.icon(h.iconKey), null, tint = Color(h.colorArgb), modifier = Modifier.size(16.dp))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (d.complete) p.done else p.text)
-            Text(HabitRules.scheduleSummary(h), style = MaterialTheme.typography.bodySmall, color = p.muted)
+            val focusing = com.earnd.app.focus.focusLabel(h.id)
+            if (focusing != null) com.earnd.app.ui.theme.Num(focusing, color = p.amber)
+            else Text(
+                HabitRules.scheduleSummary(h) + (h.focusMinutes?.let { " · $it min focus" } ?: ""),
+                style = MaterialTheme.typography.bodySmall, color = p.muted,
+            )
         }
         Column(horizontalAlignment = Alignment.End) {
             val today = when {

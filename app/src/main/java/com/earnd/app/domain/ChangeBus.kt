@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 /** What changed; listeners (widgets, alarms, UI) refresh the parts they care about. */
-enum class ChangeKind { HABITS, CHECKINS, TASKS, BALANCE, SESSION, SETTINGS, BLOCKLIST, ALARMS }
+enum class ChangeKind { HABITS, CHECKINS, TASKS, BALANCE, SESSION, SETTINGS, BLOCKLIST, ALARMS, FOCUS }
 
 /** Process-wide fan-out of data changes for cross-module refresh. */
 class ChangeBus {

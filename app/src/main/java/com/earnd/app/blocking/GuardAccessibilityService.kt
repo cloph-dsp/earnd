@@ -41,7 +41,11 @@ class GuardAccessibilityService : AccessibilityService() {
         }
         // Sessions expire silently; tick so an expired session re-locks the current app.
         scope.launch {
-            while (isActive) { delay(TICK_MS); recheck(force = true) }
+            while (isActive) {
+                delay(TICK_MS)
+                runCatching { ServiceLocator.focus.completeIfDue() } // backstop if the end alarm was late
+                recheck(force = true)
+            }
         }
     }
 
@@ -89,7 +93,8 @@ class GuardAccessibilityService : AccessibilityService() {
     }
 
     private fun showLock(pkg: String, url: String?, d: BlockDecision.Block) {
-        val i = LockedActivity.intent(this, pkg, url?.let { BrowserUrls.hostOf(it) }, d.cause, d.until)
+        val i = if (d.cause == com.earnd.app.domain.BlockCause.FOCUS) com.earnd.app.focus.FocusActivity.intent(this)
+        else LockedActivity.intent(this, pkg, url?.let { BrowserUrls.hostOf(it) }, d.cause, d.until)
         runCatching { startActivity(i) }.onFailure { performGlobalAction(GLOBAL_ACTION_HOME) }
         // The lock screen now covers the blocked app; forget it until it is opened again.
         foregroundPkg = null
@@ -115,6 +120,6 @@ class GuardAccessibilityService : AccessibilityService() {
         const val SAME_KEY_MS = 1_500L
         const val URL_SCAN_MS = 700L
         const val TICK_MS = 30_000L
-        val RECHECK_ON = setOf(ChangeKind.SESSION, ChangeKind.BLOCKLIST, ChangeKind.SETTINGS)
+        val RECHECK_ON = setOf(ChangeKind.SESSION, ChangeKind.BLOCKLIST, ChangeKind.SETTINGS, ChangeKind.FOCUS)
     }
 }

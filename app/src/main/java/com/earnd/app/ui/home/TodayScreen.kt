@@ -103,6 +103,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     var clock by remember { mutableStateOf(formatMinuteOfDay(minuteNow)) }
     LaunchedEffect(Unit) { while (true) { clock = formatMinuteOfDay(sl.clock.minuteOfDay(sl.clock.now())); delay(15_000) } }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
     val habitRow: @Composable (HabitDay) -> Unit = { hd ->
         val last = checkIns.filter { it.habitId == hd.habit.id }.maxByOrNull { it.at }
         HabitRow(
@@ -110,6 +111,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             onOpen = { onOpenHabit(hd.habit.id) },
             onCheck = {
                 when {
+                    (hd.habit.focusMinutes ?: 0) > 0 -> launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
                     HabitRules.needsPhoto(hd.habit, settings) -> onPhotoCheckIn(hd.habit.id)
                     hd.habit.targetQuantity != null -> askAmount = hd.habit
                     else -> launchUi { sl.habitService.checkIn(hd.habit.id) }
@@ -274,7 +276,9 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
                     add("${fmtQty(HabitRules.quantityDone(todays))}/${fmtQty(h.targetQuantity)} ${h.unit.orEmpty()}".trim())
                 }
             }
-            Row {
+            val focusing = com.earnd.app.focus.focusLabel(h.id)
+            if (focusing != null) Num(focusing, color = p.amber)
+            else Row {
                 if (parts.isNotEmpty()) Num(parts.joinToString("  "), color = if (complete) p.done else p.secondary)
                 if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) "  " else "") + "ignored ${ignored}×", color = p.red)
             }
@@ -282,8 +286,10 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
         if (!complete && last != null) {
             IconButton(onClick = { onUndo(last) }) { Icon(Icons.Outlined.Undo, "Undo last check-in", tint = p.muted) }
         }
+        val focusMin = h.focusMinutes ?: 0
         when {
             complete -> Unit
+            focusMin > 0 -> TextButton(onClick = onCheck) { Text("Start $focusMin min", color = p.amber) }
             HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, "Photo needed", tint = p.muted, modifier = Modifier.size(16.dp))
             h.targetQuantity != null -> Icon(Icons.Outlined.Add, "Add amount", tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Icon(HabitLook.icon(h.iconKey), null, tint = p.muted, modifier = Modifier.size(16.dp))

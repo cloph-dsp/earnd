@@ -13,10 +13,13 @@ import android.telecom.TelecomManager
  */
 class SystemEssentialApps(private val context: Context) : EssentialApps {
     @Volatile private var cached: Set<String> = emptySet()
+    @Volatile private var home: String? = null
 
     init { refresh() }
 
     override fun isEssential(pkg: String): Boolean = pkg in CoreEssentials.packages || pkg in cached
+
+    override fun isLauncher(pkg: String): Boolean = pkg == home
 
     fun all(): Set<String> = CoreEssentials.packages + cached
 
@@ -26,7 +29,8 @@ class SystemEssentialApps(private val context: Context) : EssentialApps {
         runCatching { context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage }
             .getOrNull()?.let(found::add)
         runCatching { Telephony.Sms.getDefaultSmsPackage(context) }.getOrNull()?.let(found::add)
-        resolve(pm, Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))?.let(found::add)
+        home = resolve(pm, Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))?.takeIf { it != "android" }
+        home?.let(found::add)
         resolve(pm, Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=")))?.let(found::add)
         resolve(pm, Intent(Intent.ACTION_DIAL))?.let(found::add)
         found.remove("android") // resolver placeholder when no default is set; already in core
