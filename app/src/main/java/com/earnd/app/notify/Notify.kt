@@ -11,15 +11,11 @@ object Notify {
         reschedule(context)
     }
 
-    suspend fun prefs(): NotifyPrefs = NotifySettings.get(ServiceLocator.settings)
-
-    /** Saves new choices and re-arms immediately. */
-    suspend fun update(context: Context, p: NotifyPrefs) {
-        NotifySettings.put(ServiceLocator.settings, p)
-        reschedule(context)
+    suspend fun prefs(): NotifyPrefs = ServiceLocator.settings.current().let {
+        NotifyPrefs(it.morningNudgeEnabled, it.morningNudgeMin, it.dailyReportEnabled, it.dailyReportMin)
     }
 
     suspend fun reschedule(context: Context) {
-        NotifyScheduler(context.applicationContext, ServiceLocator.clock).reschedule(prefs())
+        NotifyScheduler(context.applicationContext, ServiceLocator.clock).reschedule(prefs(), ServiceLocator.settings.current())
     }
 }

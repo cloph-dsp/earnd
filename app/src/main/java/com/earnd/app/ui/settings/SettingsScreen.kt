@@ -1,6 +1,17 @@
 package com.earnd.app.ui.settings
 
 import com.earnd.app.ui.theme.Earnd
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.earnd.app.alarms.AlarmsModule
+import com.earnd.app.ui.common.EditScaffold
 import com.earnd.app.ui.theme.RowDivider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,6 +75,13 @@ import com.earnd.app.data.entity.PuzzleKind
 import com.earnd.app.domain.UnlockCap
 import com.earnd.app.ui.common.rememberPuzzleGate
 
+internal typealias Change = ((Settings) -> Settings) -> Unit
+
+private enum class Page(val title: String) {
+    BLOCKING("Blocking"), TIME_BANK("Time bank"), SCHEDULE("Schedule"), REMINDERS("Reminders & alarms"),
+    APPEARANCE("Appearance"), REMOTE("Remote control"), BACKUP("Backup & data"), PERMISSIONS("Permissions"), ABOUT("About"),
+}
+
 @Composable
 fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
     val sl = ServiceLocator
@@ -72,7 +90,19 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
     var refresh by remember { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var page by rememberSaveable { mutableStateOf<Page?>(null) }
     LaunchedEffect(s, refresh) { pendingAt = sl.settings.pendingWeakeningAt()?.takeIf { it > 0 } }
+    val context = LocalContext.current
+    // Reminder times depend on these, so re-arm when any of them change.
+    LaunchedEffect(
+        s?.morningNudgeEnabled, s?.morningNudgeMin, s?.dailyReportEnabled, s?.dailyReportMin,
+        s?.dayStartWeekdayMin, s?.dayStartWeekendMin, s?.laterWeekendStart, s?.quietStartMin, s?.quietEndMin,
+    ) {
+        if (s != null) runCatching {
+            com.earnd.app.notify.Notify.reschedule(context)
+            AlarmsModule.planner.rearmAll()
+        }
+    }
 
     val gate = rememberPuzzleGate()
     val weaken: ((Settings) -> Settings) -> Unit = { transform ->
@@ -84,7 +114,7 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
             }
         }
     }
-    val change: ((Settings) -> Settings) -> Unit = { transform ->
+    val change: Change = { transform ->
         val shown = s
         // Loosening first passes the removal puzzle (if set), then the hard-mode cooldown.
         if (shown != null && SettingsChanges.isWeakening(shown, transform(shown))) {
@@ -98,157 +128,103 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
     }
 
     val cur = s ?: return
+    BackHandler(enabled = page != null) { page = null }
+    val banner: @Composable () -> Unit = {
+        pendingAt?.let { at ->
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Looser settings apply at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.",
+                    Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.red,
+                )
+                TextButton(onClick = { launchUi { sl.settings.cancelPendingWeakening(); refresh++ } }) { Text("Cancel") }
+            }
+            RowDivider()
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         SnackbarHost(snackbar)
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp))
-
-            pendingAt?.let { at ->
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Looser settings apply at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.",
-                        Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.red,
-                    )
-                    TextButton(onClick = { launchUi { sl.settings.cancelPendingWeakening(); refresh++ } }) { Text("Cancel") }
+        val p = page
+        if (p == null) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+                Text("Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                banner()
+                var remoteOn by remember { mutableStateOf(false) }
+                LaunchedEffect(page) { remoteOn = RemoteSettings.isEnabled(sl.settings) }
+                Page.entries.forEach { pg ->
+                    CategoryRow(pg.title, summary(pg, cur, remoteOn)) { page = pg }
+                    RowDivider()
                 }
-                RowDivider()
+                Spacer(Modifier.height(24.dp))
             }
-
-            SectionTitle("Blocking")
-            SwitchRow("Lock leisure apps", cur.blockingEnabled, { v -> change { it.copy(blockingEnabled = v) } })
-            OutlinedButton(onClick = onOpenApps) { Text("Choose apps, sites and always-open apps") }
-
-            SectionTitle("Time bank")
-            Text("Saved minutes reset", style = MaterialTheme.typography.labelLarge)
-            ChoiceChips(ResetPeriod.values().toList(), cur.resetPeriod, { if (it == ResetPeriod.DAILY) "Every day" else "Every week" }) { v ->
-                change { it.copy(resetPeriod = v) }
-            }
-            if (cur.resetPeriod == ResetPeriod.WEEKLY) {
-                Text("Week starts on", style = MaterialTheme.typography.labelLarge)
-                ChoiceChips(listOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), cur.weekStartsOn,
-                    { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { v -> change { it.copy(weekStartsOn = v) } }
-            }
-            SwitchRow("Open everything when today's habits are done", cur.allDoneUnlock, { v -> change { it.copy(allDoneUnlock = v) } })
-            Text("Longest single unlock", style = MaterialTheme.typography.labelLarge)
-            ChoiceChips(UnlockCap.CHOICES, UnlockCap.normalize(cur.unlockCapMin), { it?.let { m -> "$m min" } ?: "No cap" }) { v ->
-                change { it.copy(unlockCapMin = v) }
-            }
-            Text(
-                "Unlocks stop after this long. Minutes you don't use stay banked for the next one.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            NumberField("Default task reward (minutes, blank = none)", cur.defaultTaskRewardMin, { v -> change { it.copy(defaultTaskRewardMin = v) } }, Modifier.fillMaxWidth())
-
-            SectionTitle("Habits")
-            Text("Habit minutes are paid", style = MaterialTheme.typography.labelLarge)
-            ChoiceChips(RewardMode.entries, cur.rewardMode, {
-                if (it == RewardMode.PER_CHECKIN) "With each check-in" else "Once everything is done"
-            }) { v -> change { it.copy(rewardMode = v) } }
-            NumberField("Default minutes per check-in", cur.defaultHabitRewardMin,
-                { v -> change { it.copy(defaultHabitRewardMin = (v ?: 0).coerceIn(0, 600)) } }, Modifier.fillMaxWidth())
-            SwitchRow(
-                "I promise to prove it", cur.photoRequiredDefault, { v -> change { it.copy(photoRequiredDefault = v) } },
-                hint = "Habits check in with a photo unless you set otherwise on the habit.",
-            )
-            SwitchRow(
-                "Comeback bonus", cur.comebackBonus, { v -> change { it.copy(comebackBonus = v) } },
-                hint = "After missed days, the first check-in earns up to double. Skipping never pays more than doing.",
-            )
-            SwitchRow(
-                "Unlock by part of the day", cur.segmentMode, { v -> change { it.copy(segmentMode = v) } },
-                hint = "Finish the morning's habits and leisure apps open until the afternoon starts, and so on.",
-            )
-            if (cur.segmentMode) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TimeField("Morning", cur.morningStartMin, { v -> v?.let { m -> change { it.copy(morningStartMin = m) } } }, Modifier.weight(1f))
-                    TimeField("Afternoon", cur.afternoonStartMin, { v -> v?.let { m -> change { it.copy(afternoonStartMin = m) } } }, Modifier.weight(1f))
-                    TimeField("Evening", cur.eveningStartMin, { v -> v?.let { m -> change { it.copy(eveningStartMin = m) } } }, Modifier.weight(1f))
+        } else {
+            EditScaffold(p.title, onBack = { page = null }) {
+                banner()
+                when (p) {
+                    Page.BLOCKING -> BlockingPage(cur, change, onOpenApps)
+                    Page.TIME_BANK -> TimeBankPage(cur, change)
+                    Page.SCHEDULE -> SchedulePage(cur, change)
+                    Page.REMINDERS -> RemindersPage(cur, change)
+                    Page.APPEARANCE -> AppearancePage(cur, change)
+                    Page.REMOTE -> RemoteSection()
+                    Page.BACKUP -> BackupPage(snackbar)
+                    Page.PERMISSIONS -> {
+                        Text(
+                            "Usage access, overlay, notifications and exact alarms.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                        OutlinedButton(onClick = onOpenPermissions, modifier = Modifier.padding(top = 8.dp)) { Text("Review permissions") }
+                    }
+                    Page.ABOUT -> AboutPage()
                 }
+                Spacer(Modifier.height(24.dp))
             }
-
-            SectionTitle("Hard mode")
-            SwitchRow(
-                "Hard mode", cur.hardMode, { v -> change { it.copy(hardMode = v) } },
-                hint = "Minutes can't be spent by hand; leisure opens only when everything is done. Loosening any setting waits for the cooldown.",
-            )
-            NumberField("Cooldown before loosening (minutes)", cur.weakenCooldownMin, { v -> change { it.copy(weakenCooldownMin = (v ?: 0).coerceIn(1, 24 * 60)) } }, Modifier.fillMaxWidth())
-            Text("Puzzle before removing a block or loosening a rule", style = MaterialTheme.typography.labelLarge)
-            ChoiceChips(PuzzleKind.entries, cur.removalPuzzle, {
-                when (it) { PuzzleKind.NONE -> "None"; PuzzleKind.ARITHMETIC -> "Arithmetic"; PuzzleKind.SENTENCE -> "Type a sentence" }
-            }) { v -> change { it.copy(removalPuzzle = v) } }
-
-            SectionTitle("Bedtime")
-            SwitchRow("Lock leisure apps at night", cur.bedtimeEnabled, { v -> change { it.copy(bedtimeEnabled = v) } })
-            if (cur.bedtimeEnabled) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TimeField("From", cur.bedtimeStartMin, { v -> v?.let { m -> change { it.copy(bedtimeStartMin = m) } } }, Modifier.weight(1f))
-                    TimeField("Until", cur.bedtimeEndMin, { v -> v?.let { m -> change { it.copy(bedtimeEndMin = m) } } }, Modifier.weight(1f))
-                }
-                NumberField("One-off grace (minutes)", cur.bedtimeGraceMin, { v -> change { it.copy(bedtimeGraceMin = (v ?: 0).coerceIn(0, 15)) } })
-            }
-
-            SectionTitle("Vacation")
-            VacationEditor(cur, change)
-
-            SectionTitle("Reminders")
-            Text("Quiet hours (no nagging)", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TimeField("From", cur.quietStartMin, { v -> v?.let { m -> change { it.copy(quietStartMin = m) } } }, Modifier.weight(1f))
-                TimeField("Until", cur.quietEndMin, { v -> v?.let { m -> change { it.copy(quietEndMin = m) } } }, Modifier.weight(1f))
-            }
-            SwitchRow("Morning nudge", cur.morningNudgeEnabled, { v -> change { it.copy(morningNudgeEnabled = v) } },
-                hint = "A short summary of today's habits.")
-            if (cur.morningNudgeEnabled) {
-                TimeField("At", cur.morningNudgeMin, { v -> v?.let { m -> change { it.copy(morningNudgeMin = m) } } })
-            }
-            SwitchRow("Daily report", cur.dailyReportEnabled, { v -> change { it.copy(dailyReportEnabled = v) } },
-                hint = "In the evening: what got done, what didn't, and leisure minutes used.")
-            if (cur.dailyReportEnabled) {
-                TimeField("At", cur.dailyReportMin, { v -> v?.let { m -> change { it.copy(dailyReportMin = m) } } })
-            }
-            ExactAlarmRow()
-            DefaultAlarm(OwnerKind.TASK, "Default for tasks")
-            DefaultAlarm(OwnerKind.HABIT, "Default for habit reminders")
-
-            SectionTitle("Appearance")
-            ChoiceChips(ThemeMode.entries, cur.themeMode, {
-                when (it) { ThemeMode.SYSTEM -> "Follow system"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" }
-            }) { v -> change { it.copy(themeMode = v) } }
-            Text("Habit list", style = MaterialTheme.typography.labelLarge)
-            ChoiceChips(ListDensity.entries, cur.listDensity, {
-                if (it == ListDensity.COMPACT) "Compact" else "Comfortable"
-            }) { v -> change { it.copy(listDensity = v) } }
-            Text("Date format", style = MaterialTheme.typography.labelLarge)
-            ChoiceChips(DateFormatPref.entries, cur.dateFormat, {
-                when (it) {
-                    DateFormatPref.DMY -> "DD/MM/YYYY"; DateFormatPref.YMD -> "YYYY-MM-DD"
-                    DateFormatPref.MDY -> "MM/DD/YYYY"; DateFormatPref.SYSTEM -> "Follow system"
-                }
-            }) { v -> change { it.copy(dateFormat = v) } }
-            Text("Time format", style = MaterialTheme.typography.labelLarge)
-            ChoiceChips(TimeFormatPref.entries, cur.timeFormat, {
-                when (it) { TimeFormatPref.H24 -> "24-hour"; TimeFormatPref.H12 -> "12-hour"; TimeFormatPref.SYSTEM -> "Follow system" }
-            }) { v -> change { it.copy(timeFormat = v) } }
-
-            SectionTitle("Remote control")
-            RemoteSection()
-
-            SectionTitle("System")
-            OutlinedButton(onClick = onOpenPermissions) { Text("Permissions") }
-
-            SectionTitle("Backup")
-            BackupSection(snackbar)
-            Text(
-                "Earnd is free software (GPL-3.0). Everything stays on this phone.",
-                style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 24.dp),
-            )
         }
     }
 }
 
+@Composable
+private fun CategoryRow(title: String, summary: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 56.dp).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+        }
+        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Earnd.palette.muted)
+    }
+}
+
+private fun summary(p: Page, s: Settings, remoteOn: Boolean): String = when (p) {
+    Page.BLOCKING -> listOfNotNull(
+        if (s.blockingEnabled) "Locked" else "Off",
+        s.unlockCapMin?.let { "max $it min" } ?: "no unlock cap",
+        if (s.hardMode) "hard mode" else null,
+    ).joinToString(" · ")
+    Page.TIME_BANK -> (if (s.resetPeriod == ResetPeriod.DAILY) "Resets daily" else "Resets weekly") +
+        " · ${s.defaultHabitRewardMin} min per habit"
+    Page.SCHEDULE -> "Day starts ${formatMinuteOfDay(s.dayStartWeekdayMin)}" +
+        (if (s.laterWeekendStart) ", weekends ${formatMinuteOfDay(s.dayStartWeekendMin)}" else "") +
+        " · Bedtime " + (if (s.bedtimeEnabled) "${formatMinuteOfDay(s.bedtimeStartMin)}-${formatMinuteOfDay(s.bedtimeEndMin)}" else "off")
+    Page.REMINDERS -> "Quiet ${formatMinuteOfDay(s.quietStartMin)}-${formatMinuteOfDay(s.quietEndMin)}" +
+        " · Morning nudge " + (if (s.morningNudgeEnabled) formatMinuteOfDay(s.morningNudgeMin) else "off") +
+        " · Report " + (if (s.dailyReportEnabled) formatMinuteOfDay(s.dailyReportMin) else "off")
+    Page.APPEARANCE -> listOf(
+        when (s.themeMode) { ThemeMode.SYSTEM -> "System theme"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" },
+        if (s.listDensity == ListDensity.COMPACT) "compact" else "comfortable",
+    ).joinToString(" · ")
+    Page.REMOTE -> if (remoteOn) "Local agent allowed" else "Off"
+    Page.BACKUP -> "Export, import or clear your data"
+    Page.PERMISSIONS -> "What Earnd is allowed to do"
+    Page.ABOUT -> "Free software, GPL-3.0"
+}
+
 /** Shows whether exact alarms are allowed, re-checked whenever the screen resumes. */
 @Composable
-private fun ExactAlarmRow() {
+internal fun ExactAlarmRow() {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     var ok by remember { mutableStateOf(AlarmPermissions.canScheduleExact(context)) }
@@ -270,7 +246,7 @@ private fun ExactAlarmRow() {
 }
 
 @Composable
-private fun VacationEditor(cur: Settings, change: ((Settings) -> Settings) -> Unit) {
+internal fun VacationEditor(cur: Settings, change: Change) {
     var from by remember(cur.vacationFromDay) { mutableStateOf(cur.vacationFromDay?.let(::formatDate) ?: "") }
     var to by remember(cur.vacationToDay) { mutableStateOf(cur.vacationToDay?.let(::formatDate) ?: "") }
     Text("Pauses blocking and streaks between two dates.", style = MaterialTheme.typography.bodySmall)
@@ -291,7 +267,7 @@ private fun VacationEditor(cur: Settings, change: ((Settings) -> Settings) -> Un
 }
 
 @Composable
-private fun DefaultAlarm(kind: OwnerKind, title: String) {
+internal fun DefaultAlarm(kind: OwnerKind, title: String) {
     var cfg by remember { mutableStateOf<AlarmConfigEntity?>(null) }
     var open by remember { mutableStateOf(false) }
     LaunchedEffect(kind) { cfg = AlarmConfigs.defaults(kind) }
@@ -303,7 +279,7 @@ private fun DefaultAlarm(kind: OwnerKind, title: String) {
 }
 
 @Composable
-private fun RemoteSection() {
+internal fun RemoteSection() {
     val sl = ServiceLocator
     var enabled by remember { mutableStateOf(false) }
     var last by remember { mutableStateOf<String?>(null) }

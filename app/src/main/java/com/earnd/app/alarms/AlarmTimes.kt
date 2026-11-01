@@ -13,8 +13,9 @@ internal object AlarmTimes {
     /** All-day tasks are treated as due when quiet hours end. */
     fun taskDueAt(t: TaskEntity, settings: Settings, clock: Clock): Long? {
         val day = t.dueEpochDay ?: return null
-        val min = t.dueMinuteOfDay ?: settings.quietEndMin
-        return at(LocalDate.ofEpochDay(day), min, clock)
+        val date = LocalDate.ofEpochDay(day)
+        val min = t.dueMinuteOfDay ?: DayStart.quietEndMin(settings, date)
+        return at(date, min, clock)
     }
 
     /**

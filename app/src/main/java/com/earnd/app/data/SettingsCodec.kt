@@ -45,6 +45,9 @@ internal object SettingsCodec {
         put("dateFormat", s.dateFormat.name)
         put("timeFormat", s.timeFormat.name)
         put("comebackBonus", s.comebackBonus.toString())
+        put("dayStartWeekdayMin", s.dayStartWeekdayMin.toString())
+        put("dayStartWeekendMin", s.dayStartWeekendMin.toString())
+        put("laterWeekendStart", s.laterWeekendStart.toString())
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -87,6 +90,9 @@ internal object SettingsCodec {
             dateFormat = m["dateFormat"]?.let { v -> DateFormatPref.entries.find { it.name == v } } ?: d.dateFormat,
             timeFormat = m["timeFormat"]?.let { v -> TimeFormatPref.entries.find { it.name == v } } ?: d.timeFormat,
             comebackBonus = bool("comebackBonus", d.comebackBonus),
+            dayStartWeekdayMin = int("dayStartWeekdayMin", d.dayStartWeekdayMin).coerceIn(0, 1439),
+            dayStartWeekendMin = int("dayStartWeekendMin", d.dayStartWeekendMin).coerceIn(0, 1439),
+            laterWeekendStart = bool("laterWeekendStart", d.laterWeekendStart),
         )
     }
 }

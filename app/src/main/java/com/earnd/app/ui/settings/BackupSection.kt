@@ -38,7 +38,6 @@ fun BackupSection(snackbar: SnackbarHostState) {
     val store = ServiceLocator.backup
     val gate = rememberPuzzleGate()
     var toImport by remember { mutableStateOf<BackupData?>(null) }
-    var askClear by remember { mutableStateOf(false) }
     val say: (String) -> Unit = { msg -> launchUi { snackbar.showSnackbar(msg) } }
 
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -64,7 +63,6 @@ fun BackupSection(snackbar: SnackbarHostState) {
         OutlinedButton(onClick = { exporter.launch("earnd-backup-${LocalDate.now()}.json") }) { Text("Export") }
         OutlinedButton(onClick = { importer.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Import") }
     }
-    TextButton(onClick = { gate { askClear = true } }) { Text("Clear all data", color = Earnd.palette.red) }
 
     toImport?.let { data ->
         AlertDialog(
@@ -88,6 +86,20 @@ fun BackupSection(snackbar: SnackbarHostState) {
             dismissButton = { TextButton(onClick = { toImport = null }) { Text("Cancel") } },
         )
     }
+}
+
+/** The one destructive action, kept apart from export and import. */
+@Composable
+fun ClearDataSection(snackbar: SnackbarHostState) {
+    val store = ServiceLocator.backup
+    val gate = rememberPuzzleGate()
+    var askClear by remember { mutableStateOf(false) }
+    val say: (String) -> Unit = { msg -> launchUi { snackbar.showSnackbar(msg) } }
+    Text(
+        "Deletes habits, tasks, history, saved minutes, blocked apps and settings from this phone.",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    TextButton(onClick = { gate { askClear = true } }) { Text("Clear all data", color = Earnd.palette.red) }
 
     if (askClear) {
         var typed by remember { mutableStateOf("") }

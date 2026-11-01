@@ -23,7 +23,7 @@ class NagEngine(
     private val clock: Clock,
     private val labels: suspend (OwnerKind, Long) -> String = { k, id -> "${k.name.lowercase()} $id" },
 ) {
-    @Volatile private var quiet: DailyWindow = quietOf(Settings())
+    @Volatile private var quiet: (java.time.LocalDate) -> DailyWindow = quietOf(Settings())
 
     fun nextNagAt(state: NagStateEntity, cfg: AlarmConfigEntity?, now: Long): Long? =
         NagSchedule.next(state, cfg, now, clock.zone(), quiet)
@@ -73,5 +73,5 @@ class NagEngine(
         quiet = quietOf(settings.current())
     }
 
-    private fun quietOf(s: Settings) = DailyWindow(s.quietStartMin, s.quietEndMin)
+    private fun quietOf(s: Settings): (java.time.LocalDate) -> DailyWindow = { day -> DayStart.quietWindow(s, day) }
 }

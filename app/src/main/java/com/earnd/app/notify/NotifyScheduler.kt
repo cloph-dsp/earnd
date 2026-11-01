@@ -5,28 +5,31 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.earnd.app.alarms.DayStart
+import com.earnd.app.data.Settings
 import com.earnd.app.domain.Clock
+import java.time.LocalDate
 
 /** Arms one alarm each for the next morning nudge and daily report. Independent of AlarmPlanner. */
 class NotifyScheduler(private val context: Context, private val clock: Clock) {
 
-    fun reschedule(p: NotifyPrefs) {
-        set(NotifyReceiver.ACTION_MORNING, REQ_MORNING, p.morningMin.takeIf { p.morningEnabled })
-        set(NotifyReceiver.ACTION_REPORT, REQ_REPORT, p.reportMin.takeIf { p.reportEnabled })
+    fun reschedule(p: NotifyPrefs, s: Settings = Settings()) {
+        set(NotifyReceiver.ACTION_MORNING, REQ_MORNING, p.morningEnabled) { d -> DayStart.morningNudgeMin(s, d, p.morningMin) }
+        set(NotifyReceiver.ACTION_REPORT, REQ_REPORT, p.reportEnabled) { p.reportMin }
     }
 
-    private fun set(action: String, requestCode: Int, minuteOfDay: Int?) {
+    private fun set(action: String, requestCode: Int, enabled: Boolean, minuteFor: (LocalDate) -> Int) {
         val am = context.getSystemService(AlarmManager::class.java)
         val pi = PendingIntent.getBroadcast(
             context, requestCode,
             Intent(context, NotifyReceiver::class.java).setAction(action),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        if (minuteOfDay == null) {
+        if (!enabled) {
             am.cancel(pi)
             return
         }
-        val at = NotifyTimes.nextAt(clock.now(), minuteOfDay, clock.zone())
+        val at = NotifyTimes.nextAt(clock.now(), clock.zone(), minuteFor)
         val exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
         if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
         else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)

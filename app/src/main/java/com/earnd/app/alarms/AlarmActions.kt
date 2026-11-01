@@ -5,6 +5,7 @@ import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.domain.DailyWindow
+import com.earnd.app.domain.localDate
 import com.earnd.app.domain.today
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -94,7 +95,8 @@ class AlarmActions(private val context: Context) {
 
     private suspend fun inQuiet(): Boolean {
         val s = ServiceLocator.settings.current()
-        return DailyWindow(s.quietStartMin, s.quietEndMin).contains(clock.now(), clock.zone())
+        val now = clock.now()
+        return DayStart.quietWindow(s, clock.localDate(now)).contains(now, clock.zone())
     }
 
     private companion object {

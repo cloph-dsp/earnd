@@ -49,6 +49,12 @@ data class Settings(
     val timeFormat: TimeFormatPref = TimeFormatPref.H24,
     /** First check-in after missed occasions earns a capped bonus (see Comeback). */
     val comebackBonus: Boolean = true,
+    /** When the day starts on weekdays; the reference point for the weekend shift. */
+    val dayStartWeekdayMin: Int = 8 * 60,
+    /** When the day starts on Saturday and Sunday. */
+    val dayStartWeekendMin: Int = 10 * 60,
+    /** Shift habit reminders and nags later on weekends by weekend start minus weekday start. */
+    val laterWeekendStart: Boolean = true,
 ) {
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false

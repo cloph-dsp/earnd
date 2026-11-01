@@ -5,6 +5,7 @@ import com.earnd.app.data.entity.NagMode
 import com.earnd.app.data.entity.NagStateEntity
 import com.earnd.app.domain.DailyWindow
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /** Pure nag cadence: progressive/fixed gaps, max count, weekly-overdue digest, quiet hours. */
@@ -27,26 +28,43 @@ object NagSchedule {
      * Next time to nag, or null when nagging is off or the max count is reached. Items more than
      * a week overdue move to one shared daily digest slot (quiet end), so they fire together.
      */
-    fun next(state: NagStateEntity, cfg: AlarmConfigEntity?, now: Long, zone: ZoneId, quiet: DailyWindow): Long? {
+    fun next(state: NagStateEntity, cfg: AlarmConfigEntity?, now: Long, zone: ZoneId, quiet: DailyWindow): Long? =
+        next(state, cfg, now, zone) { quiet }
+
+    /** Same, with quiet hours that may differ per day (later end on weekends). */
+    fun next(state: NagStateEntity, cfg: AlarmConfigEntity?, now: Long, zone: ZoneId, quietFor: (LocalDate) -> DailyWindow): Long? {
         val gap = gapMin(state.nagCount, cfg) ?: return null
         cfg?.nagMaxCount?.let { if (state.nagCount >= it) return null }
         if (isDigest(state, now)) {
             val after = maxOf(now, (state.lastNagAt ?: 0L) + 1)
-            return nextDigestSlot(after, zone, quiet, onlyAfterLast = state.lastNagAt)
+            return nextDigestSlot(after, zone, quietFor, onlyAfterLast = state.lastNagAt)
         }
         val base = state.lastNagAt ?: state.dueAt
         val candidate = maxOf(base + gap * MINUTE, now)
-        return shiftOutOfQuiet(candidate, zone, quiet)
+        return shiftOutOfQuiet(candidate, zone, quietFor)
     }
 
     fun shiftOutOfQuiet(at: Long, zone: ZoneId, quiet: DailyWindow): Long = quiet.endOf(at, zone) ?: at
 
+    /** Moves [at] out of quiet hours; the end minute is the one that applies on the day the window ends. */
+    fun shiftOutOfQuiet(at: Long, zone: ZoneId, quietFor: (LocalDate) -> DailyWindow): Long {
+        val day = Instant.ofEpochMilli(at).atZone(zone).toLocalDate()
+        val w = quietFor(day)
+        val end = w.endOf(at, zone) ?: return at
+        val endDay = Instant.ofEpochMilli(end).atZone(zone).toLocalDate()
+        return endDay.atStartOfDay().plusMinutes(quietFor(endDay).endMin.toLong()).atZone(zone).toInstant().toEpochMilli()
+    }
+
     /** Earliest daily digest time (quiet end) at or after [after], at most one per calendar day. */
-    fun nextDigestSlot(after: Long, zone: ZoneId, quiet: DailyWindow, onlyAfterLast: Long? = null): Long {
-        val slotMin = if (quiet.startMin == quiet.endMin) 9 * 60 else quiet.endMin
+    fun nextDigestSlot(after: Long, zone: ZoneId, quiet: DailyWindow, onlyAfterLast: Long? = null): Long =
+        nextDigestSlot(after, zone, { quiet }, onlyAfterLast)
+
+    fun nextDigestSlot(after: Long, zone: ZoneId, quietFor: (LocalDate) -> DailyWindow, onlyAfterLast: Long? = null): Long {
         var day = Instant.ofEpochMilli(after).atZone(zone).toLocalDate()
         val lastDay = onlyAfterLast?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
         while (true) {
+            val quiet = quietFor(day)
+            val slotMin = if (quiet.startMin == quiet.endMin) 9 * 60 else quiet.endMin
             val slot = day.atStartOfDay(zone).plusMinutes(slotMin.toLong()).toInstant().toEpochMilli()
             if (slot >= after && (lastDay == null || day.isAfter(lastDay))) return slot
             day = day.plusDays(1)

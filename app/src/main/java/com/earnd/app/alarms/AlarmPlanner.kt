@@ -83,7 +83,7 @@ class AlarmPlanner(
         for (i in 0..14L) {
             val day = today.plusDays(i)
             if (!HabitSchedule.remindsOn(h, day) || s.onVacation(day.toEpochDay())) continue
-            val at = AlarmTimes.at(day, minute, clock)
+            val at = AlarmTimes.at(day, DayStart.habitMinute(s, day, minute), clock)
             if (at <= now && at - lead <= now) continue
             if (i == 0L && habitDone(h, day)) continue
             return at
@@ -134,7 +134,7 @@ class AlarmPlanner(
         for (h in habits.active()) {
             val minute = cfgs[OwnerKind.HABIT to h.id]?.habitReminderMinuteOfDay ?: continue
             if (!HabitSchedule.remindsOn(h, today)) continue
-            val due = AlarmTimes.at(today, minute, clock)
+            val due = AlarmTimes.at(today, DayStart.habitMinute(s, today, minute), clock)
             if (due > now || tracked.containsKey(OwnerKind.HABIT to h.id)) continue
             if (habitDone(h, today)) continue
             nag.onDue(OwnerKind.HABIT, h.id, due)

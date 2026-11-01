@@ -27,6 +27,8 @@ import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.NagMode
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.ui.common.ChoiceChips
+import androidx.compose.runtime.collectAsState
+import com.earnd.app.domain.today
 import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
@@ -45,6 +47,7 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (cfg.ownerKind == OwnerKind.HABIT) {
             TimeField("Daily reminder at", cfg.habitReminderMinuteOfDay, { onChange(cfg.copy(habitReminderMinuteOfDay = it)) })
+            WeekendShiftHint(cfg.habitReminderMinuteOfDay)
         } else {
             Text("Reminders", style = MaterialTheme.typography.labelLarge)
             ReminderChips(cfg, onChange)
@@ -94,4 +97,20 @@ fun nagLabel(m: NagMode) = when (m) {
     NagMode.OFF -> "Leave it"
     NagMode.PROGRESSIVE -> "Remind, spacing out"
     NagMode.FIXED -> "Remind every…"
+}
+
+/** On Saturday/Sunday with a later weekend start, shows the time the reminder actually rings today. */
+@Composable
+private fun WeekendShiftHint(minute: Int?) {
+    val s by androidx.compose.runtime.remember { com.earnd.app.ServiceLocator.settings.settings }
+        .collectAsState(initial = null)
+    val cur = s ?: return
+    val m = minute ?: return
+    val today = com.earnd.app.ServiceLocator.clock.today()
+    val shifted = com.earnd.app.alarms.DayStart.habitMinute(cur, today, m)
+    if (shifted == m) return
+    Text(
+        "Today (weekend) it rings at ${com.earnd.app.ui.common.formatMinuteOfDay(shifted)}.",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
