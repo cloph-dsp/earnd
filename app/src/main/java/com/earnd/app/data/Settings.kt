@@ -11,7 +11,9 @@ import java.time.DayOfWeek
 
 /** Typed user settings. Minute-of-day values are 0..1439 local time. */
 data class Settings(
-    val resetPeriod: ResetPeriod = ResetPeriod.DAILY,
+    val resetPeriod: ResetPeriod = ResetPeriod.ROLLING,
+    /** Lifetime of earned minutes in rolling mode. */
+    val rollingExpiryHours: Int = 24,
     val weekStartsOn: DayOfWeek = DayOfWeek.MONDAY,
     val allDoneUnlock: Boolean = true,
     val hardMode: Boolean = false,

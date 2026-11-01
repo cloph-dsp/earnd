@@ -51,7 +51,7 @@ class UnlockCapTest {
         val settings = SettingsRepository(FakeSettingDao(), clock)
         val sessions = FakeSessionDao()
         val bank = TimeBank(FakeLedgerDao(), sessions, settings, clock, ChangeBus())
-        settings.update { it.copy(unlockCapMin = 20) }
+        settings.update { it.copy(unlockCapMin = 20, resetPeriod = com.earnd.app.data.entity.ResetPeriod.DAILY) }
         bank.earn(50, LedgerKind.EARN_HABIT, OwnerKind.HABIT, 1)
         val r = bank.spend(50)
         assertTrue(r is SpendResult.Started)

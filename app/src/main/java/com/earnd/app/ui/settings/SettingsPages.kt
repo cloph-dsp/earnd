@@ -70,8 +70,15 @@ internal fun BlockingPage(cur: Settings, change: Change, onOpenApps: () -> Unit)
 internal fun TimeBankPage(cur: Settings, change: Change) {
     SectionTitle("Reset")
     Label("Saved minutes reset")
-    ChoiceChips(ResetPeriod.values().toList(), cur.resetPeriod, { if (it == ResetPeriod.DAILY) "Every day" else "Every week" }) { v ->
-        change { it.copy(resetPeriod = v) }
+    ChoiceChips(ResetPeriod.entries, cur.resetPeriod, {
+        when (it) { ResetPeriod.DAILY -> "Daily"; ResetPeriod.WEEKLY -> "Weekly"; ResetPeriod.ROLLING -> "Rolling" }
+    }) { v -> change { it.copy(resetPeriod = v) } }
+    if (cur.resetPeriod == ResetPeriod.ROLLING) {
+        Label("Minutes expire after")
+        ChoiceChips(listOf(12, 24, 36, 48, 72), cur.rollingExpiryHours, { "$it h" }) { v ->
+            change { it.copy(rollingExpiryHours = v) }
+        }
+        Helper("Each earned entry expires this long after you earned it. Spending uses the oldest minutes first.")
     }
     if (cur.resetPeriod == ResetPeriod.WEEKLY) {
         Label("Week starts on")

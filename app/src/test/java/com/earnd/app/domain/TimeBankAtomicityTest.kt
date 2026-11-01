@@ -38,6 +38,9 @@ class TimeBankAtomicityTest {
             yield()
             return v
         }
+        override suspend fun unexpiredLots(now: Long) = inner.unexpiredLots(now)
+        override suspend fun setRemaining(id: Long, remaining: Int) = inner.setRemaining(id, remaining)
+        override suspend fun lastSpend() = inner.lastSpend()
         override suspend fun insert(e: LedgerEntryEntity): Long = synchronized(lock) {
             val id = inner.rows.value.size + 1L
             inner.rows.value = inner.rows.value + e.copy(id = id)
@@ -70,7 +73,7 @@ class TimeBankAtomicityTest {
         val ledger = FakeLedgerDao()
         val settings = SettingsRepository(FakeSettingDao(), clock)
         val bank = TimeBank(ledger, FakeSessionDao(), settings, clock, ChangeBus())
-        settings.update { it.copy(weekStartsOn = DayOfWeek.MONDAY) }
+        settings.update { it.copy(weekStartsOn = DayOfWeek.MONDAY, resetPeriod = ResetPeriod.DAILY) }
         // A Monday leftover under daily keys would otherwise leak into the weekly sum.
         clock.set(LocalDateTime.of(2026, 3, 2, 9, 0))
         bank.earn(7, LedgerKind.EARN_HABIT, OwnerKind.HABIT, 1)

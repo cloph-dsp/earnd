@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.earnd.app.data.entity.SessionReason
 import com.earnd.app.data.entity.UnlockSessionEntity
+import com.earnd.app.ui.common.UiFormats
 import com.earnd.app.ui.common.formatMinutes
 import com.earnd.app.ui.common.formatRemaining
 import kotlinx.coroutines.delay
@@ -38,6 +39,8 @@ data class BankState(
     val unlockCapMin: Int? = null,
     val allDone: Boolean,
     val allDoneUnlock: Boolean,
+    val nextExpiryAt: Long? = null,
+    val minutesExpiringNext: Int = 0,
 )
 
 private val SPEND_CHOICES = listOf(5, 10, 15, 30, 60)
@@ -70,6 +73,13 @@ fun TimeBankCard(
             } else {
                 Text("Locked", style = MaterialTheme.typography.titleSmall, color = p.red)
                 Text(formatMinutes(state.balance) + " banked", style = MaterialTheme.typography.displaySmall, color = p.amber)
+                if (state.nextExpiryAt != null && state.minutesExpiringNext > 0) {
+                    Text(
+                        "${formatMinutes(state.minutesExpiringNext)} expire at " +
+                            UiFormats.value.formatTime(state.nextExpiryAt, java.time.ZoneId.systemDefault()),
+                        style = MaterialTheme.typography.bodySmall, color = p.secondary,
+                    )
+                }
                 when {
                     state.allDone && state.allDoneUnlock -> {
                         Text("Everything for today is done.", style = MaterialTheme.typography.bodyMedium, color = p.secondary)

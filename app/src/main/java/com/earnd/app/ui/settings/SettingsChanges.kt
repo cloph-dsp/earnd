@@ -11,7 +11,8 @@ object SettingsChanges {
         (old.hardMode && !new.hardMode) ||
             (old.blockingEnabled && !new.blockingEnabled) ||
             (!old.allDoneUnlock && new.allDoneUnlock) ||
-            (old.resetPeriod == ResetPeriod.DAILY && new.resetPeriod != ResetPeriod.DAILY) ||
+            (old.resetPeriod != ResetPeriod.ROLLING && new.resetPeriod == ResetPeriod.ROLLING) ||
+            (old.resetPeriod != ResetPeriod.WEEKLY && new.resetPeriod == ResetPeriod.WEEKLY) ||
             new.weakenCooldownMin < old.weakenCooldownMin ||
             new.bedtimeGraceMin > old.bedtimeGraceMin ||
             bedtimeLoosened(old, new) ||

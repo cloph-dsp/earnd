@@ -50,7 +50,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 ## Commands
 | Command | Arguments |
 |---|---|
-| `status` | - |
+| `status` | - (returns balanceMinutes, resetMode DAILY/WEEKLY/ROLLING, resetsAt (null in ROLLING), nextExpiryAt (epoch ms) and minutesExpiringNext: in ROLLING mode each earned entry expires after N hours, and minutesExpiringNext minutes lapse at nextExpiryAt) |
 | `habits.list` | `all=true` to include archived |
 | `habits.get` | `id` |
 | `habits.create` | `name` (required), `times` (1-20/day), `schedule` = DAILY, WEEKDAYS, EVERY_N_DAYS, TIMES_PER_WEEK, RULE, `days` = mon,wed,fri / weekdays / weekends (implies schedule=WEEKDAYS), `every` (N days), `per_week` (1-7, any days; implies TIMES_PER_WEEK), `weeks` (N, with `days`: every N weeks), `monthdays` (e.g. `1,15,last`), `rule` (RRULE), `start` (date), `segment` = NONE, MORNING, AFTERNOON, EVENING, `target`, `unit`, `icon`, `color` (#RRGGBB), `mode` = TAP, PHOTO |
@@ -72,7 +72,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `rules.block_app` | `pkg` (e.g. com.instagram.android), optional `label` |
 | `rules.block_site` | `domain` (e.g. reddit.com; URLs are reduced to the host) |
 | `settings.get` | all settings plus the list of tightenable keys |
-| `settings.tighten` | `key=value` pairs: unlockCapMin, hardMode, blockingEnabled, allDoneUnlock, resetPeriod, weakenCooldownMin, bedtimeEnabled, bedtimeStartMin/EndMin (HH:MM ok), bedtimeGraceMin, defaultTaskRewardMin, defaultHabitRewardMin, rewardMode, photoRequiredDefault, removalPuzzle |
+| `settings.tighten` | `key=value` pairs: unlockCapMin, hardMode, blockingEnabled, allDoneUnlock, resetPeriod (DAILY only; WEEKLY and ROLLING are weakening), weakenCooldownMin, bedtimeEnabled, bedtimeStartMin/EndMin (HH:MM ok), bedtimeGraceMin, defaultTaskRewardMin, defaultHabitRewardMin, rewardMode, photoRequiredDefault, removalPuzzle |
 | `tasks.complete` / `tasks.uncomplete` / `tasks.skip` / `tasks.delete` | `id` (`skip` moves a recurring task to its next occurrence without reward) |
 | `audit.list` | optional `limit` (1-500); recent remote changes |
 

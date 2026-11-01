@@ -16,7 +16,7 @@ import com.earnd.app.data.entity.*
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
         AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -34,8 +34,45 @@ abstract class EarndDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
+
+        /**
+         * Rolling expiry: ledger rows gain expiresAt/remaining. The existing setting moves to ROLLING (24 h) and the
+         * current period's balance is carried into one entry that expires in 24 h, so nothing is lost on update.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ledger ADD COLUMN expiresAt INTEGER")
+                db.execSQL("ALTER TABLE ledger ADD COLUMN remaining INTEGER NOT NULL DEFAULT 0")
+                migrateToRolling(db, System.currentTimeMillis(), java.time.ZoneId.systemDefault())
+            }
+        }
+
+        internal fun migrateToRolling(db: SupportSQLiteDatabase, now: Long, zone: java.time.ZoneId) {
+            fun setting(key: String): String? =
+                db.query("SELECT value FROM setting WHERE `key` = ?", arrayOf<Any>(key)).use { if (it.moveToFirst()) it.getString(0) else null }
+            val period = setting("s.resetPeriod")?.let { v -> com.earnd.app.data.entity.ResetPeriod.entries.find { it.name == v } }
+                ?: com.earnd.app.data.entity.ResetPeriod.DAILY
+            if (period == com.earnd.app.data.entity.ResetPeriod.ROLLING) return
+            val weekStart = setting("s.weekStartsOn")?.let { v -> java.time.DayOfWeek.entries.find { it.name == v } }
+                ?: java.time.DayOfWeek.MONDAY
+            val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+            val oldKey = com.earnd.app.domain.Periods.start(today, period, weekStart).toEpochDay()
+            val newKey = today.toEpochDay()
+            val carry = db.query("SELECT COALESCE(SUM(minutes), 0) FROM ledger WHERE periodKey = ?", arrayOf<Any>(oldKey)).use {
+                if (it.moveToFirst()) it.getInt(0) else 0
+            }
+            if (carry > 0) {
+                db.execSQL(
+                    "INSERT INTO ledger (at, kind, minutes, sourceKind, sourceId, periodKey, expiresAt, remaining) " +
+                        "VALUES (?, 'ADJUST', ?, NULL, NULL, ?, ?, ?)",
+                    arrayOf<Any>(now, carry, newKey, now + 24 * 3_600_000L, carry),
+                )
+            }
+            db.execSQL("INSERT OR REPLACE INTO setting (`key`, value) VALUES ('s.resetPeriod', 'ROLLING')")
+            db.execSQL("INSERT OR REPLACE INTO setting (`key`, value) VALUES ('s.rollingExpiryHours', '24')")
+        }
 
         /** Focus duration options, stopwatch habits and stopwatch sessions. Existing rows keep their behaviour. */
         val MIGRATION_5_6 = object : Migration(5, 6) {

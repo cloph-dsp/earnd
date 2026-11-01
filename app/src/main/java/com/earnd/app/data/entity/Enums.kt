@@ -9,7 +9,8 @@ enum class AlarmStyle { SILENT, NOTIFICATION, FULL_SCREEN }
 enum class NagMode { OFF, PROGRESSIVE, FIXED }
 enum class OwnerKind { TASK, HABIT }
 enum class LedgerKind { EARN_HABIT, EARN_TASK, UNDO, SPEND, RESET, ADJUST, COMEBACK }
-enum class ResetPeriod { DAILY, WEEKLY }
+/** ROLLING: every earned entry expires [Settings.rollingExpiryHours] after it was earned. */
+enum class ResetPeriod { DAILY, WEEKLY, ROLLING }
 
 /** User-chosen app/website rule. Essential apps are hardcoded and never stored. */
 enum class AppRule { LEISURE, ALLOWED }

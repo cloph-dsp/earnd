@@ -37,6 +37,12 @@ class FakeLedgerDao : LedgerDao {
     }
     override suspend fun forSource(kind: OwnerKind, id: Long) =
         rows.value.filter { it.sourceKind == kind && it.sourceId == id }
+    override suspend fun unexpiredLots(now: Long) = rows.value
+        .filter { it.expiresAt != null && it.remaining > 0 && it.expiresAt!! > now }.sortedWith(compareBy({ it.at }, { it.id }))
+    override suspend fun setRemaining(id: Long, remaining: Int) {
+        rows.value = rows.value.map { if (it.id == id) it.copy(remaining = remaining) else it }
+    }
+    override suspend fun lastSpend() = rows.value.lastOrNull { it.kind == com.earnd.app.data.entity.LedgerKind.SPEND }
     override fun observeRecent(limit: Int) = rows.map { it.reversed().take(limit) }
 }
 

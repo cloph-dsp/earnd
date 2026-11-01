@@ -20,7 +20,7 @@ class TimeBankTest {
     private val clock = FakeClock.at(LocalDateTime.of(2026, 3, 4, 10, 0)) // Wednesday
     private val ledger = FakeLedgerDao()
     private val sessions = FakeSessionDao()
-    private val settings = SettingsRepository(FakeSettingDao(), clock)
+    private val settings = SettingsRepository(FakeSettingDao().apply { rows.value = mapOf("s.resetPeriod" to "DAILY") }, clock)
     private val bank = TimeBank(ledger, sessions, settings, clock, ChangeBus())
 
     @Test fun earnAndReverse() = runTest {

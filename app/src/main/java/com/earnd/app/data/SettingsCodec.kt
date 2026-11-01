@@ -13,6 +13,7 @@ import java.time.DayOfWeek
 internal object SettingsCodec {
     fun encode(s: Settings): Map<String, String> = buildMap {
         put("resetPeriod", s.resetPeriod.name)
+        put("rollingExpiryHours", s.rollingExpiryHours.toString())
         put("weekStartsOn", s.weekStartsOn.name)
         put("allDoneUnlock", s.allDoneUnlock.toString())
         put("hardMode", s.hardMode.toString())
@@ -58,6 +59,7 @@ internal object SettingsCodec {
         fun optInt(k: String, def: Int?) = m[k]?.let { it.toIntOrNull() } ?: if (k in m) null else def
         return Settings(
             resetPeriod = m["resetPeriod"]?.let { v -> ResetPeriod.entries.find { it.name == v } } ?: d.resetPeriod,
+            rollingExpiryHours = int("rollingExpiryHours", d.rollingExpiryHours).coerceIn(1, 24 * 14),
             weekStartsOn = m["weekStartsOn"]?.let { v -> DayOfWeek.entries.find { it.name == v } } ?: d.weekStartsOn,
             allDoneUnlock = bool("allDoneUnlock", d.allDoneUnlock),
             hardMode = bool("hardMode", d.hardMode),

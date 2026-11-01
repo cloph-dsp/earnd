@@ -204,7 +204,11 @@ private fun summary(p: Page, s: Settings, remoteOn: Boolean): String = when (p) 
         s.unlockCapMin?.let { "max $it min" } ?: "no unlock cap",
         if (s.hardMode) "hard mode" else null,
     ).joinToString(" · ")
-    Page.TIME_BANK -> (if (s.resetPeriod == ResetPeriod.DAILY) "Resets daily" else "Resets weekly") +
+    Page.TIME_BANK -> when (s.resetPeriod) {
+        ResetPeriod.DAILY -> "Resets daily"
+        ResetPeriod.WEEKLY -> "Resets weekly"
+        ResetPeriod.ROLLING -> "Expires after ${s.rollingExpiryHours} h"
+    } +
         " · ${s.defaultHabitRewardMin} min per habit"
     Page.SCHEDULE -> "Day starts ${formatMinuteOfDay(s.dayStartWeekdayMin)}" +
         (if (s.laterWeekendStart) ", weekends ${formatMinuteOfDay(s.dayStartWeekendMin)}" else "") +
