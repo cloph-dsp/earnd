@@ -9,6 +9,7 @@
             <intent-filter>
                 <action android:name="com.earnd.app.alarms.DEBUG_RING" />
                 <action android:name="com.earnd.app.alarms.DEBUG_STOP" />
+                <action android:name="com.earnd.app.alarms.DEBUG_HABIT_REMINDER" />
             </intent-filter>
         </receiver>
         <receiver

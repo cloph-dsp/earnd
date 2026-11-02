@@ -14,6 +14,9 @@ data class PlannedAlarm(
     companion object {
         const val SLOT_DUE = "due"
         const val SLOT_NAG = "nag"
+        /** A habit reminder occurrence, keyed by its minute of day; handled exactly like a due time. */
+        const val HABIT_PREFIX = "hr"
+        fun habitReminder(minuteOfDay: Int) = "$HABIT_PREFIX$minuteOfDay"
         fun pre(min: Int) = "pre$min"
     }
 }

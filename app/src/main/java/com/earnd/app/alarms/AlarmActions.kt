@@ -22,7 +22,7 @@ class AlarmActions(private val context: Context) {
         if (db.nagStateDao().get(kind, id) == null) return
         val style = styleOf(kind, id)
         if (style == AlarmStyle.FULL_SCREEN) Ringing.show(context, kind, id)
-        AlarmsModule.notifier.refresh(alert = style != AlarmStyle.SILENT && !inQuiet())
+        AlarmsModule.notifier.refresh(alert = style != AlarmStyle.SILENT && !inQuiet(), quiet = inQuiet())
     }
 
     /** A reminder ahead of the due time. */
@@ -47,7 +47,7 @@ class AlarmActions(private val context: Context) {
             Ringing.show(context, s.ownerKind, s.ownerId)
         }
         val alert = styles.any { it != AlarmStyle.SILENT } && !inQuiet()
-        AlarmsModule.notifier.refresh(alert = alert)
+        AlarmsModule.notifier.refresh(alert = alert, quiet = inQuiet())
     }
 
     /** UI-independent upkeep: period reset and recurring roll-forward, before nags and widgets refresh. */

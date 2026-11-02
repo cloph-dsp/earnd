@@ -33,11 +33,26 @@ object HabitProgress {
 
     /**
      * Whether a new check-in earns, given the day's check-ins before it and after it.
-     * Counted habits earn up to `timesPerDay` times; quantity habits earn once, on reaching the target.
+     * Counted habits always earn (`timesPerDay` is a target, not a cap; see [checkInReward] for the
+     * overflow cap); quantity habits earn once, on reaching the target.
      */
     fun earns(h: HabitEntity, before: List<CheckInEntity>, after: List<CheckInEntity>): Boolean =
         if (isQuantity(h)) !isComplete(h, before) && isComplete(h, after)
-        else before.size < required(h)
+        else true
+
+    /**
+     * Minutes for the next counted check-in given the day's [before] check-ins and the per-check-in
+     * [perCheckIn] reward. The first `timesPerDay` check-ins earn in full. Check-ins beyond the
+     * target also earn, but the day's total overflow is capped at +50% of the target reward
+     * (`timesPerDay * perCheckIn / 2`), so spamming the button cannot farm minutes.
+     */
+    fun checkInReward(h: HabitEntity, before: List<CheckInEntity>, perCheckIn: Int): Int {
+        val n = required(h)
+        if (before.size < n) return perCheckIn
+        val cap = n * perCheckIn / 2
+        val extraSoFar = before.sortedBy { it.at }.drop(n).sumOf { it.minutesEarned }
+        return minOf(perCheckIn, (cap - extraSoFar).coerceAtLeast(0))
+    }
 
     fun photoRequired(h: HabitEntity, s: Settings): Boolean = h.photoRequired ?: s.photoRequiredDefault
 }

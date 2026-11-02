@@ -42,10 +42,18 @@ class ParityRulesTest {
         assertFalse(HabitProgress.earns(h, emptyList(), listOf(ci(0.5))))
     }
 
-    @Test fun countedEarnsUpToTimesPerDay() {
+    @Test fun countedIsUnlimitedButOverflowIsCapped() {
         val h = habit(times = 2)
         assertTrue(HabitProgress.earns(h, listOf(ci()), listOf(ci(), ci())))
-        assertFalse(HabitProgress.earns(h, listOf(ci(), ci()), listOf(ci(), ci(), ci())))
+        assertTrue(HabitProgress.earns(h, listOf(ci(), ci()), listOf(ci(), ci(), ci())))
+        // target 2 x 10 min: overflow cap = 10 min total
+        fun at(i: Int, m: Int) = ci().copy(at = i.toLong(), minutesEarned = m)
+        assertEquals(10, HabitProgress.checkInReward(h, listOf(at(1, 10)), 10))
+        assertEquals(10, HabitProgress.checkInReward(h, listOf(at(1, 10), at(2, 10)), 10))
+        assertEquals(4, HabitProgress.checkInReward(h, listOf(at(1, 10), at(2, 10), at(3, 6)), 10))
+        assertEquals(0, HabitProgress.checkInReward(h, listOf(at(1, 10), at(2, 10), at(3, 10)), 10))
+        assertTrue(HabitProgress.isComplete(h, List(5) { ci() }))
+        assertEquals(5, HabitProgress.doneUnits(h, List(5) { ci() }))
     }
 
     @Test fun rewardOverrideAndDefault() {

@@ -89,7 +89,7 @@ class HabitWidget : GlanceAppWidget() {
         }
         val habitColor = ColorProvider(Color(state.colorArgb).copy(alpha = 1f))
         val tap: Action = when {
-            state.complete -> actionStartActivity(WidgetLinks.home(context))
+            state.complete && (state.quantity || state.choice) -> actionStartActivity(WidgetLinks.home(context))
             state.photo || state.quantity || state.choice -> actionStartActivity(WidgetLinks.checkIn(context, state.id))
             else -> actionRunCallback<HabitCheckInAction>(
                 actionParametersOf(HabitCheckInAction.HABIT_ID to state.id),
@@ -117,7 +117,7 @@ class HabitWidget : GlanceAppWidget() {
         ) {
             val fg = if (state.complete) WidgetColors.onPrimary else WidgetColors.onSurface
             Text(
-                if (state.complete) "✓" else "${state.done}/${state.required}",
+                if (state.done > state.required) "${state.done}/${state.required} ✓" else if (state.complete) "✓" else "${state.done}/${state.required}",
                 maxLines = 1,
                 style = TextStyle(
                     color = if (state.complete) fg else habitColor,

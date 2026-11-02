@@ -53,8 +53,8 @@ class AlarmPlanner(
         }
         for (h in habits.active()) {
             val cfg = cfgs[OwnerKind.HABIT to h.id] ?: continue
-            val due = nextHabitReminder(h, cfg, now) ?: continue
-            addItem(out, cfg, due, now)
+            val (at, minute) = nextHabitReminder(h, cfg, now) ?: continue
+            out += PlannedAlarm(OwnerKind.HABIT, h.id, at, cfg.style, PlannedAlarm.habitReminder(minute))
         }
         nag.earliestNagAt()?.let { at ->
             val state = nagStates.all().filter { it.nextNagAt == at }.minByOrNull { it.dueAt }
@@ -74,19 +74,23 @@ class AlarmPlanner(
         }
     }
 
-    /** Next reminder instant on a scheduled, non-vacation day that is not yet completed. */
-    private suspend fun nextHabitReminder(h: HabitEntity, cfg: AlarmConfigEntity, now: Long): Long? {
-        val minute = cfg.habitReminderMinuteOfDay ?: return null
+    /**
+     * Next reminder (instant, stored minute) on a scheduled, non-vacation day. Every reminder time
+     * is its own due occurrence; today's are skipped once the habit is complete.
+     */
+    private suspend fun nextHabitReminder(h: HabitEntity, cfg: AlarmConfigEntity, now: Long): Pair<Long, Int>? {
+        val minutes = AlarmTimes.habitMinutes(cfg)
+        if (minutes.isEmpty()) return null
         val s = settings.current()
         val today = clock.today()
-        val lead = AlarmTimes.offsets(cfg).maxOrNull()?.let { AlarmTimes.minutes(it) } ?: 0L
         for (i in 0..14L) {
             val day = today.plusDays(i)
             if (!HabitSchedule.remindsOn(h, day) || s.onVacation(day.toEpochDay())) continue
-            val at = AlarmTimes.at(day, DayStart.habitMinute(s, day, minute), clock)
-            if (at <= now && at - lead <= now) continue
             if (i == 0L && habitDone(h, day)) continue
-            return at
+            for (m in minutes) {
+                val at = AlarmTimes.at(day, DayStart.habitMinute(s, day, m), clock)
+                if (at > now) return at to m
+            }
         }
         return null
     }
@@ -132,11 +136,15 @@ class AlarmPlanner(
         }
         if (s.onVacation(today.toEpochDay())) return
         for (h in habits.active()) {
-            val minute = cfgs[OwnerKind.HABIT to h.id]?.habitReminderMinuteOfDay ?: continue
+            val cfg = cfgs[OwnerKind.HABIT to h.id] ?: continue
             if (!HabitSchedule.remindsOn(h, today)) continue
-            val due = AlarmTimes.at(today, DayStart.habitMinute(s, today, minute), clock)
-            if (due > now || tracked.containsKey(OwnerKind.HABIT to h.id)) continue
+            val due = AlarmTimes.habitInstants(cfg, today, clock) { DayStart.habitMinute(s, today, it) }
+                .lastOrNull { it <= now } ?: continue
+            // A newer reminder time replaces an older pending one (fresh counts, rings again).
+            if (tracked[OwnerKind.HABIT to h.id]?.dueAt == due) continue
             if (habitDone(h, today)) continue
+            // A check-in after this reminder answered it; the next reminder time re-triggers.
+            if (checkIns.forHabitDay(h.id, today.toEpochDay()).any { it.at >= due }) continue
             nag.onDue(OwnerKind.HABIT, h.id, due)
         }
     }

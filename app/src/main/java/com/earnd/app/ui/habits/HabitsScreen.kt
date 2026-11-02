@@ -159,7 +159,7 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
         }
         Column(horizontalAlignment = Alignment.End) {
             val today = when {
-                d.complete -> "done"
+                d.complete -> if (d.done > d.required) "${d.done}/${d.required} ✓" else "done"
                 !due -> "rest"
                 else -> "${d.done}/${d.required}"
             }

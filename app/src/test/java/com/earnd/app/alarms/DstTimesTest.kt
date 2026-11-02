@@ -37,3 +37,29 @@ class DstTimesTest {
         assertEquals("2026-03-29T02:30", local(AlarmTimes.at(LocalDate.of(2026, 3, 29), 90, clock)))
     }
 }
+
+/** Habit reminder times each become their own due occurrence per day. */
+class HabitReminderTimesTest {
+    private val clock = FakeClock(0, ZoneId.of("Europe/Lisbon"))
+    // 08:00,14:00,21:00 as stored by the remote mapping: latest + minutes-before offsets.
+    private val cfg = com.earnd.app.data.entity.AlarmConfigEntity(
+        com.earnd.app.data.entity.OwnerKind.HABIT, 1, habitReminderMinuteOfDay = 21 * 60, offsetsBeforeMin = "780,420")
+
+    @Test fun expandsEveryReminderTime() {
+        assertEquals(listOf(8 * 60, 14 * 60, 21 * 60), AlarmTimes.habitMinutes(cfg))
+    }
+
+    @Test fun instantsAreAscendingLocalTimes() {
+        val day = LocalDate.of(2026, 5, 4)
+        val at = AlarmTimes.habitInstants(cfg, day, clock)
+        assertEquals(listOf(AlarmTimes.at(day, 480, clock), AlarmTimes.at(day, 840, clock), AlarmTimes.at(day, 1260, clock)), at)
+    }
+
+    @Test fun noReminderMeansNoOccurrences() {
+        assertEquals(emptyList<Int>(), AlarmTimes.habitMinutes(cfg.copy(habitReminderMinuteOfDay = null)))
+    }
+
+    @Test fun offsetsBeforeMidnightAreDropped() {
+        assertEquals(listOf(60), AlarmTimes.habitMinutes(cfg.copy(habitReminderMinuteOfDay = 60, offsetsBeforeMin = "120")))
+    }
+}

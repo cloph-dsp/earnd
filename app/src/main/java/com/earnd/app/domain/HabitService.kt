@@ -101,7 +101,7 @@ class HabitService(
     }
 
     /**
-     * Records a check-in for today. Counted habits earn up to `timesPerDay` check-ins; quantity
+     * Records a check-in for today. Counted habits take unlimited check-ins (`timesPerDay` is the target; overflow earns at most +50% of the day's reward); quantity
      * habits add up amounts and earn once on reaching the target. In "only when everything is
      * done" reward mode single check-ins earn nothing; the day's lump sum is credited once all
      * scheduled habits are complete.
@@ -127,7 +127,8 @@ class HabitService(
             photoPath = photoPath, minutesEarned = 0)
         val perCheckIn = creditBank && s.rewardMode == RewardMode.PER_CHECKIN &&
             HabitProgress.earns(h, before, before + draft)
-        val minutes = if (perCheckIn) (rewardOverride ?: HabitProgress.rewardMinutes(h, s)).coerceAtLeast(0) else 0
+        val base = (rewardOverride ?: HabitProgress.rewardMinutes(h, s)).coerceAtLeast(0)
+        val minutes = if (!perCheckIn) 0 else if (HabitProgress.isQuantity(h)) base else HabitProgress.checkInReward(h, before, base)
         val bonus = if (minutes > 0 && s.comebackBonus) {
             val past = checkIns.forHabitBetween(habitId, day.minusDays(Comeback.LOOKBACK_DAYS).toEpochDay(), day.toEpochDay())
             Comeback.bonus(minutes, Comeback.missedOccasions(h, day, activeDays(h, past), skip = { s.onVacation(it.toEpochDay()) }))

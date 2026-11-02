@@ -19,6 +19,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 val owner = AlarmKeys.ownerOf(intent)
                 when {
                     slot == PlannedAlarm.SLOT_NAG || owner == null -> actions.nagPass()
+                    slot.startsWith(PlannedAlarm.HABIT_PREFIX) -> actions.onDue(owner.first, owner.second)
                     slot.startsWith("pre") -> {
                         val offset = slot.removePrefix("pre").toLongOrNull() ?: 0
                         val at = intent.getLongExtra(AlarmKeys.EXTRA_AT, System.currentTimeMillis())

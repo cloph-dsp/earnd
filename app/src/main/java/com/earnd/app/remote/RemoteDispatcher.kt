@@ -170,6 +170,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "doneToday" to done.size,
             "timesPerDay" to h.timesPerDay,
             "complete" to (done.size >= h.timesPerDay),
+            "overTarget" to (done.size > h.timesPerDay),
             "mode" to h.checkInMode,
             "minutesPerCheckIn" to HabitProgress.rewardMinutes(h, backend.settings()),
             "order" to h.sortOrder,
@@ -422,7 +423,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
      */
     private suspend fun saveAlarm(a: RemoteArgs, kind: OwnerKind, id: Long, habit: Boolean) {
         if (ALARM_KEYS.none(a::has) && !(habit && a.has("reminders"))) return
-        val base = backend.alarmConfig(kind, id) ?: AlarmConfigEntity(ownerKind = kind, ownerId = id)
+        val base = backend.alarmConfig(kind, id)
+            ?: AlarmConfigEntity(ownerKind = kind, ownerId = id, style = com.earnd.app.ui.alarms.AlarmConfigs.initialStyle(kind))
         val nagMax = a.intOrNone(listOf("nag_max"), 1..100)
         var c = base.copy(
             style = a.enum<AlarmStyle>("alarm") ?: base.style,

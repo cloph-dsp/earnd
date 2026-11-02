@@ -16,7 +16,12 @@ import com.earnd.app.alarms.AlarmKeys.putOwner
  */
 class PendingNotifier(private val context: Context) {
 
-    suspend fun refresh(alert: Boolean) {
+    /**
+     * [alert] true: sound/vibration/heads-up (new items, nag bumps). A silent refresh keeps the
+     * alerting channel (so the notification is never demoted to a hidden one) with
+     * setOnlyAlertOnce; the quiet channel is only used during quiet hours ([quiet]).
+     */
+    suspend fun refresh(alert: Boolean, quiet: Boolean = false) {
         val now = ServiceLocator.clock.now()
         val items = ServiceLocator.nagEngine.pending(now)
         val nm = context.getSystemService(NotificationManager::class.java)
@@ -26,10 +31,10 @@ class PendingNotifier(private val context: Context) {
         }
         val states = ServiceLocator.db.nagStateDao().all()
         val digest = states.isNotEmpty() && states.filter { it.dueAt <= now }.all { NagSchedule.isDigest(it, now) }
-        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest))
+        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest, quiet))
     }
 
-    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean): Notification {
+    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean, quiet: Boolean = false): Notification {
         AlarmChannels.ensure(context)
         val res = context.resources
         val title = if (digest) res.getQuantityString(R.plurals.alarms_digest_title, items.size, items.size)
@@ -39,16 +44,16 @@ class PendingNotifier(private val context: Context) {
         items.take(MAX_LINES).forEach { inbox.addLine(line(it)) }
         if (items.size > MAX_LINES) inbox.addLine(context.getString(R.string.alarms_more, items.size - MAX_LINES))
 
-        val builder = NotificationCompat.Builder(context, if (alert) AlarmChannels.PENDING else AlarmChannels.PENDING_QUIET)
+        val builder = NotificationCompat.Builder(context, if (quiet) AlarmChannels.PENDING_QUIET else AlarmChannels.PENDING)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(title)
             .setContentText(header)
             .setStyle(inbox)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setPriority(if (alert) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_LOW)
+            .setPriority(if (quiet) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_HIGH)
             .setOnlyAlertOnce(!alert)
-            .setSilent(!alert)
+            .setSilent(quiet)
             .setOngoing(false)
             .setAutoCancel(false)
             .setShowWhen(true)

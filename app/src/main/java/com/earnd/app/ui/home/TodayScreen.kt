@@ -273,7 +273,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
                 textDecoration = if (complete) TextDecoration.LineThrough else null,
             )
             val parts = buildList {
-                if (hd.required > 1) add("${hd.done}/${hd.required}")
+                if (hd.required > 1 || hd.done > hd.required) add("${hd.done}/${hd.required}" + if (complete) " ✓" else "")
                 val reward = HabitRules.rewardMinutes(h, settings)
                 if (reward > 0) add("+$reward min")
                 if (!complete && hd.comebackMissed > 0) add(com.earnd.app.domain.Comeback.label(hd.comebackMissed) + " comeback")
@@ -292,6 +292,8 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             IconButton(onClick = { onUndo(last) }) { Icon(Icons.Outlined.Undo, "Undo last check-in", tint = p.muted) }
         }
         when {
+            complete && !com.earnd.app.domain.HabitProgress.isQuantity(h) ->
+                IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, "Check in again", tint = p.amber) }
             complete -> Unit
             com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onCheck) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.amber) }
             HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, "Photo needed", tint = p.muted, modifier = Modifier.size(16.dp))
