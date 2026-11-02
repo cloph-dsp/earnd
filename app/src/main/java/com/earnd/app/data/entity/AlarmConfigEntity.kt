@@ -17,4 +17,8 @@ data class AlarmConfigEntity(
     val soundUri: String? = null,
     val vibrate: Boolean = true,
     val snoozeMaxCount: Int = 2,
+    /** Ring duration override in seconds; null = global default. */
+    val ringSec: Int? = null,
+    /** Volume override in percent of the alarm stream; null = global default. */
+    val volumePct: Int? = null,
 )

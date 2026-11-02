@@ -426,7 +426,11 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         val base = backend.alarmConfig(kind, id)
             ?: AlarmConfigEntity(ownerKind = kind, ownerId = id, style = com.earnd.app.ui.alarms.AlarmConfigs.initialStyle(kind))
         val nagMax = a.intOrNone(listOf("nag_max"), 1..100)
+        val ringSec = a.intOrNone(listOf("ring_sec"), 1..600)
+        val volume = a.intOrNone(listOf("volume"), 10..100)
         var c = base.copy(
+            ringSec = if (ringSec != null) ringSec.value else base.ringSec,
+            volumePct = if (volume != null) volume.value else base.volumePct,
             style = a.enum<AlarmStyle>("alarm") ?: base.style,
             atDue = a.bool("at_due") ?: base.atDue,
             offsetsBeforeMin = a.str("offsets")?.let { parseOffsets(it) } ?: base.offsetsBeforeMin,
@@ -460,6 +464,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "nagMax" to c.nagMaxCount,
             "vibrate" to c.vibrate,
             "snoozeMax" to c.snoozeMaxCount,
+            "ringSec" to c.ringSec,
+            "volume" to c.volumePct,
         )
     }
 
@@ -576,7 +582,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         private val REPEAT_KEYS = listOf("repeat", "days", "interval", "monthday", "nth", "count", "until")
         private val PHOTO_KEYS = listOf("photo", "photoRequired")
         private val REWARD_RANGE = 0..240
-        private val ALARM_KEYS = listOf("alarm", "at_due", "offsets", "nag", "nag_every", "nag_max", "vibrate", "snooze_max")
+        private val ALARM_KEYS = listOf("alarm", "at_due", "offsets", "nag", "nag_every", "nag_max", "vibrate", "snooze_max", "ring_sec", "volume")
 
         /** Settings keys `settings.tighten` accepts (and then only for non-weakening values). */
         val TIGHTEN_KEYS = setOf(

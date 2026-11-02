@@ -33,6 +33,7 @@ class AlarmRingService : Service() {
     private var owner: Pair<OwnerKind, Long>? = null
     private var label: String = ""
     private var ringJob: Job? = null
+    @Volatile private var shortRing = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -49,6 +50,7 @@ class AlarmRingService : Service() {
         AlarmChannels.ensure(this)
         startForeground(AlarmKeys.NOTIF_RING, Ringing.build(this, o.first, o.second, label, snoozesLeft = 0), FGS_TYPE)
         acquireWakeLock()
+        // Safety net until the config is loaded below, which replaces it with the effective duration.
         val timeout = RingPolicy.timeoutMs(intent.getLongExtra(AlarmKeys.EXTRA_TIMEOUT_MS, 0))
         handler.removeCallbacksAndMessages(null)
         handler.postDelayed({ onTimeout() }, timeout)
@@ -63,13 +65,22 @@ class AlarmRingService : Service() {
         ringJob?.cancel()
         ringJob = scope.launch {
             val cfg = runCatching { ServiceLocator.db.alarmConfigDao().get(o.first, o.second) }.getOrNull()
+            val st = runCatching { ServiceLocator.settings.current() }.getOrDefault(com.earnd.app.data.Settings())
+            val ringMs = RingPolicy.effectiveRingMs(cfg?.ringSec, st.ringSec)
+            val volume = RingPolicy.effectiveVolume(cfg?.volumePct, st.alarmVolumePct)
+            val ramp = RingPolicy.usesRamp(st.gentleStart, ringMs)
+            shortRing = RingPolicy.isShort(ringMs)
+            if (owner == o && AlarmPermissions.ringVisible(this@AlarmRingService)) {
+                handler.removeCallbacksAndMessages(null)
+                handler.postDelayed({ onTimeout() }, ringMs)
+            }
             val left = runCatching { AlarmsModule.actions.snoozesLeft(o.first, o.second) }.getOrDefault(0)
             if (owner == o) runCatching {
                 getSystemService(NotificationManager::class.java)
                     .notify(AlarmKeys.NOTIF_RING, Ringing.build(this@AlarmRingService, o.first, o.second, label, left))
             }
             // prepare() on a content URI can block: keep it off the main thread.
-            withContext(Dispatchers.IO) { AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, cfg?.vibrate ?: true, gen) }
+            withContext(Dispatchers.IO) { AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, cfg?.vibrate ?: true, gen, volume, ramp) }
         }
         return START_NOT_STICKY
     }
@@ -88,7 +99,8 @@ class AlarmRingService : Service() {
 
     private fun onTimeout() {
         val o = owner ?: return shutdown()
-        Ringing.missed(this, o.first, o.second, label)
+        // Very short rings are deliberate: the item just stays in the consolidated pending notification.
+        if (!shortRing) Ringing.missed(this, o.first, o.second, label)
         AlarmActivity.finishCurrent()
         shutdown()
     }

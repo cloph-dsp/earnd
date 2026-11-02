@@ -8,7 +8,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -171,6 +173,20 @@ internal fun RemindersPage(cur: Settings, change: Change) {
     if (cur.dailyReportEnabled) {
         TimeField("At", cur.dailyReportMin, { v -> v?.let { m -> change { it.copy(dailyReportMin = m) } } })
     }
+
+    SectionTitle("Alarm ringing")
+    Label("Ring for")
+    com.earnd.app.ui.alarms.RingForPicker(cur.ringSec, withDefault = false) { v -> v?.let { s -> change { it.copy(ringSec = s) } } }
+    Label("Alarm volume: ${cur.alarmVolumePct}%")
+    var vol by remember(cur.alarmVolumePct) { androidx.compose.runtime.mutableFloatStateOf(cur.alarmVolumePct.toFloat()) }
+    androidx.compose.material3.Slider(
+        value = vol, onValueChange = { vol = it },
+        onValueChangeFinished = { val p = vol.toInt(); change { it.copy(alarmVolumePct = p) } },
+        valueRange = 10f..100f,
+    )
+    Helper("Share of the device alarm volume. The system alarm volume is not changed.")
+    SwitchRow("Gentle start", cur.gentleStart, { v -> change { it.copy(gentleStart = v) } },
+        hint = "Volume rises over 20 s. Not used for rings of 10 s or less.")
 
     SectionTitle("Defaults for new items")
     DefaultAlarm(OwnerKind.TASK, "Default for tasks")

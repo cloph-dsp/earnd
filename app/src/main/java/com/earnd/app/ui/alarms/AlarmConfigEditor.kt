@@ -77,6 +77,12 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
                 runCatching { ringtone.launch(i) }
             }) { Text("Choose") }
         }
+        Text("Ring for", style = MaterialTheme.typography.labelLarge)
+        RingForPicker(cfg.ringSec, withDefault = true) { onChange(cfg.copy(ringSec = it)) }
+        Text("Volume", style = MaterialTheme.typography.labelLarge)
+        ChoiceChips(listOf<Int?>(null, 25, 50, 75, 100), cfg.volumePct, { if (it == null) "Default" else "$it%" }) {
+            onChange(cfg.copy(volumePct = it))
+        }
         if (cfg.style == AlarmStyle.FULL_SCREEN) {
             NumberField("Snoozes allowed", cfg.snoozeMaxCount, { onChange(cfg.copy(snoozeMaxCount = (it ?: 0).coerceIn(0, 10))) })
         }
@@ -113,4 +119,22 @@ private fun WeekendShiftHint(minute: Int?) {
         "Today (weekend) it rings at ${com.earnd.app.ui.common.formatMinuteOfDay(shifted)}.",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+private val RING_PRESETS = listOf(2, 5, 10, 30, 60, 120, 300)
+
+fun ringLabel(sec: Int?): String = when {
+    sec == null -> "Default"
+    sec >= 60 && sec % 60 == 0 -> "${sec / 60} min"
+    else -> "$sec s"
+}
+
+/** Preset chips plus a custom seconds field (1-600). [withDefault] adds a "Default" chip (null). */
+@Composable
+fun RingForPicker(sec: Int?, withDefault: Boolean, onChange: (Int?) -> Unit) {
+    val options = (if (withDefault) listOf<Int?>(null) else emptyList()) + RING_PRESETS
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ChoiceChips(options, sec, ::ringLabel, onChange)
+        NumberField("Custom (seconds, 1-600)", sec, { onChange(it?.coerceIn(1, 600)) })
+    }
 }

@@ -57,6 +57,12 @@ data class Settings(
     val dayStartWeekendMin: Int = 10 * 60,
     /** Shift habit reminders and nags later on weekends by weekend start minus weekday start. */
     val laterWeekendStart: Boolean = true,
+    /** How long an alarm rings before it stops and is left pending, in seconds (1..600). */
+    val ringSec: Int = 60,
+    /** Alarm volume as a percentage (10..100) of the device alarm stream. */
+    val alarmVolumePct: Int = 60,
+    /** Volume ramps from 20% of the target to the target over 20 s. */
+    val gentleStart: Boolean = true,
 ) {
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false

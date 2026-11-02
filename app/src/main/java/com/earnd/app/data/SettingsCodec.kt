@@ -49,6 +49,9 @@ internal object SettingsCodec {
         put("dayStartWeekdayMin", s.dayStartWeekdayMin.toString())
         put("dayStartWeekendMin", s.dayStartWeekendMin.toString())
         put("laterWeekendStart", s.laterWeekendStart.toString())
+        put("ringSec", s.ringSec.toString())
+        put("alarmVolumePct", s.alarmVolumePct.toString())
+        put("gentleStart", s.gentleStart.toString())
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -95,6 +98,9 @@ internal object SettingsCodec {
             dayStartWeekdayMin = int("dayStartWeekdayMin", d.dayStartWeekdayMin).coerceIn(0, 1439),
             dayStartWeekendMin = int("dayStartWeekendMin", d.dayStartWeekendMin).coerceIn(0, 1439),
             laterWeekendStart = bool("laterWeekendStart", d.laterWeekendStart),
+            ringSec = int("ringSec", d.ringSec).coerceIn(1, 600),
+            alarmVolumePct = int("alarmVolumePct", d.alarmVolumePct).coerceIn(10, 100),
+            gentleStart = bool("gentleStart", d.gentleStart),
         )
     }
 }

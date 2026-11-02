@@ -9,19 +9,30 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.os.SystemClock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /** Loops alarm sound and vibration until [stop] is called (Done or Snooze). */
 internal object AlarmRinger {
     private val lock = Any()
     private var player: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private var rampJob: Job? = null
+    private val rampScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** Bumped by every [stop]; a [start] whose generation is stale never leaves anything playing. */
     @Volatile var generation: Long = 0L
         private set
 
     /** Prepares outside the lock (may block), then installs only if [gen] is still current. */
-    fun start(context: Context, soundUri: String?, vibrate: Boolean, gen: Long = generation) {
+    fun start(context: Context, soundUri: String?, vibrate: Boolean, gen: Long = generation,
+              volume: Float = 1f, ramp: Boolean = false) {
         if (gen != generation) return
         val mp = listOfNotNull(
             soundUri?.let(Uri::parse),
@@ -31,8 +42,23 @@ internal object AlarmRinger {
         synchronized(lock) {
             if (gen != generation) { mp?.release(); return }
             stopLocked()
+            // Relative to the alarm stream; the system alarm volume itself is never touched.
+            val v0 = if (ramp) RingPolicy.rampVolume(volume, 0, true) else volume
+            mp?.runCatching { setVolume(v0, v0) }
             mp?.runCatching { start() }
             player = mp
+            if (mp != null && ramp) {
+                val t0 = SystemClock.elapsedRealtime()
+                rampJob = rampScope.launch {
+                    while (isActive) {
+                        val el = SystemClock.elapsedRealtime() - t0
+                        val v = RingPolicy.rampVolume(volume, el, true)
+                        synchronized(lock) { if (player === mp) mp.runCatching { setVolume(v, v) } }
+                        if (el >= RingPolicy.RAMP_MS) break
+                        delay(250)
+                    }
+                }
+            }
             if (vibrate) vibrator = vibratorOf(context).also {
                 it.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 500), 0))
             }
@@ -59,6 +85,8 @@ internal object AlarmRinger {
     }
 
     private fun stopLocked() {
+        rampJob?.cancel()
+        rampJob = null
         player?.runCatching { stop(); release() }
         player = null
         vibrator?.cancel()
