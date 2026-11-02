@@ -71,7 +71,11 @@ internal object AlarmRinger {
             mp.apply {
                 setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
-                setDataSource(context, uri)
+                val f = if (uri.scheme == "file") AlarmSounds.filePath(uri.toString()) else null
+                if (f != null) {
+                    if (!f.isFile) throw java.io.FileNotFoundException(f.path)
+                    setDataSource(f.path)
+                } else setDataSource(context, uri)
                 isLooping = true
                 prepare()
             }

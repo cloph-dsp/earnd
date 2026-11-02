@@ -10,6 +10,8 @@
 #   earnd-cli rules.block_app pkg=com.instagram.android
 #   earnd-cli rules.block_site domain=reddit.com
 #   earnd-cli settings.tighten unlockCapMin=30
+#   earnd-cli sound.push ~/sounds/gong.mp3 [name]   (then: habits.update id=3 sound=custom:gong.mp3)
+#   earnd-cli sounds.list
 #
 # List values are comma-separated in one argument (reminders="08:00,14:00", days="mon,tue").
 #
@@ -32,7 +34,7 @@ TEXT_KEYS=" title notes name unit message label "
 die() { printf '{"ok":false,"error":"%s","message":"%s"}\n' "$1" "$2"; exit 2; }
 
 usage() {
-  sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -68,6 +70,36 @@ b64() { printf '%s' "$1" | base64 | tr -d '\n'; }
 # Quote a value for the device shell: adb shell joins its args into ONE command line that the
 # phone's sh parses again, so every user value is single-quoted, with each ' written as '\''.
 shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+
+# sound.push <local file> [name]: copy an audio file into the app's media dir (readable by the app
+# without permissions) and print its key. Local, so it does not go through the remote receiver.
+if [ "$cmd" = "sound.push" ]; then
+  [ $# -ge 1 ] && [ $# -le 2 ] || die "bad_args" "usage: sound.push <local file> [name]"
+  src="$1"
+  name="${2:-$(basename "$src")}"
+  name="$(basename "$name" | tr -c 'A-Za-z0-9._
+-' '_')"
+  name="${name#.}"; name="${name#_}"
+  [ -n "$name" ] || die "bad_args" "bad sound name"
+  ext="$(printf '%s' "${name##*.}" | tr 'A-Z' 'a-z')"
+  [ "$ext" = "${name%.*}" ] && ext=""
+  if [ -z "$ext" ]; then ext="$(printf '%s' "${src##*.}" | tr 'A-Z' 'a-z')"; name="$name.$ext"; fi
+  case "$ext" in mp3|ogg|wav|m4a) ;; *) die "bad_args" "only .mp3 .ogg .wav .m4a allowed" ;; esac
+  [ ${#name} -le 100 ] || die "bad_args" "name too long"
+  dest="/sdcard/Android/media/$PKG/sounds"
+  if [ "${EARND_DRY_RUN:-}" = "1" ]; then
+    printf '%s
+' "mkdir -p $dest" "push $src $dest/$name"
+    exit 0
+  fi
+  [ -f "$src" ] || die "bad_args" "file not found"
+  "$ADB" "${adb_args[@]}" shell "mkdir -p $dest" >/dev/null 2>&1 || die "adb_failed" "mkdir failed"
+  out="$("$ADB" "${adb_args[@]}" push "$src" "$dest/$name" 2>&1)"     || die "adb_failed" "$(printf '%s' "$out" | tr -d '"
+' | head -c 200)"
+  printf '{"ok":true,"key":"custom:%s"}
+' "$name"
+  exit 0
+fi
 
 extras="--es cmd $(shq "$cmd")"
 for kv in "$@"; do

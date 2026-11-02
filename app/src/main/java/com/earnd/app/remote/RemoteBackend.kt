@@ -41,6 +41,8 @@ interface RemoteBackend {
     /** Per-item alarm/reminder config, or null when the item follows the defaults. */
     suspend fun alarmConfig(kind: OwnerKind, id: Long): AlarmConfigEntity?
     suspend fun saveAlarmConfig(cfg: AlarmConfigEntity)
+    /** Selectable alarm sounds (system + custom files). */
+    suspend fun sounds(): List<com.earnd.app.alarms.SoundOption> = emptyList()
 
     suspend fun settings(): Settings
     /** Replaces settings with [new] only if they still equal [expected]; false on a race. */

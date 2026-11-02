@@ -28,4 +28,9 @@ out="$(cli habits.create name=x reminders="08:00,14:00" remind_days="mon,tue")"
 args="$(reparse "$out")"
 check "list value stays one arg" "$(printf '%s\n' "$args" | grep -c '^08:00,14:00$')" 1
 
+out="$(cli sound.push '/tmp/My Song!.MP3' 'x;y z.mp3')"
+check "sound.push sanitizes name" "$(printf '%s' "$out" | tail -1)" "push /tmp/My Song!.MP3 /sdcard/Android/media/com.earnd.app/sounds/x_y_z.mp3"
+cli sound.push /tmp/a.flac >/dev/null; check "sound.push bad extension refused" "$?" 2
+cli sound.push >/dev/null; check "sound.push needs file" "$?" 2
+
 exit $fail

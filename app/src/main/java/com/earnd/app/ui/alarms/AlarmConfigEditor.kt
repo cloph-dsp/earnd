@@ -1,11 +1,5 @@
 package com.earnd.app.ui.alarms
 
-import android.app.Activity
-import android.content.Intent
-import android.media.RingtoneManager
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,13 +31,12 @@ import com.earnd.app.ui.common.TimeField
 @Composable
 fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> Unit) {
     val context = LocalContext.current
-    val ringtone = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
-        if (r.resultCode == Activity.RESULT_OK) {
-            @Suppress("DEPRECATION")
-            val uri = r.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            onChange(cfg.copy(soundUri = uri?.toString()))
-        }
+    var pickSound by remember { mutableStateOf(false) }
+    var soundOptions by remember { mutableStateOf<List<com.earnd.app.alarms.SoundOption>>(emptyList()) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        soundOptions = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.earnd.app.alarms.AlarmSounds.list(context) }
     }
+    if (pickSound) SoundPickerDialog(cfg.soundUri, { onChange(cfg.copy(soundUri = it)); pickSound = false }, { pickSound = false })
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (cfg.ownerKind == OwnerKind.HABIT) {
             TimeField("Daily reminder at", cfg.habitReminderMinuteOfDay, { onChange(cfg.copy(habitReminderMinuteOfDay = it)) })
@@ -65,17 +58,10 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
         SwitchRow("Vibrate", cfg.vibrate, { onChange(cfg.copy(vibrate = it)) })
         Row {
             Text(
-                "Sound: " + (cfg.soundUri?.let { soundTitle(context, it) } ?: "Default"),
+                "Sound: " + com.earnd.app.alarms.AlarmSounds.nameOf(cfg.soundUri, soundOptions),
                 modifier = Modifier.weight(1f).align(androidx.compose.ui.Alignment.CenterVertically),
             )
-            TextButton(onClick = {
-                val i = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM or RingtoneManager.TYPE_NOTIFICATION)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, cfg.soundUri?.let(Uri::parse))
-                runCatching { ringtone.launch(i) }
-            }) { Text("Choose") }
+            TextButton(onClick = { pickSound = true }) { Text("Choose") }
         }
         Text("Ring for", style = MaterialTheme.typography.labelLarge)
         RingForPicker(cfg.ringSec, withDefault = true) { onChange(cfg.copy(ringSec = it)) }
@@ -89,9 +75,6 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
     }
 }
 
-
-private fun soundTitle(c: android.content.Context, uri: String): String =
-    runCatching { RingtoneManager.getRingtone(c, Uri.parse(uri))?.getTitle(c) }.getOrNull() ?: "Custom"
 
 fun styleLabel(s: AlarmStyle) = when (s) {
     AlarmStyle.SILENT -> "Silent"

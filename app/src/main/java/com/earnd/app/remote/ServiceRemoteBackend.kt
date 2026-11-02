@@ -97,6 +97,7 @@ class ServiceRemoteBackend(
     override suspend fun deleteTask(id: Long) = tasksSvc.delete(id)
     override suspend fun skipTask(id: Long) = tasksSvc.skip(id)
 
+    override suspend fun sounds() = context?.let { com.earnd.app.alarms.AlarmSounds.list(it) } ?: emptyList()
     override suspend fun alarmConfig(kind: OwnerKind, id: Long) = db.alarmConfigDao().get(kind, id)
     override suspend fun saveAlarmConfig(cfg: AlarmConfigEntity) = AlarmConfigs.save(cfg)
 

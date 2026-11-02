@@ -17,6 +17,19 @@ check in (with quantity) and undo, list/get/create/update/complete/uncomplete/de
 (reward on create, alarms), list and add blocked apps/websites (`rules.*`), read settings and
 tighten them (`settings.tighten`). Remote check-ins and completions never credit the time bank.
 
+## Alarm sounds
+
+```
+earnd-cli sounds.list                                  # keys: default, system:<title>, custom:<file>
+earnd-cli sound.push ~/sounds/gong.mp3                 # adb push to /sdcard/Android/media/com.earnd.app/sounds/
+earnd-cli sound.push ~/a.ogg wake-up.ogg               # optional name (sanitized; .mp3 .ogg .wav .m4a only)
+earnd-cli habits.update id=3 sound=custom:gong.mp3
+earnd-cli tasks.create title="Call" due=today time=18:00 sound="system:Argon"
+earnd-cli tasks.update id=42 sound=default             # back to the default alarm sound
+```
+
+If a custom file is later removed, the alarm falls back to the default alarm sound.
+
 Refused with `forbidden_weaken`: raising a habit's or task's reward minutes, turning photo proof
 off, and any `settings.tighten` change that the phone's own settings screen classifies as
 weakening (e.g. raising or removing the unlock cap, turning hard mode/blocking/bedtime off,

@@ -66,6 +66,8 @@ class RemoteDispatcherTest {
         val rules = mutableMapOf<String, AppRuleEntity>()
         override suspend fun alarmConfig(kind: OwnerKind, id: Long) = alarms[kind to id]
         override suspend fun saveAlarmConfig(cfg: AlarmConfigEntity) { alarms[cfg.ownerKind to cfg.ownerId] = cfg }
+        val soundList = listOf(com.earnd.app.alarms.SoundOption("custom:gong.mp3", "gong.mp3", "file:///m/gong.mp3", "custom"))
+        override suspend fun sounds() = soundList
         override suspend fun settings() = settings
         override suspend fun saveSettings(expected: Settings, new: Settings): Boolean {
             if (settings != expected) return false
@@ -366,5 +368,18 @@ class RemoteDispatcherTest {
 
     @Test fun reorderKeepsUnlistedIds() {
         assertEquals(listOf(3L, 1L, 2L, 4L), RemoteDispatcher.reorder(listOf(1, 2, 3, 4), listOf(3, 1)))
+    }
+
+    @Test fun soundsListAndSetOnTask() = kotlinx.coroutines.runBlocking {
+        val b = FakeBackend(); val d = RemoteDispatcher(b)
+        assertTrue(d.handle("sounds.list", emptyMap()).contains("custom:gong.mp3"))
+        val out = d.handle("tasks.create", mapOf("title" to "x", "sound" to "custom:gong.mp3"))
+        assertTrue(out, out.contains("\"ok\":true"))
+        assertEquals("file:///m/gong.mp3", b.alarms.values.single().soundUri)
+        d.handle("tasks.update", mapOf("id" to b.tasks.keys.first().toString(), "sound" to "default"))
+        assertEquals(null, b.alarms.values.single().soundUri)
+        val n = b.tasks.size
+        assertTrue(d.handle("tasks.create", mapOf("title" to "y", "sound" to "custom:nope.mp3")).contains("bad_args"))
+        assertEquals(n, b.tasks.size)
     }
 }

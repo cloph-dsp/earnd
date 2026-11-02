@@ -57,7 +57,9 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | (habits.create, more) | `minutes` (reward per check-in, 0-240), `photo` = true/false, `reminders` = HH:MM list e.g. `08:00,14:00,21:00` or `none`, `remind_days` = mon,tue / all, `message` (reminder text) |
 | (habits.create, timed) | `focus_min` (main focus length 1-240 or none), `focus_options` = durations with rewards e.g. `10:5,20:10,30:15` (reward optional = linear) or `none`, `stopwatch` = on/off (open-ended count-up focus), `sw_rate` (earned min per focused min, default 0.5), `sw_min` (minimum session minutes, default 5, 0 = none), `sw_cap` (counted minutes cap or none) |
 | `habits.update` | `id` plus any create field (`minutes` only lower, `photo` only on; timed fields only tighter: rate per minute never higher (max 1.0 if the habit was not timed), `sw_min` only up, `sw_cap` only down, never turn timing/stopwatch off) |
-| alarm keys (habits and tasks create/update) | `alarm` = SILENT, NOTIFICATION, FULL_SCREEN, `at_due`, `offsets` (minutes before, tasks: `60,15`), `nag` = OFF, PROGRESSIVE, FIXED, `nag_every`, `nag_max` (or none), `vibrate`, `snooze_max`, `ring_sec` (1-600 seconds, or `none` = app default; allowed both directions), `volume` (10-100 % of the alarm stream, or `none` = default; allowed both directions) |
+| alarm keys (habits and tasks create/update) | `alarm` = SILENT, NOTIFICATION, FULL_SCREEN, `at_due`, `offsets` (minutes before, tasks: `60,15`), `nag` = OFF, PROGRESSIVE, FIXED, `nag_every`, `nag_max` (or none), `vibrate`, `snooze_max`, `ring_sec` (1-600 seconds, or `none` = app default; allowed both directions), `volume` (10-100 % of the alarm stream, or `none` = default; allowed both directions), `sound` = `default` (clears), `system:<title>` or `custom:<file>` (keys from `sounds.list`) |
+| `sounds.list` | - (keys `default`, `system:<title>`, `custom:<filename>` with title, uri, type alarm/notification/ringtone/custom) |
+| `sound.push` (local, not a phone command) | `<local file> [name]`: `adb push` to the app's media dir (.mp3 .ogg .wav .m4a), prints the key `custom:<name>` |
 | `habits.archive` / `habits.unarchive` | `id` |
 | `habits.reorder` | `ids` = comma-separated habit ids to put first, in that order (others keep their order) |
 | `habits.checkin` | `id`, optional `qty` (0-1000000, added to today's total) |
@@ -100,6 +102,11 @@ earnd-cli habits.reorder ids=5,2
 earnd-cli habits.create name="Drink water" times=3 minutes=10 reminders="08:00,14:00,21:00" remind_days="mon,tue,wed,thu,fri" message="Glass of water"
 earnd-cli habits.update id=3 minutes=5 nag=FIXED nag_every=15 alarm=FULL_SCREEN
 earnd-cli tasks.create title="Tax form" due=2026-11-20 time=10:00 reward=30 offsets=1440,60
+earnd-cli sounds.list
+earnd-cli sound.push ~/sounds/gong.mp3
+earnd-cli habits.update id=3 sound=custom:gong.mp3
+earnd-cli tasks.create title="Call" due=today time=18:00 sound="system:Argon"
+earnd-cli tasks.update id=42 sound=default
 earnd-cli rules.blockable_apps
 earnd-cli rules.block_app pkg=com.instagram.android
 earnd-cli rules.block_site domain=reddit.com

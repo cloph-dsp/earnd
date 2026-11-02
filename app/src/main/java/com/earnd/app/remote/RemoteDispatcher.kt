@@ -1,5 +1,6 @@
 package com.earnd.app.remote
 
+import com.earnd.app.alarms.AlarmSounds
 import com.earnd.app.data.Settings
 import com.earnd.app.data.SettingsCodec
 import com.earnd.app.focus.FocusMath
@@ -78,6 +79,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     private suspend fun run(cmd: String, a: RemoteArgs): Map<String, Any?> = when (cmd) {
         "help" -> ok("commands" to COMMANDS.sorted())
         "status" -> ok("status" to backend.status())
+        "sounds.list" -> ok("sounds" to (listOf<Any?>(Json.obj("key" to "default", "title" to "Default", "uri" to null, "type" to "default")) +
+            backend.sounds().map { Json.obj("key" to it.key, "title" to it.title, "uri" to it.uri, "type" to it.type) }))
         "audit.list" -> ok("entries" to backend.auditLog().takeLast(a.int("limit", 1..500) ?: 50).map(::RawJson))
         "habits.list" -> habitsList(a)
         "habits.get" -> ok("habit" to habitJson(habitOr404(a.requireLong("id")), detailed = true))
@@ -209,6 +212,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     private suspend fun habitSave(a: RemoteArgs, existing: HabitEntity?): Map<String, Any?> {
         val s = backend.settings()
         val today = backend.today()
+        soundArg(a)
         val name = a.text("name") ?: existing?.name ?: bad("missing name")
         val base = existing ?: HabitEntity(
             name = name,
@@ -367,6 +371,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
 
     private suspend fun taskSave(a: RemoteArgs, existing: TaskEntity?): Map<String, Any?> {
         val today = backend.today()
+        soundArg(a)
         val title = a.text("title") ?: existing?.title ?: bad("missing title")
         val parent = a.long("parent")?.let { pid ->
             val p = taskOr404(pid)
@@ -429,6 +434,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         val ringSec = a.intOrNone(listOf("ring_sec"), 1..600)
         val volume = a.intOrNone(listOf("volume"), 10..100)
         var c = base.copy(
+            soundUri = if (a.has("sound")) soundArg(a) else base.soundUri,
             ringSec = if (ringSec != null) ringSec.value else base.ringSec,
             volumePct = if (volume != null) volume.value else base.volumePct,
             style = a.enum<AlarmStyle>("alarm") ?: base.style,
@@ -452,6 +458,12 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         backend.saveAlarmConfig(c.copy(ownerKind = kind, ownerId = id))
     }
 
+    /** Validated stored uri for `sound=` (null = default); absent key also gives null. */
+    private suspend fun soundArg(a: RemoteArgs): String? {
+        val v = a.str("sound") ?: return null
+        return try { AlarmSounds.resolve(v, backend.sounds()) } catch (e: IllegalArgumentException) { bad(e.message ?: "bad sound") }
+    }
+
     private fun alarmJson(c: AlarmConfigEntity): Map<String, Any?> {
         val offsets = c.offsetsBeforeMin.split(',').mapNotNull { it.trim().toIntOrNull() }.filter { it > 0 }
         return Json.obj(
@@ -466,6 +478,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "snoozeMax" to c.snoozeMaxCount,
             "ringSec" to c.ringSec,
             "volume" to c.volumePct,
+            "sound" to c.soundUri?.let { u -> AlarmSounds.filePath(u)?.let { "custom:" + it.name } ?: u },
         )
     }
 
@@ -549,7 +562,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
 
     companion object {
         val COMMANDS = setOf(
-            "help", "status", "audit.list",
+            "help", "status", "audit.list", "sounds.list",
             "habits.list", "habits.get", "habits.create", "habits.update", "habits.archive",
             "habits.unarchive", "habits.reorder",
             "habits.checkin", "habits.undo",
@@ -559,7 +572,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "settings.get", "settings.tighten",
         )
         private val READ_ONLY = setOf(
-            "help", "status", "audit.list", "habits.list", "habits.get", "tasks.list", "tasks.get",
+            "help", "status", "audit.list", "sounds.list", "habits.list", "habits.get", "tasks.list", "tasks.get",
             "rules.list", "rules.blockable_apps", "settings.get",
         )
 
@@ -582,7 +595,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         private val REPEAT_KEYS = listOf("repeat", "days", "interval", "monthday", "nth", "count", "until")
         private val PHOTO_KEYS = listOf("photo", "photoRequired")
         private val REWARD_RANGE = 0..240
-        private val ALARM_KEYS = listOf("alarm", "at_due", "offsets", "nag", "nag_every", "nag_max", "vibrate", "snooze_max", "ring_sec", "volume")
+        private val ALARM_KEYS = listOf("alarm", "at_due", "offsets", "nag", "nag_every", "nag_max", "vibrate", "snooze_max", "ring_sec", "volume", "sound")
 
         /** Settings keys `settings.tighten` accepts (and then only for non-weakening values). */
         val TIGHTEN_KEYS = setOf(
