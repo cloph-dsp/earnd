@@ -62,6 +62,15 @@ class NagEngine(
 
     suspend fun resolve(ownerKind: OwnerKind, ownerId: Long) = nags.delete(ownerKind, ownerId)
 
+    /**
+     * Stop: the item stays pending (listed, not done) but stops nagging and ringing until its next
+     * due/reminder time creates a fresh state.
+     */
+    suspend fun silence(ownerKind: OwnerKind, ownerId: Long) {
+        val s = nags.get(ownerKind, ownerId) ?: return
+        nags.upsert(s.copy(nextNagAt = null))
+    }
+
     suspend fun pending(now: Long): List<PendingItem> =
         NagSchedule.order(nags.all().filter { it.dueAt <= now })
             .map { PendingItem(it.ownerKind, it.ownerId, labels(it.ownerKind, it.ownerId), it.nagCount) }

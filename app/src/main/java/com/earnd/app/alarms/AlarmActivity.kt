@@ -51,7 +51,7 @@ class AlarmActivity : ComponentActivity() {
                     label = label,
                     snoozesLeft = left,
                     snoozeMinutes = NagSchedule.SNOOZE_MIN,
-                    onStop = { act(null) },
+                    onStop = { act { actions.stop(o.first, o.second) } },
                     onSnooze = { act { actions.snooze(o.first, o.second) } },
                     onDone = { act { actions.done(o.first, o.second) } },
                 )

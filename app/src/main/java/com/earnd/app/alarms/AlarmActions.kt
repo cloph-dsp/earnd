@@ -72,6 +72,14 @@ class AlarmActions(private val context: Context) {
         AlarmsModule.notifier.refresh(alert = false)
     }
 
+    /** Stop: silence this occurrence without completing it; the next reminder time rings again. */
+    suspend fun stop(kind: OwnerKind, id: Long) {
+        nag.silence(kind, id)
+        Ringing.dismiss(context, kind, id)
+        AlarmsModule.planner.rearmAll()
+        AlarmsModule.notifier.refresh(alert = false, quiet = inQuiet())
+    }
+
     /** Snooze from the ringing screen only. Returns false when no snoozes are left. */
     suspend fun snooze(kind: OwnerKind, id: Long): Boolean {
         val at = nag.snooze(kind, id, clock.now()) ?: return false
