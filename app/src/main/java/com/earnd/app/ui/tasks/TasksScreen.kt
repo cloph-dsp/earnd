@@ -19,6 +19,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.outlined.Repeat
 import com.earnd.app.ui.theme.Checkbox
 import androidx.compose.material3.FilterChip
@@ -71,7 +74,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
                 Text("Tasks", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-                TextButton(onClick = onNewTask) { Icon(Icons.Outlined.Add, null); Text("Details") }
+                IconButton(onClick = onNewTask) { Icon(Icons.Outlined.EditNote, "New task with details", tint = Earnd.palette.secondary) }
             }
             QuickAdd()
         }
@@ -114,16 +117,17 @@ private fun QuickAdd() {
             }
         }
     }
-    Column {
+    Row(Modifier.padding(top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             value = text, onValueChange = { text = it },
             placeholder = { Text("Add a task") }, singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
             trailingIcon = { IconButton(onClick = { submit() }) { Icon(Icons.Outlined.Add, "Add") } },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.weight(1f),
         )
-        FilterChip(selected = forToday, onClick = { forToday = !forToday }, label = { Text("Due today") })
+        Spacer(Modifier.width(8.dp))
+        FilterChip(selected = forToday, onClick = { forToday = !forToday }, label = { Text("Today") })
     }
 }
 

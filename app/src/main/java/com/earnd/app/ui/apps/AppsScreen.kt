@@ -52,9 +52,21 @@ import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.AppRule
 import com.earnd.app.data.entity.AppRuleEntity
 import com.earnd.app.ui.common.formatMinuteOfDay
+import com.earnd.app.ui.common.formatMinutes
 import com.earnd.app.ui.common.launchUi
 import com.earnd.app.ui.common.rememberPuzzleGate
 import com.earnd.app.domain.minuteOfDay
+import com.earnd.app.domain.today
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.HorizontalDivider
+import com.earnd.app.domain.startOfDay
+import com.earnd.app.ui.onboarding.AppPermissions
+import com.earnd.app.ui.stats.UsageReport
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.Num
+import com.earnd.app.ui.theme.RowDivider
 import kotlinx.coroutines.launch
 
 private val TABS = listOf("Leisure apps", "Websites", "Always open")
@@ -68,11 +80,18 @@ fun AppsScreen(onBack: () -> Unit) {
     var apps by remember { mutableStateOf<List<InstalledApp>?>(null) }
     var pending by remember { mutableStateOf<List<PendingRuleChanges.Pending>>(emptyList()) }
     var reload by remember { mutableIntStateOf(0) }
+    var usage by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
     val rules by remember { sl.db.appRuleDao().observeAll() }.collectAsState(initial = emptyList())
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val gate = rememberPuzzleGate()
     LaunchedEffect(Unit) { sl.essentialApps.refresh(); apps = InstalledApps.load(context) }
+    LaunchedEffect(Unit) {
+        if (AppPermissions.usageAccessOn(context)) {
+            val now = sl.clock.now()
+            usage = UsageReport.today(context, sl.clock.startOfDay(sl.clock.today()), now)?.perApp?.toMap().orEmpty()
+        }
+    }
     LaunchedEffect(reload, rules) { PendingRuleChanges.applyDue(sl.clock.now()); pending = PendingRuleChanges.pending() }
 
     val announce: (Long) -> Unit = { at ->
@@ -91,14 +110,14 @@ fun AppsScreen(onBack: () -> Unit) {
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
-            TabRow(selectedTabIndex = tab) {
-                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, text = { Text(t) }) }
+            TabRow(selectedTabIndex = tab, divider = { RowDivider() }) {
+                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, text = { Text(t, maxLines = 1) }) }
             }
             if (pending.isNotEmpty()) PendingList(pending) { key -> launchUi { PendingRuleChanges.cancel(key); reload++ } }
             when (tab) {
-                0 -> AppList(apps, rules, header = "Leisure apps are metered: they open while you have minutes and cost a share of the time they are in front. A manual pass makes them free for a fixed time.") { app, isLeisure, isEssential ->
+                0 -> AppList(apps, rules, usage, header = "Leisure apps open while you have minutes. The percentage is how much of their screen time is charged.") { app, isLeisure, isEssential ->
                     if (isEssential) {
-                        Text("Always open", style = MaterialTheme.typography.labelSmall)
+                        Text("Always open", style = MaterialTheme.typography.labelSmall, color = Earnd.palette.muted)
                     } else {
                         if (isLeisure) {
                             val cur = rules.firstOrNull { it.key == app.pkg && !it.isWebsite }?.meterPct
@@ -118,28 +137,30 @@ fun AppsScreen(onBack: () -> Unit) {
                 1 -> WebsiteList(rules.filter { it.isWebsite }, onAdd = { host ->
                     launchUi { PendingRuleChanges.addLeisure(host, host, true); reload++ }
                 }, onRemove = { r -> gate { launchUi { announce(PendingRuleChanges.removeLeisure(r.key, r.label, true)) } } })
-                else -> AppList(apps, rules, header = "Calls, messages, maps, settings and this app are always open. Add others here.") { app, isLeisure, isEssential ->
+                else -> AppList(apps, rules, usage, header = "Calls, messages, maps, settings and this app are always open. Add others here.") { app, isLeisure, isEssential ->
                     val userAllowed = rules.any { it.key == app.pkg && it.rule == AppRule.ALLOWED }
                     val builtIn = isEssential && !userAllowed
                     Checkbox(isEssential, enabled = !builtIn, onCheckedChange = { on ->
                         if (on) gate { launchUi { announce(PendingRuleChanges.allow(app.pkg, app.label)) } }
                         else launchUi { PendingRuleChanges.disallow(app.pkg); reload++ }
                     })
-                    if (isLeisure && !isEssential) Text("Leisure", style = MaterialTheme.typography.labelSmall)
+                    if (isLeisure && !isEssential) Text("Leisure", style = MaterialTheme.typography.labelSmall, color = Earnd.palette.amber)
                 }
             }
         }
     }
 }
 
-/** "Charging" selector of a leisure app: 0/25/50/100% of foreground time. */
+/** "Charging" selector of a leisure app: a compact share ("50%") that opens the 0/25/50/100% menu. */
 @Composable
 private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
     var open by remember { mutableStateOf(false) }
+    val rate = Charging.effective(current)
     Box {
-        TextButton(onClick = { open = true }) {
-            Text("Counts ${Charging.effective(current)}% of time", style = MaterialTheme.typography.labelSmall)
-        }
+        Box(
+            Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp).clickable { open = true },
+            contentAlignment = Alignment.Center,
+        ) { Num("$rate%", color = Earnd.palette.amber) }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             Charging.RATES.forEach { r ->
                 DropdownMenuItem(
@@ -171,6 +192,7 @@ private fun PendingList(pending: List<PendingRuleChanges.Pending>, onCancel: (St
 private fun AppList(
     apps: List<InstalledApp>?,
     rules: List<AppRuleEntity>,
+    usage: Map<String, Long>,
     header: String,
     trailing: @Composable (InstalledApp, Boolean, Boolean) -> Unit,
 ) {
@@ -187,27 +209,33 @@ private fun AppList(
         apps.filter { q.isEmpty() || it.label.contains(q, ignoreCase = true) }
             .sortedWith(compareBy<InstalledApp> { it.pkg !in leisure }.thenBy { it.label.lowercase() })
     }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        item { Text(header, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 12.dp)) }
-        item {
-            OutlinedTextField(
-                value = query, onValueChange = { query = it }, singleLine = true,
-                placeholder = { Text("Search apps") },
-                trailingIcon = {
-                    if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, "Clear search") }
-                },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            )
-        }
-        items(shown, key = { it.pkg }) { app ->
-            val isEssential = essentials.isEssential(app.pkg) || app.pkg in allowed
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                val bmp = remember(app.pkg) { runCatching { app.icon?.toBitmap(96, 96)?.asImageBitmap() }.getOrNull() }
-                if (bmp != null) Image(bmp, null, Modifier.size(36.dp)) else Box(Modifier.size(36.dp))
-                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text(app.label, style = MaterialTheme.typography.bodyLarge)
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        OutlinedTextField(
+            value = query, onValueChange = { query = it }, singleLine = true,
+            placeholder = { Text("Search apps") },
+            trailingIcon = {
+                if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, "Clear search") }
+            },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+        )
+        LazyColumn(Modifier.fillMaxSize()) {
+            item { Text(header, style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(vertical = 8.dp)) }
+            if (shown.isEmpty()) item {
+                Text("No apps match.", style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.muted, modifier = Modifier.padding(vertical = 16.dp))
+            }
+            items(shown, key = { it.pkg }) { app ->
+                val isEssential = essentials.isEssential(app.pkg) || app.pkg in allowed
+                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val bmp = remember(app.pkg) { runCatching { app.icon?.toBitmap(96, 96)?.asImageBitmap() }.getOrNull() }
+                    if (bmp != null) Image(bmp, null, Modifier.size(36.dp)) else Box(Modifier.size(36.dp))
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        Text(app.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        val ms = usage[app.pkg] ?: 0L
+                        if (ms >= 60_000L) Num("${formatMinutes((ms / 60_000).toInt())} today", color = Earnd.palette.muted)
+                    }
+                    trailing(app, app.pkg in leisure, isEssential)
                 }
-                trailing(app, app.pkg in leisure, isEssential)
+                RowDivider()
             }
         }
     }
@@ -218,7 +246,7 @@ private fun WebsiteList(sites: List<AppRuleEntity>, onAdd: (String) -> Unit, onR
     var text by remember { mutableStateOf("") }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         item {
-            Text("Sites listed here lock in browsers, including their subdomains.", modifier = Modifier.padding(vertical = 12.dp))
+            Text("Sites listed here lock in browsers, including their subdomains.", style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(vertical = 8.dp))
             OutlinedTextField(
                 value = text, onValueChange = { text = it }, singleLine = true,
                 placeholder = { Text("example.com") },
@@ -231,11 +259,15 @@ private fun WebsiteList(sites: List<AppRuleEntity>, onAdd: (String) -> Unit, onR
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        if (sites.isEmpty()) item {
+            Text("No sites yet.", style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.muted, modifier = Modifier.padding(vertical = 16.dp))
+        }
         items(sites, key = { it.key }) { r ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(r.label, modifier = Modifier.weight(1f))
-                IconButton(onClick = { onRemove(r) }) { Icon(Icons.Outlined.Close, "Remove") }
+            Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(r.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                IconButton(onClick = { onRemove(r) }) { Icon(Icons.Outlined.Close, "Remove ${r.label}") }
             }
+            RowDivider()
         }
     }
 }

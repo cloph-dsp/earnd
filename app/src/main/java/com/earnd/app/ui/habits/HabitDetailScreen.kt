@@ -46,7 +46,14 @@ import com.earnd.app.domain.localDate
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import com.earnd.app.ui.theme.ListRow
+import com.earnd.app.ui.theme.Num
+import com.earnd.app.ui.theme.RowDivider
+import java.time.DayOfWeek
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Archive
@@ -71,6 +78,7 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
     var year by remember { mutableStateOf<List<CheckInEntity>>(emptyList()) }
     var month by remember { mutableStateOf(YearMonth.from(today)) }
     var reload by remember { mutableIntStateOf(0) }
+    var confirmArchive by remember { mutableStateOf(false) }
     // Reload whenever today's check-ins change (undo here, or check-in elsewhere).
     val todays by remember { sl.db.checkInDao().observeForDay(today.toEpochDay()) }.collectAsState(initial = emptyList())
     LaunchedEffect(habitId, reload, todays.size) {
@@ -97,12 +105,19 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
             if (h.archived) {
                 TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id); reload++ } }) { Text("Restore") }
             } else {
-                IconButton(onClick = { launchUi { sl.habitService.archive(h.id); onBack() } }) { Icon(Icons.Outlined.Archive, "Archive") }
+                IconButton(onClick = { confirmArchive = true }) { Icon(Icons.Outlined.Archive, "Archive") }
             }
         }
         IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, "Edit") }
     }) {
         if (h == null) return@EditScaffold
+        if (confirmArchive) AlertDialog(
+            onDismissRequest = { confirmArchive = false },
+            title = { Text("Archive ${h.name}?") },
+            text = { Text("It leaves Today and stops counting. You can restore it from the Habits tab.") },
+            confirmButton = { TextButton(onClick = { confirmArchive = false; launchUi { sl.habitService.archive(h.id); onBack() } }) { Text("Archive") } },
+            dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text("Cancel") } },
+        )
         Text(
             when (streak) { 0 -> "A fresh start today."; 1 -> "Done 1 day in a row."; else -> "Done $streak days in a row." },
             style = MaterialTheme.typography.titleMedium,
@@ -139,45 +154,23 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
             Text("Only the last year is shown here.", style = MaterialTheme.typography.bodySmall)
         }
 
-        SectionTitle("Last $WEEKS weeks")
-        val counts = history.groupingBy { it.epochDay }.eachCount()
-        HistoryGrid(today, counts, h.timesPerDay, Color(h.colorArgb))
-
         SectionTitle("Recent check-ins")
         if (history.isEmpty()) Text("No check-ins yet.", style = MaterialTheme.typography.bodyMedium)
         history.sortedByDescending { it.at }.take(30).forEach { c ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    formatDay(c.epochDay) + " · " + formatMinuteOfDay(sl.clock.minuteOfDay(c.at)) +
-                        (if (c.minutesEarned > 0) " · +${c.minutesEarned} min" else "") +
-                        (c.quantity?.let { " · $it ${h.unit.orEmpty()}" } ?: ""),
-                    modifier = Modifier.weight(1f),
+            val p = Earnd.palette
+            ListRow(onClick = {}, minHeight = 48.dp) {
+                Text(formatDay(c.epochDay), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Num(
+                    formatMinuteOfDay(sl.clock.minuteOfDay(c.at)) + (c.quantity?.let { " · $it ${h.unit.orEmpty()}" } ?: ""),
+                    color = p.secondary,
                 )
-                if (c.photoPath != null) Icon(Icons.Outlined.PhotoCamera, "Photo", modifier = Modifier.padding(end = 4.dp))
-                TextButton(onClick = { launchUi { HabitActions.undo(c.id); reload++ } }) { Text("Undo") }
-            }
-        }
-    }
-}
-
-/** Columns are weeks (oldest left), rows Monday..Sunday; shade by how much of the day's target was done. */
-@Composable
-private fun HistoryGrid(today: java.time.LocalDate, counts: Map<Long, Int>, perDay: Int, color: Color) {
-    val lastMonday = today.minusDays((today.dayOfWeek.value - 1).toLong())
-    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        for (w in WEEKS - 1 downTo 0) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                for (d in 0 until 7) {
-                    val day = lastMonday.minusWeeks(w.toLong()).plusDays(d.toLong())
-                    val n = counts[day.toEpochDay()] ?: 0
-                    val fill = when {
-                        day.isAfter(today) -> Color.Transparent
-                        n == 0 -> MaterialTheme.colorScheme.surfaceVariant
-                        else -> color.copy(alpha = (0.35f + 0.65f * (n.toFloat() / perDay).coerceAtMost(1f)))
-                    }
-                    Box(Modifier.size(16.dp).background(fill, RoundedCornerShape(1.dp)))
+                if (c.minutesEarned > 0) Num("+${c.minutesEarned}", Modifier.padding(start = 10.dp), color = p.amber)
+                if (c.photoPath != null) Icon(Icons.Outlined.PhotoCamera, "Photo", Modifier.padding(start = 8.dp).size(16.dp), tint = p.muted)
+                IconButton(onClick = { launchUi { HabitActions.undo(c.id); reload++ } }) {
+                    Icon(Icons.AutoMirrored.Outlined.Undo, "Undo check-in", tint = p.secondary)
                 }
             }
+            RowDivider()
         }
     }
 }
@@ -195,8 +188,11 @@ private fun Stat(label: String, value: Int, modifier: Modifier = Modifier) {
 private fun MonthCalendar(month: YearMonth, today: LocalDate, h: HabitEntity, byDay: Map<Long, List<CheckInEntity>>, color: Color) {
     val sl = ServiceLocator
     Row(Modifier.fillMaxWidth()) {
-        listOf("M", "T", "W", "T", "F", "S", "S").forEach {
-            Text(it, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+        DayOfWeek.entries.forEach {
+            Text(
+                it.getDisplayName(TextStyle.NARROW, Locale.getDefault()), Modifier.weight(1f),
+                style = MaterialTheme.typography.labelSmall, color = Earnd.palette.secondary, textAlign = TextAlign.Center,
+            )
         }
     }
     HabitCalendar.monthCells(month).chunked(7).forEach { week ->
@@ -213,15 +209,15 @@ private fun MonthCalendar(month: YearMonth, today: LocalDate, h: HabitEntity, by
                             else -> Color.Transparent
                         }
                         Box(
-                            Modifier.fillMaxSize().background(bg, CircleShape)
-                                .then(if (d == today) Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground, CircleShape) else Modifier),
+                            Modifier.fillMaxSize().background(bg, RectangleShape)
+                                .then(if (d == today) Modifier.border(1.5.dp, Earnd.palette.amber, RectangleShape) else Modifier),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 "${d.dayOfMonth}",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = when {
-                                    done -> Color.White
+                                    done -> if (color.luminance() > 0.5f) Color.Black else Color.White
                                     faint -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                                     else -> MaterialTheme.colorScheme.onSurface
                                 },
