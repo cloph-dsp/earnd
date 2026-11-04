@@ -133,7 +133,7 @@ fun TimeBankCard(
 @Composable
 private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
     val p = Earnd.palette
-    val options = UnlockCap.choices(SPEND_CHOICES, balance, cap)
+    val options = UnlockCap.choices(SPEND_CHOICES, balance, cap).take(5)
     var pick by remember(balance, cap) { mutableIntStateOf(options.first()) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() } }
@@ -148,7 +148,7 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
                     .selectable(selected = sel, role = Role.RadioButton, onClick = { pick = m }),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("$m", style = NumberStyle, color = if (sel) p.onAmber else p.text)
+                Text(if (m == balance) "All" else if (m == options.last() && cap != null) "Max $m" else "$m", style = NumberStyle, color = if (sel) p.onAmber else p.text)
             }
         }
     }

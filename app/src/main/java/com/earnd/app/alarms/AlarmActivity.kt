@@ -15,7 +15,11 @@ import androidx.lifecycle.lifecycleScope
 import com.earnd.app.alarms.AlarmKeys.putOwner
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.ui.theme.EarndTheme
+import com.earnd.app.ServiceLocator
+import com.earnd.app.ui.habits.HabitRules
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 
 /** Full-screen ringing alarm over the lock screen: Stop, Snooze (while allowed) and Mark done. */
@@ -47,6 +51,8 @@ class AlarmActivity : ComponentActivity() {
         val actions = AlarmsModule.actions
         var label by mutableStateOf(intent.getStringExtra(AlarmKeys.EXTRA_LABEL).orEmpty())
         var left by mutableStateOf(0)
+        var ignored by mutableStateOf(0)
+        var reward by mutableStateOf(0)
         // Show Stop immediately; label and snoozes fill in after the DB read.
         setContent {
             EarndTheme {
@@ -54,8 +60,8 @@ class AlarmActivity : ComponentActivity() {
                     label = label,
                     snoozesLeft = left,
                     snoozeMinutes = NagSchedule.SNOOZE_MIN,
-                    ignoredCount = intent.getIntExtra("com.earnd.app.alarms.EXTRA_IGNORED", 0),
-                    rewardMinutes = intent.getIntExtra("com.earnd.app.alarms.EXTRA_REWARD_MIN", 0),
+                    ignoredCount = ignored,
+                    rewardMinutes = reward,
                     onStop = { act { actions.stop(o.first, o.second) } },
                     onSnooze = { act { actions.snooze(o.first, o.second) } },
                     onDone = { act { actions.done(o.first, o.second) } },
@@ -65,6 +71,16 @@ class AlarmActivity : ComponentActivity() {
         lifecycleScope.launch {
             runCatching { actions.labelOf(o.first, o.second) }.getOrNull()?.takeIf { it.isNotBlank() }?.let { label = it }
             left = runCatching { actions.snoozesLeft(o.first, o.second) }.getOrDefault(0)
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val sl = ServiceLocator
+                    ignored = sl.db.nagStateDao().get(o.first, o.second)?.nagCount ?: 0
+                    reward = when (o.first) {
+                        OwnerKind.HABIT -> sl.db.habitDao().get(o.second)?.let { HabitRules.rewardMinutes(it, sl.settings.current()) } ?: 0
+                        OwnerKind.TASK -> sl.db.taskDao().get(o.second)?.let { (it.rewardMinutes ?: sl.settings.current().defaultTaskRewardMin ?: 0).coerceAtLeast(0) } ?: 0
+                    }
+                }
+            }
         }
     }
 

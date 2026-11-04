@@ -241,7 +241,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                 val bySegment = restHabits.groupBy { it.habit.segment }
                 SEGMENT_ORDER.forEach { seg ->
                     val list = bySegment[seg].orEmpty()
-                    if (list.isNotEmpty()) {
+                    if (habits.any { it.habit.segment == seg }) {
                         item(key = "seg-$seg") {
                             val all = habits.filter { it.habit.segment == seg }
                             val done = all.count(doneOf)
