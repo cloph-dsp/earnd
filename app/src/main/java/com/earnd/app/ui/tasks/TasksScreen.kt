@@ -88,7 +88,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
                     Text((if (showCompleted) "Hide" else "Show") + " completed (${completed.size})")
                 }
             }
-            if (showCompleted) items(completed, key = { "c${it.id}" }) { t -> TaskRow(t, onOpenTask); RowDivider() }
+            if (showCompleted) items(completed, key = { "c${it.id}" }) { t -> TaskRow(t, onOpenTask) }
         }
     }
 }
@@ -96,7 +96,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
 private fun LazyListScope.taskSection(b: TaskBucket, tasks: List<TaskEntity>, onOpen: (Long) -> Unit) {
     if (tasks.isEmpty()) return
     item(key = "h$b") { SectionTitle(bucketLabel(b)) }
-    items(tasks, key = { it.id }) { t -> TaskRow(t, onOpen); RowDivider() }
+    items(tasks, key = { it.id }) { t -> TaskRow(t, onOpen) }
 }
 
 @Composable
@@ -135,7 +135,7 @@ private fun QuickAdd() {
 fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
     val done = t.completedAt != null
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { onOpen(t.id) },
+        Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable { onOpen(t.id) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(

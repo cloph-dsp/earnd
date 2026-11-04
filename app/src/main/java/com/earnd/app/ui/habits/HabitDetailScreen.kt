@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -158,19 +159,20 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
         if (history.isEmpty()) Text("No check-ins yet.", style = MaterialTheme.typography.bodyMedium)
         history.sortedByDescending { it.at }.take(30).forEach { c ->
             val p = Earnd.palette
-            ListRow(onClick = {}, minHeight = 48.dp) {
-                Text(formatDay(c.epochDay), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                Num(
-                    formatMinuteOfDay(sl.clock.minuteOfDay(c.at)) + (c.quantity?.let { " · $it ${h.unit.orEmpty()}" } ?: ""),
-                    color = p.secondary,
-                )
-                if (c.minutesEarned > 0) Num("+${c.minutesEarned}", Modifier.padding(start = 10.dp), color = p.amber)
+            ListRow(onClick = {}, minHeight = 60.dp) {
+                Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+                    Text(formatDay(c.epochDay), style = MaterialTheme.typography.bodyMedium)
+                    Num(
+                        formatMinuteOfDay(sl.clock.minuteOfDay(c.at)) + (c.quantity?.let { " · $it ${h.unit.orEmpty()}" } ?: ""),
+                        color = p.secondary,
+                    )
+                }
+                if (c.minutesEarned > 0) Num("+${c.minutesEarned}", Modifier.padding(start = 10.dp), color = p.amber, style = NumberStyle.copy(fontSize = 14.sp))
                 if (c.photoPath != null) Icon(Icons.Outlined.PhotoCamera, "Photo", Modifier.padding(start = 8.dp).size(16.dp), tint = p.muted)
                 IconButton(onClick = { launchUi { HabitActions.undo(c.id); reload++ } }) {
                     Icon(Icons.AutoMirrored.Outlined.Undo, "Undo check-in", tint = p.secondary)
                 }
             }
-            RowDivider()
         }
     }
 }
@@ -178,7 +180,7 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
 @Composable
 private fun Stat(label: String, value: Int, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        com.earnd.app.ui.theme.Num("$value", color = Earnd.palette.text, style = NumberStyle.copy(fontSize = 22.sp, lineHeight = 26.sp))
+        Text("$value", color = if (value > 0) Earnd.palette.amber else Earnd.palette.secondary, style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp, lineHeight = 36.sp))
         Text(label, style = MaterialTheme.typography.labelSmall, color = Earnd.palette.secondary)
     }
 }
@@ -198,28 +200,34 @@ private fun MonthCalendar(month: YearMonth, today: LocalDate, h: HabitEntity, by
     HabitCalendar.monthCells(month).chunked(7).forEach { week ->
         Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
             week.forEach { d ->
-                Box(Modifier.weight(1f).aspectRatio(1.3f).padding(2.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.weight(1f).height(44.dp).padding(2.dp), contentAlignment = Alignment.Center) {
                     if (d != null) {
                         val list = byDay[d.toEpochDay()].orEmpty()
                         val done = HabitRules.dayComplete(h, list)
                         val faint = d.isAfter(today) || !sl.habitService.isScheduled(h, d)
-                        val bg = when {
-                            done -> color
-                            list.isNotEmpty() -> color.copy(alpha = 0.35f)
-                            else -> Color.Transparent
+                        val p = Earnd.palette
+                        // Habit color only for earned days: filled when done, outlined when partly done.
+                        // Today is a neutral outline, so color keeps meaning "earned".
+                        val bg = if (done) color else Color.Transparent
+                        val outline = when {
+                            done -> null
+                            list.isNotEmpty() -> color
+                            d == today -> p.text
+                            else -> null
                         }
                         Box(
                             Modifier.fillMaxSize().background(bg, RectangleShape)
-                                .then(if (d == today) Modifier.border(1.5.dp, Earnd.palette.amber, RectangleShape) else Modifier),
+                                .then(if (outline != null) Modifier.border(1.5.dp, outline, RectangleShape) else Modifier),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
+                            Num(
                                 "${d.dayOfMonth}",
-                                style = MaterialTheme.typography.labelMedium,
+                                style = NumberStyle.copy(fontSize = 14.sp, lineHeight = 18.sp),
                                 color = when {
                                     done -> if (color.luminance() > 0.5f) Color.Black else Color.White
-                                    faint -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                                    else -> MaterialTheme.colorScheme.onSurface
+                                    list.isNotEmpty() -> color
+                                    faint -> p.done
+                                    else -> p.text
                                 },
                             )
                         }

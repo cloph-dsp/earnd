@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
@@ -74,11 +76,7 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit) {
 
     Scaffold(
         floatingActionButton = {
-            if (!reorder) ExtendedFloatingActionButton(
-                onClick = onAddHabit, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text("Habit") },
-                containerColor = p.raised, contentColor = MaterialTheme.colorScheme.onBackground,
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
-            )
+            if (!reorder) com.earnd.app.ui.theme.AddFab(onClick = onAddHabit, description = "Add habit")
         },
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
@@ -90,7 +88,6 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit) {
                         Icon(Icons.Outlined.SwapVert, "Reorder habits", tint = p.secondary)
                     }
                 }
-                RowDivider()
             }
             val list = rows
             if (list != null && list.isEmpty()) item {
@@ -103,12 +100,10 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit) {
                         IconButton(enabled = i > 0, onClick = { move(i, i - 1) }) { Icon(Icons.Outlined.KeyboardArrowUp, "Move up") }
                         IconButton(enabled = i < order.lastIndex, onClick = { move(i, i + 1) }) { Icon(Icons.Outlined.KeyboardArrowDown, "Move down") }
                     }
-                    RowDivider()
                 }
             } else {
                 items(list.orEmpty(), key = { "h${it.first.habit.id}" }) { (d, due) ->
                     HabitOverviewRow(d, due, streaks[d.habit.id] ?: 0, onOpen = { onOpenHabit(d.habit.id) })
-                    RowDivider()
                 }
             }
             if (archived.isNotEmpty()) {
@@ -117,7 +112,6 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit) {
                     Line(h, onOpen = { onOpenHabit(h.id) }, muted = true) {
                         TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id) } }) { Text("Restore") }
                     }
-                    RowDivider()
                 }
             }
             item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 88.dp)) }
@@ -131,9 +125,8 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
         .collectAsState(initial = com.earnd.app.data.Settings())
     val h = d.habit
     val p = Earnd.palette
-    com.earnd.app.ui.theme.ListRow(onOpen, minHeight = 56.dp) {
-        Icon(HabitLook.icon(h.iconKey), null, tint = Color(h.colorArgb), modifier = Modifier.size(16.dp))
-        Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp)) {
+    com.earnd.app.ui.theme.ListRow(onOpen, minHeight = 64.dp) {
+        Column(Modifier.weight(1f).padding(end = 12.dp, top = 6.dp, bottom = 6.dp)) {
             Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (d.complete) p.done else p.text)
             val focusing = com.earnd.app.focus.focusLabel(h.id)
             if (focusing != null) com.earnd.app.ui.theme.Num(focusing, color = p.amber)
@@ -157,24 +150,23 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
                 Text(com.earnd.app.focus.startLabel(h, settings), color = p.amber)
             }
         }
-        Column(horizontalAlignment = Alignment.End) {
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(min = 64.dp)) {
             val today = when {
                 d.complete -> if (d.done > d.required) "${d.done}/${d.required} ✓" else "done"
                 !due -> "rest"
                 else -> "${d.done}/${d.required}"
             }
             Num(today, color = if (d.complete) p.amber else if (due) p.secondary else p.muted)
-            Num(if (streak > 0) "${streak}d" else "-", color = if (streak > 0) p.secondary else p.muted)
+            if (streak > 0) Num("streak ${streak}d", color = p.muted, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 12.sp))
         }
     }
 }
 
 @Composable
 private fun Line(h: HabitEntity, onOpen: () -> Unit, muted: Boolean = false, trailing: @Composable () -> Unit) {
-    com.earnd.app.ui.theme.ListRow(onOpen) {
-        Icon(HabitLook.icon(h.iconKey), null, tint = Color(h.colorArgb), modifier = Modifier.size(16.dp))
+    com.earnd.app.ui.theme.ListRow(onOpen, minHeight = 56.dp) {
         Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (muted) Earnd.palette.muted else Earnd.palette.text,
-            modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
+            modifier = Modifier.weight(1f).padding(end = 12.dp))
         trailing()
     }
 }

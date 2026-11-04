@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
-        style = MaterialTheme.typography.titleSmall.copy(fontSize = 11.sp),
+        style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.padding(top = 28.dp, bottom = 6.dp),
     )

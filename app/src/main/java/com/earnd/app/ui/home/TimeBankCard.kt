@@ -36,6 +36,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import com.earnd.app.ui.theme.Num
 import com.earnd.app.ui.theme.DrainRuler
+import com.earnd.app.ui.theme.DrainScale
+import com.earnd.app.ui.theme.QuietButton
 import com.earnd.app.data.entity.SessionReason
 import com.earnd.app.data.entity.UnlockSessionEntity
 import com.earnd.app.ui.common.UiFormats
@@ -71,7 +73,7 @@ fun TimeBankCard(
 ) {
     val p = Earnd.palette
     ChamferPanel(modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val s = state.session
             var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
             LaunchedEffect(s?.id) { while (s != null) { now = System.currentTimeMillis(); delay(1000) } }
@@ -80,13 +82,13 @@ fun TimeBankCard(
                 val total = (s.plannedEndAt - s.startedAt).coerceAtLeast(1L)
                 Text(
                     if (s.reason == SessionReason.ALL_DONE) "OPEN FOR THE REST OF TODAY" else "OPEN · TIME LEFT",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp), color = p.secondary,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp), color = p.secondary,
                 )
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text("${((leftMs + 59_999) / 60_000).toInt()}", style = NumberStyle.copy(fontSize = 48.sp, lineHeight = 52.sp), color = p.amber)
-                    Text(" min", Modifier.padding(bottom = 6.dp), style = MaterialTheme.typography.bodyMedium, color = p.secondary)
+                    Text("${((leftMs + 59_999) / 60_000).toInt()}", style = NumberStyle.copy(fontSize = 64.sp, lineHeight = 64.sp), color = p.amber)
+                    Text(" min", Modifier.padding(bottom = 8.dp), style = MaterialTheme.typography.bodyLarge, color = p.secondary)
                     Spacer(Modifier.weight(1f))
-                    Num(formatRemaining(leftMs), Modifier.padding(bottom = 6.dp), color = p.secondary)
+                    Num(formatRemaining(leftMs), Modifier.padding(bottom = 8.dp), color = p.secondary)
                 }
                 DrainRuler(leftMs.toFloat() / total)
                 Num("Until " + UiFormats.value.formatTime(s.plannedEndAt, java.time.ZoneId.systemDefault()), color = p.secondary)
@@ -98,14 +100,15 @@ fun TimeBankCard(
             } else {
                 // The unlock cap limits one session, not the bank, so it is not a scale for the balance.
                 val scale = maxOf(DRAIN_REFERENCE_MIN, (state.balance + 29) / 30 * 30)
-                Text("LOCKED · BALANCE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp), color = p.secondary)
+                Text("LOCKED · BALANCE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp), color = p.secondary)
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(if (state.loading) "—" else "${state.balance}", style = NumberStyle.copy(fontSize = 34.sp, lineHeight = 38.sp), color = p.amber)
-                    Text(" min", Modifier.padding(bottom = 4.dp), style = MaterialTheme.typography.bodySmall, color = p.secondary)
+                    Text(if (state.loading) "—" else "${state.balance}", style = NumberStyle.copy(fontSize = 64.sp, lineHeight = 64.sp), color = p.amber)
+                    Text(" min", Modifier.padding(bottom = 8.dp), style = MaterialTheme.typography.bodyLarge, color = p.secondary)
                     Spacer(Modifier.weight(1f))
-                    Num("of $scale min", Modifier.padding(bottom = 4.dp), color = p.secondary)
+                    Num("of $scale min", Modifier.padding(bottom = 8.dp), color = p.secondary)
                 }
                 DrainRuler(state.balance, scale)
+                DrainScale(scale)
                 if (state.nextExpiryAt != null && state.minutesExpiringNext > 0) {
                     Num(
                         "${state.minutesExpiringNext} min expire at " +
@@ -139,23 +142,21 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() } }
     Text("Minutes to open", style = MaterialTheme.typography.labelSmall, color = p.secondary)
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { m ->
             val sel = m == pick
             Box(
-                Modifier.weight(1f).heightIn(min = 48.dp)
-                    .background(if (sel) p.amber else Color.Transparent)
-                    .border(1.dp, if (sel) p.amber else p.line)
+                Modifier.weight(1f).heightIn(min = 52.dp)
+                    .background(if (sel) p.amberFill else Color.Transparent)
+                    .border(1.dp, if (sel) p.amberFill else p.edge)
                     .selectable(selected = sel, role = Role.RadioButton, onClick = { pick = m }),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(if (m == balance) "All" else if (m == options.last() && cap != null) "Max $m" else "$m", style = NumberStyle, color = if (sel) p.onAmber else p.text)
+                Text(if (m == balance) "All" else if (m == options.last() && cap != null) "Max $m" else "$m", style = NumberStyle.copy(fontSize = 15.sp, lineHeight = 18.sp), color = if (sel) p.onAmber else p.text)
             }
         }
     }
-    Button(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Unlock ${formatMinutes(pick)}") }
-    Text(
-        "Leisure apps until " + UiFormats.value.formatTime(now + pick * 60_000L, java.time.ZoneId.systemDefault()),
-        style = MaterialTheme.typography.bodySmall, color = p.secondary,
-    )
+    QuietButton(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+        Text("Unlock ${formatMinutes(pick)} · until " + UiFormats.value.formatTime(now + pick * 60_000L, java.time.ZoneId.systemDefault()), style = MaterialTheme.typography.labelLarge)
+    }
 }

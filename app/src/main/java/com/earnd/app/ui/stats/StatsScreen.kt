@@ -135,7 +135,7 @@ private fun PairedBars(days: List<LocalDate>, earned: Map<Long, Int>, spent: Map
                 Modifier.weight(1f).semantics { contentDescription = "${dayLabel(d)}: earned $e min, spent $s min" },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Num("$e", color = if (e > 0) p.amber else p.muted, style = NumberStyle.copy(fontSize = 10.sp))
+                Num("$e", color = if (e > 0) p.amber else p.muted, style = NumberStyle.copy(fontSize = 12.sp))
                 Row(Modifier.fillMaxWidth().height(104.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
                     Box(Modifier.weight(1f).height((100f * e / max).dp.coerceAtLeast(2.dp)).background(if (e == 0) p.line else p.amber))
                     Box(Modifier.weight(1f).height((100f * s / max).dp.coerceAtLeast(2.dp)).background(if (s == 0) p.line else p.muted))

@@ -20,23 +20,23 @@ private fun ui(size: Int, weight: FontWeight = FontWeight.Medium, line: Int = si
 )
 
 /** Numbers, times and counters only. */
-val NumberStyle = TextStyle(fontFamily = PlexMono, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 14.sp)
+val NumberStyle = TextStyle(fontFamily = PlexMono, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 16.sp)
 
-/** Compact scale: body 13-14sp, section headings 12sp, screen titles 18sp, time bank 22sp. */
+/** Scale with a 13sp floor (small light-on-dark text reads worse): body 15-17sp, labels 13sp, screen titles 22sp. */
 val EarndTypography = Typography(
     displayLarge = ui(22, FontWeight.SemiBold),
     displayMedium = ui(22, FontWeight.SemiBold),
     displaySmall = ui(22, FontWeight.SemiBold, 28),
-    headlineLarge = ui(18, FontWeight.SemiBold),
-    headlineMedium = ui(18, FontWeight.SemiBold),
-    headlineSmall = ui(18, FontWeight.SemiBold),
-    titleLarge = ui(18, FontWeight.SemiBold),
-    titleMedium = ui(14, FontWeight.SemiBold),
-    titleSmall = ui(12, FontWeight.SemiBold, 16),
-    bodyLarge = ui(14),
-    bodyMedium = ui(13),
-    bodySmall = ui(12, line = 16),
-    labelLarge = ui(13, FontWeight.SemiBold),
-    labelMedium = ui(12),
-    labelSmall = ui(11, line = 14),
+    headlineLarge = ui(22, FontWeight.SemiBold, 28),
+    headlineMedium = ui(22, FontWeight.SemiBold, 28),
+    headlineSmall = ui(22, FontWeight.SemiBold, 28),
+    titleLarge = ui(22, FontWeight.SemiBold, 28),
+    titleMedium = ui(17, FontWeight.SemiBold, 22),
+    titleSmall = ui(13, FontWeight.SemiBold, 18),
+    bodyLarge = ui(17, line = 22),
+    bodyMedium = ui(15, line = 20),
+    bodySmall = ui(13, line = 18),
+    labelLarge = ui(15, FontWeight.SemiBold, 20),
+    labelMedium = ui(13, line = 18),
+    labelSmall = ui(13, line = 16),
 )

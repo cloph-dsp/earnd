@@ -32,6 +32,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.Icon
 
 private val ButtonPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 
@@ -68,7 +72,7 @@ fun OutlinedButton(
 ) = androidx.compose.material3.OutlinedButton(
     onClick, modifier, enabled, shape = Chamfer,
     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
-    border = BorderStroke(1.dp, if (enabled) Earnd.palette.muted else Earnd.palette.line),
+    border = BorderStroke(1.dp, if (enabled) Earnd.palette.edge else Earnd.palette.line),
     contentPadding = ButtonPadding, content = content,
 )
 
@@ -104,9 +108,9 @@ fun DrainRuler(balance: Int, full: Int, modifier: Modifier = Modifier) {
     val p = Earnd.palette
     val f = full.coerceAtLeast(1)
     val filled = if (balance <= 0) 0 else kotlin.math.ceil(balance.coerceAtMost(f) * DRAIN_SEGMENTS.toDouble() / f).toInt()
-    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         repeat(DRAIN_SEGMENTS) { i ->
-            Box(Modifier.weight(1f).height(6.dp).background(if (i < filled) p.amber else p.drainEmpty))
+            Box(Modifier.weight(1f).height(8.dp).background(if (i < filled) p.amberFill else p.drainEmpty))
         }
     }
 }
@@ -119,17 +123,48 @@ fun DrainRuler(balance: Int, full: Int, modifier: Modifier = Modifier) {
 fun DrainRuler(fraction: Float, modifier: Modifier = Modifier) {
     val p = Earnd.palette
     val level = fraction.coerceIn(0f, 1f) * DRAIN_SEGMENTS
-    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         repeat(DRAIN_SEGMENTS) { i ->
             val part = (level - i).coerceIn(0f, 1f)
-            Box(Modifier.weight(1f).height(6.dp).background(p.drainEmpty)) {
-                if (part > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(part).background(p.amber))
+            Box(Modifier.weight(1f).height(8.dp).background(p.drainEmpty)) {
+                if (part > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(part).background(p.amberFill))
             }
         }
     }
 }
 
 private const val DRAIN_SEGMENTS = 10
+
+/** Scale under a [DrainRuler]: 0, half and full, in minutes, so the shape can be read as a quantity. */
+@Composable
+fun DrainScale(full: Int, modifier: Modifier = Modifier) {
+    val style = NumberStyle.copy(fontSize = 12.sp)
+    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Num("0", color = Earnd.palette.muted, style = style)
+        Num("${full / 2}", color = Earnd.palette.muted, style = style)
+        Num("$full", color = Earnd.palette.muted, style = style)
+    }
+}
+
+/** Icon-only add button: a quiet chamfered square, so it never competes with the one red action. */
+@Composable
+fun AddFab(onClick: () -> Unit, description: String, modifier: Modifier = Modifier) {
+    val p = Earnd.palette
+    Surface(onClick, modifier.size(56.dp), shape = Chamfer, color = p.raised, border = BorderStroke(1.dp, p.edge)) {
+        Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Add, description, tint = p.text) }
+    }
+}
+
+/** Segmented progress: [done] of [total] cells filled, in the same shape language as [DrainRuler]. */
+@Composable
+fun SegmentBar(done: Int, total: Int, modifier: Modifier = Modifier) {
+    val p = Earnd.palette
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        repeat(total.coerceAtLeast(1)) { i ->
+            Box(Modifier.weight(1f).height(6.dp).background(if (i < done) p.amberFill else p.drainEmpty))
+        }
+    }
+}
 
 /** Raised neutral button. */
 @Composable
@@ -147,7 +182,7 @@ fun FilledTonalButton(
 )
 
 /**
- * Square 14dp outline checkbox inside a 48dp touch target. Amber when [reward] (habits, rewarded tasks),
+ * Square 20dp outline checkbox inside a 48dp touch target. Amber when [reward] (habits, rewarded tasks),
  * text-colored otherwise; filled muted once done.
  */
 @Composable
@@ -170,8 +205,8 @@ fun Checkbox(
     } else Modifier
     Box(modifier.then(toggle).size(48.dp), contentAlignment = Alignment.Center) {
         Box(
-            Modifier.size(14.dp)
-                .border(1.5.dp, edge, RectangleShape)
+            Modifier.size(20.dp)
+                .border(2.dp, edge, RectangleShape)
                 .background(if (checked) p.done else Color.Transparent, RectangleShape),
         )
     }
@@ -194,7 +229,7 @@ fun RowDivider(modifier: Modifier = Modifier) =
 /** Lowercase "earnd" in Chakra Petch 600, amber. */
 @Composable
 fun Wordmark(modifier: Modifier = Modifier) =
-    Text("earnd", modifier, color = Earnd.palette.amber, style = MaterialTheme.typography.titleLarge)
+    Text("earnd", modifier, color = Earnd.palette.amber, style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp))
 
 /** Mono numerals for counts, times and minutes. */
 @Composable
