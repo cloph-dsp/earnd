@@ -43,6 +43,8 @@ import kotlinx.coroutines.delay
 
 data class BankState(
     val balance: Int,
+    /** True until the balance has been read; the card shows a dash instead of a misleading 0. */
+    val loading: Boolean = false,
     val session: UnlockSessionEntity?,
     val hardMode: Boolean,
     val unlockCapMin: Int? = null,
@@ -85,7 +87,7 @@ fun TimeBankCard(
             } else {
                 Text("LOCKED · BALANCE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp), color = p.secondary)
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text("${state.balance}", style = NumberStyle.copy(fontSize = 34.sp, lineHeight = 38.sp), color = p.amber)
+                    Text(if (state.loading) "—" else "${state.balance}", style = NumberStyle.copy(fontSize = 34.sp, lineHeight = 38.sp), color = p.amber)
                     Text(" min", Modifier.padding(bottom = 4.dp), style = MaterialTheme.typography.bodySmall, color = p.secondary)
                 }
                 DrainRuler(state.balance, state.unlockCapMin ?: DRAIN_REFERENCE_MIN)

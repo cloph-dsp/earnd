@@ -68,4 +68,13 @@ class TodayHabitsTest {
         job.cancel()
         assertEquals(listOf(1, 0), seen.toList())
     }
+
+    @Test fun observedRollingBalanceMatchesLedger() = runBlocking {
+        val settings = SettingsRepository(FakeSettingDao(), clock, ChangeBus())
+        val bank = TimeBank(FakeLedgerDao(), FakeSessionDao(), settings, clock, ChangeBus())
+        bank.earn(50, com.earnd.app.data.entity.LedgerKind.EARN_HABIT, com.earnd.app.data.entity.OwnerKind.HABIT, 1)
+        bank.earn(5, com.earnd.app.data.entity.LedgerKind.EARN_HABIT, com.earnd.app.data.entity.OwnerKind.HABIT, 2)
+        assertEquals(55, bank.observeBalance().first().minutes)
+        assertEquals(55, bank.balance().minutes)
+    }
 }
