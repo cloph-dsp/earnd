@@ -19,9 +19,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.Box
+import com.earnd.app.ui.theme.AddFab
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.outlined.Repeat
 import com.earnd.app.ui.theme.Checkbox
 import androidx.compose.material3.FilterChip
@@ -70,11 +74,12 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
     val completed by remember { ts.observeBucket(TaskBucket.COMPLETED) }.collectAsState(initial = emptyList())
     var showCompleted by rememberSaveable { mutableStateOf(false) }
 
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+    // Same frame as the Habits tab: 22sp title row, quiet add button bottom right, flat rows.
+    Scaffold(floatingActionButton = { AddFab(onClick = onNewTask, description = "New task with details") }) { pad ->
+    LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
-                Text("Tasks", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-                IconButton(onClick = onNewTask) { Icon(Icons.Outlined.EditNote, "New task with details", tint = Earnd.palette.secondary) }
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Tasks", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             }
             QuickAdd()
         }
@@ -90,6 +95,8 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
             }
             if (showCompleted) items(completed, key = { "c${it.id}" }) { t -> TaskRow(t, onOpenTask) }
         }
+        item { Box(Modifier.size(88.dp)) }
+    }
     }
 }
 
@@ -135,7 +142,7 @@ private fun QuickAdd() {
 fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
     val done = t.completedAt != null
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable { onOpen(t.id) },
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable { onOpen(t.id) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(
@@ -160,9 +167,11 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
             val meta = buildList {
                 t.dueEpochDay?.let { add(formatDay(it) + (t.dueMinuteOfDay?.let { m -> " " + formatMinuteOfDay(m) } ?: "")) }
             }
-            if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
+            if (meta.isNotEmpty() || t.repeats) Row(verticalAlignment = Alignment.CenterVertically) {
+                if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
+                if (t.repeats) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.padding(start = 8.dp).size(14.dp))
+            }
         }
-        t.rewardMinutes?.takeIf { it > 0 }?.let { Num("+$it", Modifier.padding(horizontal = 8.dp), color = if (done) Earnd.palette.done else Earnd.palette.amber) }
-        if (t.repeats) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.size(16.dp))
+        t.rewardMinutes?.takeIf { it > 0 }?.let { Num("+$it", Modifier.padding(start = 8.dp).widthIn(min = 40.dp), color = if (done) Earnd.palette.done else Earnd.palette.amber, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 14.sp)) }
     }
 }
