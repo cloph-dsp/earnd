@@ -43,8 +43,6 @@ import kotlinx.coroutines.delay
 
 data class BankState(
     val balance: Int,
-    /** True until the balance has been read; the card shows a dash instead of a misleading 0. */
-    val loading: Boolean = false,
     val session: UnlockSessionEntity?,
     val hardMode: Boolean,
     val unlockCapMin: Int? = null,
@@ -52,6 +50,8 @@ data class BankState(
     val allDoneUnlock: Boolean,
     val nextExpiryAt: Long? = null,
     val minutesExpiringNext: Int = 0,
+    /** True until the balance has been read; the card shows a dash instead of a misleading 0. */
+    val loading: Boolean = false,
 )
 
 /** Scale for the drain ruler when no unlock cap is set. */
