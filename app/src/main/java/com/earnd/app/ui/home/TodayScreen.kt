@@ -169,9 +169,9 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             if (habits.isNotEmpty()) {
                 item(key = "progress") {
                     val done = habits.count(doneOf)
-                    Column(Modifier.padding(top = 10.dp)) {
+                    Column(Modifier.padding(top = 20.dp)) {
                         ProgressBar(done.toFloat() / habits.size)
-                        Num("$done/${habits.size} habits", Modifier.padding(top = 4.dp))
+                        Num("$done/${habits.size} habits", Modifier.padding(top = 6.dp))
                     }
                 }
             } else {
@@ -197,10 +197,10 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                                     Text(
                                         if (done == list.size) "Done, open until the next part" else "Now",
                                         style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber,
-                                        modifier = Modifier.padding(top = 16.dp, end = 8.dp),
+                                        modifier = Modifier.padding(top = 28.dp, end = 8.dp),
                                     )
                                 }
-                                Num("$done/${list.size}", Modifier.padding(top = 16.dp))
+                                Num("$done/${list.size}", Modifier.padding(top = 28.dp))
                             }
                         }
                         items(list, key = { it.habit.id }) { habitRow(it) }
@@ -259,7 +259,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
     val p = Earnd.palette
     val compact = settings.listDensity == ListDensity.COMPACT
     Row(
-        Modifier.fillMaxWidth().heightIn(min = if (compact) 48.dp else 60.dp).clickable(onClick = onOpen),
+        Modifier.fillMaxWidth().heightIn(min = if (compact) 48.dp else 56.dp).clickable(onClick = onOpen),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(
@@ -269,16 +269,17 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             modifier = Modifier.offset(x = (-17).dp),
         )
         Column(Modifier.weight(1f).offset(x = (-17).dp).padding(vertical = if (compact) 2.dp else 10.dp)) {
-            Text(
-                h.name,
-                style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
-                color = if (complete) p.done else p.text,
-                textDecoration = if (complete) TextDecoration.LineThrough else null,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    h.name, Modifier.weight(1f, fill = false),
+                    style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                    color = if (complete) p.done else p.text,
+                    textDecoration = if (complete) TextDecoration.LineThrough else null,
+                )
+                if (!complete && ignored > 0) Num("${ignored}×", Modifier.padding(start = 8.dp), color = p.red)
+            }
             val parts = buildList {
                 if (hd.required > 1 || hd.done > hd.required) add("${hd.done}/${hd.required}" + if (complete) " ✓" else "")
-                val reward = HabitRules.rewardMinutes(h, settings)
-                if (reward > 0) add("+$reward min")
                 if (!complete && hd.comebackMissed > 0) add(com.earnd.app.domain.Comeback.label(hd.comebackMissed) + " comeback")
                 if (h.targetQuantity != null) {
                     add("${fmtQty(HabitRules.quantityDone(todays))}/${fmtQty(h.targetQuantity)} ${h.unit.orEmpty()}".trim())
@@ -288,9 +289,10 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             if (focusing != null) Num(focusing, color = p.amber)
             else Row {
                 if (parts.isNotEmpty()) Num(parts.joinToString("  "), color = if (complete) p.done else p.secondary)
-                if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) "  " else "") + "ignored ${ignored}×", color = p.red)
             }
         }
+        val rewardMin = HabitRules.rewardMinutes(h, settings)
+        if (rewardMin > 0) Num("+$rewardMin", Modifier.padding(horizontal = 8.dp), color = if (complete) p.done else p.amber)
         if (!complete && last != null) {
             IconButton(onClick = { onUndo(last) }) { Icon(Icons.Outlined.Undo, "Undo last check-in", tint = p.muted) }
         }

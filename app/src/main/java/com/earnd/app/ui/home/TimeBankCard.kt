@@ -25,6 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import com.earnd.app.ui.theme.Num
 import com.earnd.app.data.entity.SessionReason
 import com.earnd.app.data.entity.UnlockSessionEntity
 import com.earnd.app.ui.common.UiFormats
@@ -44,6 +52,23 @@ data class BankState(
     /** Metered apps as "TIDAL · 50%". */
     val metered: List<String> = emptyList(),
 )
+
+/** Scale for the drain ruler when no unlock cap is set. */
+private const val DRAIN_REFERENCE_MIN = 60
+private const val DRAIN_SEGMENTS = 10
+
+/** 10-segment ruler: filled amber segments = balance relative to [full]. */
+@Composable
+private fun DrainRuler(balance: Int, full: Int) {
+    val p = Earnd.palette
+    val filled = if (balance <= 0) 0 else
+        kotlin.math.ceil(balance.coerceAtMost(full.coerceAtLeast(1)) * DRAIN_SEGMENTS.toDouble() / full.coerceAtLeast(1)).toInt()
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        repeat(DRAIN_SEGMENTS) { i ->
+            Box(Modifier.weight(1f).height(6.dp).background(if (i < filled) p.amber else p.drainEmpty))
+        }
+    }
+}
 
 private val SPEND_CHOICES = listOf(5, 10, 15, 30, 60)
 
@@ -76,20 +101,24 @@ fun TimeBankCard(
                 Spacer(Modifier.height(4.dp))
                 OutlinedButton(onClick = onStop) { Text("Lock now") }
             } else {
-                Text("Locked", style = MaterialTheme.typography.titleSmall, color = p.red)
-                Text(formatMinutes(state.balance) + " banked", style = MaterialTheme.typography.displaySmall, color = p.amber)
+                Text("LOCKED · BALANCE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp), color = p.secondary)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("${state.balance}", style = NumberStyle.copy(fontSize = 34.sp, lineHeight = 38.sp), color = p.amber)
+                    Text(" min", Modifier.padding(bottom = 4.dp), style = MaterialTheme.typography.bodySmall, color = p.secondary)
+                }
+                DrainRuler(state.balance, state.unlockCapMin ?: DRAIN_REFERENCE_MIN)
                 if (state.nextExpiryAt != null && state.minutesExpiringNext > 0) {
-                    Text(
-                        "${formatMinutes(state.minutesExpiringNext)} expire at " +
+                    Num(
+                        "${state.minutesExpiringNext} min expire at " +
                             UiFormats.value.formatTime(state.nextExpiryAt, java.time.ZoneId.systemDefault()),
-                        style = MaterialTheme.typography.bodySmall, color = p.secondary,
+                        color = p.secondary,
                     )
                 }
                 when {
                     state.allDone && state.allDoneUnlock -> {
                         Text("Everything for today is done.", style = MaterialTheme.typography.bodyMedium, color = p.secondary)
                         Spacer(Modifier.height(4.dp))
-                        Button(onClick = onAllDoneUnlock) { Text("Unlock for today") }
+                        Button(onClick = onAllDoneUnlock, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Unlock for today") }
                     }
                     state.hardMode -> Text(
                         "Hard mode: apps open once today's habits are done.",
@@ -118,5 +147,5 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
             )
         }
     }
-    Button(onClick = { onSpend(pick) }) { Text("Unlock ${formatMinutes(pick)}") }
+    Button(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Unlock ${formatMinutes(pick)}") }
 }

@@ -139,7 +139,7 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
             onCheckedChange = { c ->
                 launchUi { if (c) ServiceLocator.taskService.complete(t.id) else ServiceLocator.taskService.uncomplete(t.id) }
             },
-            reward = (t.rewardMinutes ?: 0) > 0,
+            reward = false,
             modifier = Modifier.offset(x = (-17).dp),
         )
         Column(Modifier.weight(1f).offset(x = (-17).dp).padding(vertical = 6.dp)) {
@@ -155,10 +155,10 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
             )
             val meta = buildList {
                 t.dueEpochDay?.let { add(formatDay(it) + (t.dueMinuteOfDay?.let { m -> " " + formatMinuteOfDay(m) } ?: "")) }
-                t.rewardMinutes?.takeIf { it > 0 }?.let { add("+$it min") }
             }
             if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
         }
+        t.rewardMinutes?.takeIf { it > 0 }?.let { Num("+$it", Modifier.padding(horizontal = 8.dp), color = if (done) Earnd.palette.done else Earnd.palette.amber) }
         if (t.repeats) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.size(16.dp))
     }
 }

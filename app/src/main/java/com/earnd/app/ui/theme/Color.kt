@@ -19,6 +19,7 @@ data class EarndPalette(
     val onAmber: Color,
     val red: Color,
     val onRed: Color,
+    val drainEmpty: Color,
 )
 
 val DarkPalette = EarndPalette(
@@ -34,6 +35,7 @@ val DarkPalette = EarndPalette(
     onAmber = Color(0xFF121110),
     red = Color(0xFFFF4A3D),
     onRed = Color(0xFF121110),
+    drainEmpty = Color(0xFF3A342A),
 )
 
 val LightPalette = EarndPalette(
@@ -49,6 +51,7 @@ val LightPalette = EarndPalette(
     onAmber = Color(0xFFFFFFFF),
     red = Color(0xFFC9281C),
     onRed = Color(0xFFFFFFFF),
+    drainEmpty = Color(0xFFD6D0C4),
 )
 
 val LocalEarndPalette = staticCompositionLocalOf { DarkPalette }

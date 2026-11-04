@@ -7,6 +7,8 @@ import com.earnd.app.ui.theme.RowDivider
 import com.earnd.app.ui.theme.Chamfer
 import com.earnd.app.ui.theme.Num
 import com.earnd.app.ui.theme.AmberButton
+import com.earnd.app.ui.theme.Button
+import com.earnd.app.ui.theme.OutlinedButton
 import com.earnd.app.ui.common.SectionTitle
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.clickable
@@ -39,12 +41,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.earnd.app.R
 import com.earnd.app.domain.BlockCause
 import com.earnd.app.domain.RefuseReason
 
 /** What the gate tells about a metered app: [realMinutes] of use left at [ratePct] (null = free, rate 0). */
-data class GateInfo(val realMinutes: Int?, val ratePct: Int)
+data class GateInfo(val realMinutes: Int?, val ratePct: Int, val balance: Int = 0)
 
 /** Full-screen lock/gate UI. Stateless: takes state and callbacks. */
 @Composable
@@ -77,7 +80,6 @@ fun LockedScreen(
                     Text(stringResource(R.string.blocking_grace))
                 }
                 BlockCause.CONFIRM -> {
-                    AmberButton(onOpen, Modifier.fillMaxWidth()) { Text(stringResource(R.string.blocking_gate_open)) }
                     SessionChoices(ui, onStartSession, title = stringResource(R.string.blocking_gate_pass))
                 }
                 else -> SessionChoices(ui, onStartSession)
@@ -104,7 +106,12 @@ fun LockedScreen(
             } else {
                 Spacer(Modifier.weight(1f))
             }
-            TextButton(onHome, Modifier.fillMaxWidth()) {
+            if (cause == BlockCause.CONFIRM && gate != null) {
+                Button(onOpen, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.blocking_gate_open)) }
+                OutlinedButton(onHome, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.blocking_go_home), color = Earnd.palette.secondary)
+                }
+            } else TextButton(onHome, Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.blocking_go_home), color = Earnd.palette.secondary)
             }
         }
@@ -155,20 +162,27 @@ private fun GateHeader(target: String, gate: GateInfo) {
     val p = Earnd.palette
     Column(Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.Start) {
         Row(
-            Modifier.background(p.amber, Chamfer).padding(horizontal = 12.dp, vertical = 6.dp),
+            Modifier.background(p.red, Chamfer).padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.blocking_gate_badge), style = MaterialTheme.typography.labelLarge, color = p.onAmber)
+            Text(stringResource(R.string.blocking_gate_badge_app, target), style = MaterialTheme.typography.labelLarge, color = p.onRed)
         }
         Spacer(Modifier.height(16.dp))
-        Text(target, style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(4.dp))
-        Text(
+        Text(target, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp, lineHeight = 30.sp))
+        Spacer(Modifier.height(8.dp))
+        Num(
             if (gate.realMinutes == null) stringResource(R.string.blocking_gate_free)
-            else stringResource(R.string.blocking_gate_left, gate.realMinutes, gate.ratePct),
-            style = MaterialTheme.typography.bodyMedium, color = p.secondary,
+            else stringResource(R.string.blocking_gate_line, rateLabel(gate.ratePct), gate.balance, gate.realMinutes),
+            color = p.secondary,
         )
     }
+}
+
+private fun rateLabel(pct: Int): String = when (pct) {
+    50 -> "½ rate"
+    100 -> "1× rate"
+    200 -> "2× rate"
+    else -> "$pct% rate"
 }
 
 @Composable

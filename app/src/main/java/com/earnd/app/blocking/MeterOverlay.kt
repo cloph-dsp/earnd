@@ -68,8 +68,8 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
         collapsed = prefs.getBoolean("collapsed", false)
         val tv = TextView(context).apply {
             typeface = runCatching { ResourcesCompat.getFont(context, R.font.ibm_plex_mono_medium) }.getOrNull() ?: Typeface.MONOSPACE
-            textSize = 11f
-            setTextColor(DARK)
+            textSize = 10f
+            setTextColor(AMBER)
             gravity = Gravity.CENTER
             includeFontPadding = false
             setOnTouchListener(::onTouch)
@@ -95,8 +95,9 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
         val tv = view ?: return
         val showName = System.currentTimeMillis() < showLabelUntil
         val color = if (low) RED else AMBER
+        tv.setTextColor(color)
         tv.background = GradientDrawable().apply {
-            setColor(color)
+            if (collapsed && !showName) setColor(color) else { setColor(RAISED); setStroke(px(1).coerceAtLeast(1), BORDER) }
             cornerRadius = if (collapsed && !showName) px(6).toFloat() else px(4).toFloat()
         }
         if (collapsed && !showName) {
@@ -106,7 +107,7 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
             tv.layoutParams?.let { it.width = px(12); it.height = px(12) }
         } else {
             tv.text = if (showName) "$label $text" else text
-            tv.minWidth = 0; tv.minHeight = px(26)
+            tv.minWidth = 0; tv.minHeight = px(22)
             tv.setPadding(px(8), 0, px(8), 0)
             tv.layoutParams?.let { it.width = WindowManager.LayoutParams.WRAP_CONTENT; it.height = WindowManager.LayoutParams.WRAP_CONTENT }
         }
@@ -179,5 +180,7 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
         val AMBER = Color.parseColor("#FFB000")
         val RED = Color.parseColor("#FF4A3D")
         val DARK = Color.parseColor("#121110")
+        val RAISED = Color.parseColor("#1D1B18")
+        val BORDER = Color.parseColor("#3A342A")
     }
 }

@@ -78,7 +78,7 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                             label = { Text(t.label) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Earnd.palette.amber, selectedTextColor = Earnd.palette.amber,
-                                indicatorColor = MaterialTheme.colorScheme.background,
+                                indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
                                 unselectedIconColor = Earnd.palette.muted, unselectedTextColor = Earnd.palette.muted,
                             ),
                         )

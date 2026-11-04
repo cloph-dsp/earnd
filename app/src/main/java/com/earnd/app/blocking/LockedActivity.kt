@@ -49,7 +49,7 @@ class LockedActivity : ComponentActivity() {
         val rate = intent.getIntExtra(EXTRA_RATE, 100)
         val gate = if (cause == BlockCause.CONFIRM) {
             val bal = intent.getIntExtra(EXTRA_BAL, 0)
-            GateInfo(if (rate <= 0) null else (bal * 100L / rate).toInt(), rate)
+            GateInfo(if (rate <= 0) null else (bal * 100L / rate).toInt(), rate, bal)
         } else null
         setContent {
             EarndTheme {

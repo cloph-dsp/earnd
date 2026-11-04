@@ -30,7 +30,9 @@
     <string name="blocking_guard_off_text">Earnd cannot lock leisure apps right now. Tap to switch the Earnd service back on in Accessibility settings.</string>
     <string name="blocking_gate_badge">Leisure</string>
     <string name="blocking_gate_left">%1$d min left · counts at %2$d%% while open</string>
+    <string name="blocking_gate_badge_app">%1$s · counting</string>
+    <string name="blocking_gate_line">%1$s · %2$d min balance ≈ %3$d min</string>
     <string name="blocking_gate_free">Counts at 0%: free while open</string>
-    <string name="blocking_gate_open">Open (start counting)</string>
+    <string name="blocking_gate_open">Open and start counting</string>
     <string name="blocking_gate_pass">Or use a fixed pass</string>
 </resources>
