@@ -73,19 +73,20 @@ fun ScreenTimeSection() {
     Text("${formatMinutes((s.totalMs / 60_000).toInt())} on screen so far.", style = MaterialTheme.typography.bodyMedium)
     val top = s.perApp.take(TOP_APPS)
     val max = (top.firstOrNull()?.second ?: 1L).coerceAtLeast(1L)
+    val p = com.earnd.app.ui.theme.Earnd.palette
     top.forEach { (pkg, ms) ->
-        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            Row(Modifier.fillMaxWidth()) {
-                Text(UsageReport.label(context, pkg), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                Text(formatMinutes((ms / 60_000).toInt()), style = MaterialTheme.typography.labelMedium)
+        Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(UsageReport.label(context, pkg), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                com.earnd.app.ui.theme.Num(formatMinutes((ms / 60_000).toInt()))
             }
             Box(
-                Modifier.fillMaxWidth(ms.toFloat() / max).height(6.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(1.dp)),
+                Modifier.padding(top = 3.dp).fillMaxWidth(ms.toFloat() / max).height(4.dp)
+                    .background(p.muted, RoundedCornerShape(1.dp)),
             )
         }
     }
-    Text("By hour", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
+    Text("By hour", style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
     HourBars(s.perHour)
 }
 
