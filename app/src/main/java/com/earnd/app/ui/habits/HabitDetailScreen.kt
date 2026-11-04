@@ -198,7 +198,7 @@ private fun MonthCalendar(month: YearMonth, today: LocalDate, h: HabitEntity, by
     HabitCalendar.monthCells(month).chunked(7).forEach { week ->
         Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
             week.forEach { d ->
-                Box(Modifier.weight(1f).aspectRatio(1f).padding(2.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.weight(1f).aspectRatio(1.3f).padding(2.dp), contentAlignment = Alignment.Center) {
                     if (d != null) {
                         val list = byDay[d.toEpochDay()].orEmpty()
                         val done = HabitRules.dayComplete(h, list)

@@ -111,7 +111,7 @@ fun AppsScreen(onBack: () -> Unit) {
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             TabRow(selectedTabIndex = tab, divider = { RowDivider() }) {
-                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, text = { Text(t, maxLines = 1) }) }
+                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, selectedContentColor = Earnd.palette.amber, unselectedContentColor = Earnd.palette.secondary, text = { Text(t, maxLines = 1) }) }
             }
             if (pending.isNotEmpty()) PendingList(pending) { key -> launchUi { PendingRuleChanges.cancel(key); reload++ } }
             when (tab) {
@@ -158,8 +158,8 @@ private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
     val rate = Charging.effective(current)
     Box {
         Box(
-            Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp).clickable { open = true },
-            contentAlignment = Alignment.Center,
+            Modifier.heightIn(min = 48.dp).widthIn(min = 56.dp).clickable { open = true },
+            contentAlignment = Alignment.CenterEnd,
         ) { Num("$rate%", color = Earnd.palette.amber) }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             Charging.RATES.forEach { r ->
