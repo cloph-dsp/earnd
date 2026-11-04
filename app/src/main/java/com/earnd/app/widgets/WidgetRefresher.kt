@@ -34,6 +34,7 @@ object WidgetRefresher {
     suspend fun updateAll(context: Context) {
         TasksWidget().updateAll(context)
         HabitWidget().updateAll(context)
+        HabitsWidget().updateAll(context)
     }
 
     /** Call once from Application.onCreate; later calls are ignored. */

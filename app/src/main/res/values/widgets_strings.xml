@@ -10,4 +10,13 @@
     <string name="widgets_habit_choose">Tap to choose</string>
     <string name="widgets_habit_pick_title">Choose a habit</string>
     <string name="widgets_habit_pick_empty">No active habits yet. Add one in Earnd first.</string>
+    <string name="widgets_habits_name">Earnd habits</string>
+    <string name="widgets_habits_description">Today\'s habits in a strip. Tap one to check in.</string>
+    <string name="widgets_habits_empty">No habits due. Tap to choose.</string>
+    <string name="widgets_habits_pick_title">Choose habits</string>
+    <string name="widgets_habits_pick_hint">Leave none selected to show every habit due today.</string>
+    <string name="widgets_habits_pick_save">Save</string>
+    <string name="widgets_habits_cell_pending">%1$s, %2$d of %3$d done today</string>
+    <string name="widgets_habits_cell_done">%1$s, done, %2$d of %3$d today</string>
+    <string name="widgets_habits_more_desc">%1$d more habits. Open Earnd.</string>
 </resources>
