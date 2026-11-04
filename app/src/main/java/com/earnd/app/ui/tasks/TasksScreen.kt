@@ -78,10 +78,9 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
     Scaffold(floatingActionButton = { AddFab(onClick = onNewTask, description = "New task with details") }) { pad ->
     LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
         item {
-            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Tasks", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             }
-            QuickAdd()
         }
         if (lists.values.all { it.isEmpty() }) {
             item { Text("Nothing open.", color = Earnd.palette.secondary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 20.dp)) }
@@ -104,38 +103,6 @@ private fun LazyListScope.taskSection(b: TaskBucket, tasks: List<TaskEntity>, on
     if (tasks.isEmpty()) return
     item(key = "h$b") { SectionTitle(bucketLabel(b)) }
     items(tasks, key = { it.id }) { t -> TaskRow(t, onOpen) }
-}
-
-@Composable
-private fun QuickAdd() {
-    var text by remember { mutableStateOf("") }
-    var forToday by rememberSaveable { mutableStateOf(true) }
-    val submit = {
-        val title = text.trim()
-        if (title.isNotEmpty()) {
-            text = ""
-            val sl = ServiceLocator
-            launchUi {
-                sl.taskService.save(TaskEntity(
-                    title = title,
-                    dueEpochDay = if (forToday) sl.clock.today().toEpochDay() else null,
-                    createdAt = sl.clock.now(),
-                ))
-            }
-        }
-    }
-    Row(Modifier.padding(top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
-            value = text, onValueChange = { text = it },
-            placeholder = { Text("Add a task") }, singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { submit() }),
-            trailingIcon = { IconButton(onClick = { submit() }) { Icon(Icons.Outlined.Add, "Add") } },
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(8.dp))
-        FilterChip(selected = forToday, onClick = { forToday = !forToday }, label = { Text("Today") })
-    }
 }
 
 @Composable
@@ -172,6 +139,10 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
                 if (t.repeats) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.padding(start = 8.dp).size(14.dp))
             }
         }
-        t.rewardMinutes?.takeIf { it > 0 }?.let { Num("+$it", Modifier.padding(start = 8.dp).widthIn(min = 40.dp), color = if (done) Earnd.palette.done else Earnd.palette.amber, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 14.sp)) }
+        t.rewardMinutes?.takeIf { it > 0 }?.let {
+            Box(Modifier.padding(start = 8.dp).widthIn(min = 40.dp), contentAlignment = Alignment.CenterEnd) {
+                Num("+$it", color = if (done) Earnd.palette.done else Earnd.palette.amber, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 14.sp))
+            }
+        }
     }
 }
