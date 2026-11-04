@@ -131,7 +131,7 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
         .collectAsState(initial = com.earnd.app.data.Settings())
     val h = d.habit
     val p = Earnd.palette
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onOpen), verticalAlignment = Alignment.CenterVertically) {
+    com.earnd.app.ui.theme.ListRow(onOpen, minHeight = 56.dp) {
         Icon(HabitLook.icon(h.iconKey), null, tint = Color(h.colorArgb), modifier = Modifier.size(16.dp))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (d.complete) p.done else p.text)
@@ -171,7 +171,7 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
 
 @Composable
 private fun Line(h: HabitEntity, onOpen: () -> Unit, muted: Boolean = false, trailing: @Composable () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onOpen), verticalAlignment = Alignment.CenterVertically) {
+    com.earnd.app.ui.theme.ListRow(onOpen) {
         Icon(HabitLook.icon(h.iconKey), null, tint = Color(h.colorArgb), modifier = Modifier.size(16.dp))
         Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (muted) Earnd.palette.muted else Earnd.palette.text,
             modifier = Modifier.weight(1f).padding(horizontal = 12.dp))

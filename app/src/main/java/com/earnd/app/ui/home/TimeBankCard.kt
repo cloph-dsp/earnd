@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import com.earnd.app.ui.theme.Num
+import com.earnd.app.ui.theme.DrainRuler
 import com.earnd.app.data.entity.SessionReason
 import com.earnd.app.data.entity.UnlockSessionEntity
 import com.earnd.app.ui.common.UiFormats
@@ -55,20 +56,6 @@ data class BankState(
 
 /** Scale for the drain ruler when no unlock cap is set. */
 private const val DRAIN_REFERENCE_MIN = 60
-private const val DRAIN_SEGMENTS = 10
-
-/** 10-segment ruler: filled amber segments = balance relative to [full]. */
-@Composable
-private fun DrainRuler(balance: Int, full: Int) {
-    val p = Earnd.palette
-    val filled = if (balance <= 0) 0 else
-        kotlin.math.ceil(balance.coerceAtMost(full.coerceAtLeast(1)) * DRAIN_SEGMENTS.toDouble() / full.coerceAtLeast(1)).toInt()
-    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        repeat(DRAIN_SEGMENTS) { i ->
-            Box(Modifier.weight(1f).height(6.dp).background(if (i < filled) p.amber else p.drainEmpty))
-        }
-    }
-}
 
 private val SPEND_CHOICES = listOf(5, 10, 15, 30, 60)
 

@@ -6,7 +6,7 @@ import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.RowDivider
 import com.earnd.app.ui.theme.Chamfer
 import com.earnd.app.ui.theme.Num
-import com.earnd.app.ui.theme.AmberButton
+import com.earnd.app.ui.theme.QuietButton
 import com.earnd.app.ui.theme.Button
 import com.earnd.app.ui.theme.OutlinedButton
 import com.earnd.app.ui.common.SectionTitle
@@ -197,7 +197,7 @@ private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit, title: String =
                 val all = UnlockCap.choices(LockedViewModel.SESSION_CHOICES, ui.balanceMinutes, ui.unlockCapMin)
                 val shown = (all.dropLast(1).take(2) + all.last()).distinct()
                 shown.forEach { m ->
-                    AmberButton({ onStart(m) }, Modifier.weight(1f)) {
+                    QuietButton({ onStart(m) }, Modifier.weight(1f)) {
                         Text(stringResource(R.string.blocking_minutes_short, m))
                     }
                 }

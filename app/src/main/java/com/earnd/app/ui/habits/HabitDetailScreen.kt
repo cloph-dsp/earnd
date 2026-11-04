@@ -17,6 +17,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.sp
+import com.earnd.app.ui.theme.Earnd
+import com.earnd.app.ui.theme.NumberStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -113,9 +117,9 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
             val st by androidx.compose.runtime.remember { sl.settings.settings }.collectAsState(initial = com.earnd.app.data.Settings())
             val context = androidx.compose.ui.platform.LocalContext.current
             val focusing = com.earnd.app.focus.focusLabel(h.id)
-            com.earnd.app.ui.theme.AmberButton(
+            com.earnd.app.ui.theme.Button(
                 onClick = { launchUi { com.earnd.app.focus.startFocus(context, h.id) } },
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 48.dp),
             ) { Text(focusing ?: com.earnd.app.focus.startLabel(h, st)) }
         }
 
@@ -181,8 +185,8 @@ private fun HistoryGrid(today: java.time.LocalDate, counts: Map<Long, Int>, perD
 @Composable
 private fun Stat(label: String, value: Int, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("$value", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
-        Text(label, style = MaterialTheme.typography.labelSmall)
+        com.earnd.app.ui.theme.Num("$value", color = Earnd.palette.text, style = NumberStyle.copy(fontSize = 22.sp, lineHeight = 26.sp))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Earnd.palette.secondary)
     }
 }
 

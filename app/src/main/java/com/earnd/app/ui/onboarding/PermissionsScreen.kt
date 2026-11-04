@@ -22,7 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import com.earnd.app.ui.theme.FilledTonalButton
+import com.earnd.app.ui.theme.QuietButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +66,7 @@ fun PermissionCards(modifier: Modifier = Modifier) {
                     }
                     Text(p.why, style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(top = 2.dp))
                     if (!granted) {
-                        FilledTonalButton(onClick = {
+                        QuietButton(onClick = {
                             val intentFn = p.settingsIntent
                             if (intentFn == null) {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

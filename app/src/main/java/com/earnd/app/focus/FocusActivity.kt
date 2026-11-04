@@ -23,6 +23,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -193,6 +194,12 @@ private fun FocusScreen(
                 )
             }
         }
+        if (!s.stopwatch && !done && total > 0) {
+            com.earnd.app.ui.theme.DrainRuler(
+                ((FocusMath.remainingMs(s, now) + 59_999L) / 60_000L).toInt(), total.toInt(),
+                Modifier.padding(top = 24.dp),
+            )
+        }
         Spacer(Modifier.weight(1f))
         if (!done) {
             Text(
@@ -203,12 +210,12 @@ private fun FocusScreen(
                 Text(if (keepOn) "Screen stays on" else "Keep screen on", color = if (keepOn) p.amber else p.secondary)
             }
             if (s.stopwatch) {
-                com.earnd.app.ui.theme.AmberButton(
+                com.earnd.app.ui.theme.Button(
                     onClick = { if (FocusMath.elapsedMs(s, now) / 60_000L < minSession) askFinish = true else onFinish() },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) { Text("Finish") }
             }
-            OutlinedButton(onClick = { onAskCancel(true) }, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+            OutlinedButton(onClick = { onAskCancel(true) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Cancel") }
         }
         Spacer(Modifier.height(8.dp))
     }

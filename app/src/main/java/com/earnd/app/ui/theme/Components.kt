@@ -3,6 +3,11 @@ package com.earnd.app.ui.theme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -66,6 +71,47 @@ fun OutlinedButton(
     border = BorderStroke(1.dp, if (enabled) Earnd.palette.muted else Earnd.palette.line),
     contentPadding = ButtonPadding, content = content,
 )
+
+/** Quiet action: chamfered 1dp amber outline, amber label, transparent fill; still a 48dp touch target. */
+@Composable
+fun QuietButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) = androidx.compose.material3.OutlinedButton(
+    onClick, modifier.heightIn(min = 48.dp), enabled, shape = Chamfer,
+    colors = ButtonDefaults.outlinedButtonColors(contentColor = Earnd.palette.amber, disabledContentColor = Earnd.palette.muted),
+    border = BorderStroke(1.dp, if (enabled) Earnd.palette.amber else Earnd.palette.line),
+    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), content = content,
+)
+
+/** Flat tappable list row (>= [minHeight]); the row itself is the button. Pair with [RowDivider]. */
+@Composable
+fun ListRow(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    minHeight: Dp = 48.dp,
+    content: @Composable RowScope.() -> Unit,
+) = Row(
+    modifier.fillMaxWidth().heightIn(min = minHeight).clickable(onClick = onClick),
+    verticalAlignment = Alignment.CenterVertically, content = content,
+)
+
+/** 10-segment drain ruler: filled amber segments = [balance] relative to [full]. */
+@Composable
+fun DrainRuler(balance: Int, full: Int, modifier: Modifier = Modifier) {
+    val p = Earnd.palette
+    val f = full.coerceAtLeast(1)
+    val filled = if (balance <= 0) 0 else kotlin.math.ceil(balance.coerceAtMost(f) * DRAIN_SEGMENTS.toDouble() / f).toInt()
+    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        repeat(DRAIN_SEGMENTS) { i ->
+            Box(Modifier.weight(1f).height(6.dp).background(if (i < filled) p.amber else p.drainEmpty))
+        }
+    }
+}
+
+private const val DRAIN_SEGMENTS = 10
 
 /** Raised neutral button. */
 @Composable

@@ -154,7 +154,7 @@ private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
 @Composable
 private fun PendingList(pending: List<PendingRuleChanges.Pending>, onCancel: (String) -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text("Waiting for the hard-mode cooldown", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.tertiary)
+        Text("Waiting for the hard-mode cooldown", style = MaterialTheme.typography.titleSmall, color = com.earnd.app.ui.theme.Earnd.palette.secondary)
         pending.forEach { p ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

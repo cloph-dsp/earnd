@@ -77,17 +77,17 @@ fun StatsScreen() {
             style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp),
         )
         SectionTitle("Check-ins")
-        Bars(days.map { it.toEpochDay() }, checkIns, MaterialTheme.colorScheme.primary)
+        Bars(days.map { it.toEpochDay() }, checkIns, com.earnd.app.ui.theme.Earnd.palette.amber)
         SectionTitle("Tasks finished")
-        Bars(days.map { it.toEpochDay() }, tasksByDay, MaterialTheme.colorScheme.secondary)
+        Bars(days.map { it.toEpochDay() }, tasksByDay, com.earnd.app.ui.theme.Earnd.palette.secondary)
         SectionTitle("Minutes earned")
-        Bars(days.map { it.toEpochDay() }, earnedByDay, MaterialTheme.colorScheme.primary)
+        Bars(days.map { it.toEpochDay() }, earnedByDay, com.earnd.app.ui.theme.Earnd.palette.amber)
         SectionTitle("Minutes spent")
         Text(
             "Earned ${formatMinutes(earnedByDay.values.sum())}, spent ${formatMinutes(spentByDay.values.sum())} this week.",
             style = MaterialTheme.typography.bodyMedium,
         )
-        Bars(days.map { it.toEpochDay() }, spentByDay, MaterialTheme.colorScheme.secondary)
+        Bars(days.map { it.toEpochDay() }, spentByDay, com.earnd.app.ui.theme.Earnd.palette.secondary)
         ScreenTimeSection()
         Spacer(Modifier.height(24.dp))
     }
@@ -100,7 +100,7 @@ private fun Bars(days: List<Long>, values: Map<Long, Int>, color: Color) {
         days.forEach { d ->
             val v = values[d] ?: 0
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("$v", style = MaterialTheme.typography.labelSmall)
+                com.earnd.app.ui.theme.Num("$v")
                 Box(
                     Modifier.fillMaxWidth().height((96f * v / max).dp.coerceAtLeast(2.dp))
                         .background(if (v == 0) MaterialTheme.colorScheme.surfaceVariant else color, RoundedCornerShape(1.dp)),

@@ -186,10 +186,7 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
 
 @Composable
 private fun CategoryRow(title: String, summary: String, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 56.dp).padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    com.earnd.app.ui.theme.ListRow(onClick, Modifier.padding(vertical = 8.dp), minHeight = 56.dp) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
