@@ -96,7 +96,8 @@ fun TimeBankCard(
                 Spacer(Modifier.height(4.dp))
                 OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Lock now") }
             } else {
-                val scale = state.unlockCapMin ?: DRAIN_REFERENCE_MIN
+                // The unlock cap limits one session, not the bank, so it is not a scale for the balance.
+                val scale = maxOf(DRAIN_REFERENCE_MIN, (state.balance + 29) / 30 * 30)
                 Text("LOCKED · BALANCE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp), color = p.secondary)
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(if (state.loading) "—" else "${state.balance}", style = NumberStyle.copy(fontSize = 34.sp, lineHeight = 38.sp), color = p.amber)
