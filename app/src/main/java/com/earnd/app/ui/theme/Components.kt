@@ -111,6 +111,24 @@ fun DrainRuler(balance: Int, full: Int, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Continuous drain ruler: [fraction] (0..1) of the 10 segments is amber, the boundary segment fills partially,
+ * so a live countdown visibly drains between whole-segment steps.
+ */
+@Composable
+fun DrainRuler(fraction: Float, modifier: Modifier = Modifier) {
+    val p = Earnd.palette
+    val level = fraction.coerceIn(0f, 1f) * DRAIN_SEGMENTS
+    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        repeat(DRAIN_SEGMENTS) { i ->
+            val part = (level - i).coerceIn(0f, 1f)
+            Box(Modifier.weight(1f).height(6.dp).background(p.drainEmpty)) {
+                if (part > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(part).background(p.amber))
+            }
+        }
+    }
+}
+
 private const val DRAIN_SEGMENTS = 10
 
 /** Raised neutral button. */

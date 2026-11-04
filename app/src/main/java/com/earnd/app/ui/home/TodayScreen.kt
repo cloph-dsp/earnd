@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Undo
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,6 +89,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val session by remember { sl.timeBank.observeActiveSession() }.collectAsState(initial = null)
     val settings by remember { sl.settings.settings }.collectAsState(initial = Settings())
     val snackbar = remember { SnackbarHostState() }
+    var doneOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
     val byHabit = checkIns.groupBy { it.habitId }
     val doneOf = { hd: HabitDay -> hd.complete }
@@ -107,22 +110,23 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     LaunchedEffect(Unit) { while (true) { clock = formatMinuteOfDay(sl.clock.minuteOfDay(sl.clock.now())); delay(15_000) } }
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    val doCheck: (HabitDay) -> Unit = { hd ->
+        when {
+            com.earnd.app.domain.TimedHabit.isTimed(hd.habit) -> launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
+            HabitRules.needsPhoto(hd.habit, settings) -> onPhotoCheckIn(hd.habit.id)
+            hd.habit.targetQuantity != null -> askAmount = hd.habit
+            else -> launchUi {
+                val r = sl.habitService.checkInWithBonus(hd.habit.id)
+                com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
+            }
+        }
+    }
     val habitRow: @Composable (HabitDay) -> Unit = { hd ->
         val last = checkIns.filter { it.habitId == hd.habit.id }.maxByOrNull { it.at }
         HabitRow(
             hd, last, doneOf(hd), byHabit[hd.habit.id].orEmpty(), settings, ignored[hd.habit.id] ?: 0,
             onOpen = { onOpenHabit(hd.habit.id) },
-            onCheck = {
-                when {
-                    com.earnd.app.domain.TimedHabit.isTimed(hd.habit) -> launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
-                    HabitRules.needsPhoto(hd.habit, settings) -> onPhotoCheckIn(hd.habit.id)
-                    hd.habit.targetQuantity != null -> askAmount = hd.habit
-                    else -> launchUi {
-                        val r = sl.habitService.checkInWithBonus(hd.habit.id)
-                        com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
-                    }
-                }
-            },
+            onCheck = { doCheck(hd) },
             onUndo = { c -> launchUi { HabitActions.undo(c.id) } },
         )
         RowDivider()
@@ -182,36 +186,100 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     )
                 }
             }
-            val byIgnored = compareBy<HabitDay> { doneOf(it) }.thenByDescending { ignored[it.habit.id] ?: 0 }
+            val byIgnored = compareByDescending<HabitDay> { ignored[it.habit.id] ?: 0 }
+            val pendingHabits = habits.filterNot(doneOf).sortedWith(byIgnored)
+            val doneHabits = habits.filter(doneOf)
+            val pendingTasks = tasksToday.filter { it.completedAt == null }
+            val doneTasks = tasksToday.filter { it.completedAt != null }
+            val nextHabit = pendingHabits.firstOrNull()
+            val nextTask = if (nextHabit == null) pendingTasks.firstOrNull() else null
+            val restHabits = if (nextHabit != null) pendingHabits.drop(1) else pendingHabits
+            val restTasks = if (nextTask != null) pendingTasks.drop(1) else pendingTasks
+            val doneCount = doneHabits.size + doneTasks.size
+
+            if (nextHabit != null || nextTask != null) {
+                item(key = "next") {
+                    val p = Earnd.palette
+                    Column(Modifier.padding(top = 8.dp)) {
+                        SectionTitle("Next")
+                        if (nextHabit != null) {
+                            val h = nextHabit.habit
+                            val reward = HabitRules.rewardMinutes(h, settings)
+                            val nagCount = ignored[h.id] ?: 0
+                            Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f).clickable { onOpenHabit(h.id) }.padding(vertical = 8.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(h.name, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.titleMedium, color = p.text)
+                                        if (nagCount > 0) Num("${nagCount}×", Modifier.padding(start = 8.dp), color = p.red)
+                                    }
+                                    if (reward > 0) Num("+$reward min", color = p.amber)
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                val label = when {
+                                    com.earnd.app.domain.TimedHabit.isTimed(h) -> com.earnd.app.focus.startLabel(h, settings)
+                                    HabitRules.needsPhoto(h, settings) -> "Photo"
+                                    h.targetQuantity != null -> "Add"
+                                    else -> "Check in"
+                                }
+                                com.earnd.app.ui.theme.Button(onClick = { doCheck(nextHabit) }, Modifier.heightIn(min = 48.dp)) { Text(label) }
+                            }
+                        } else if (nextTask != null) {
+                            Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f).clickable { onOpenTask(nextTask.id) }.padding(vertical = 8.dp)) {
+                                    Text(nextTask.title, style = MaterialTheme.typography.titleMedium, color = p.text)
+                                    Num("Task", color = p.secondary)
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                com.earnd.app.ui.theme.Button(onClick = { launchUi { sl.taskService.complete(nextTask.id) } }, Modifier.heightIn(min = 48.dp)) { Text("Done") }
+                            }
+                        }
+                        RowDivider()
+                    }
+                }
+            }
             if (settings.segmentMode) {
-                val bySegment = habits.groupBy { it.habit.segment }
+                val bySegment = restHabits.groupBy { it.habit.segment }
                 SEGMENT_ORDER.forEach { seg ->
-                    val list = bySegment[seg].orEmpty().sortedWith(byIgnored)
+                    val list = bySegment[seg].orEmpty()
                     if (list.isNotEmpty()) {
                         item(key = "seg-$seg") {
-                            val done = list.count(doneOf)
+                            val all = habits.filter { it.habit.segment == seg }
+                            val done = all.count(doneOf)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 SectionTitle(HabitLook.segmentLabel(seg), Modifier.weight(1f))
                                 if (seg == currentSeg) {
-                                    Text(
-                                        if (done == list.size) "Done, open until the next part" else "Now",
-                                        style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber,
-                                        modifier = Modifier.padding(top = 28.dp, end = 8.dp),
-                                    )
+                                    Text("Now", style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber,
+                                        modifier = Modifier.padding(top = 28.dp, end = 8.dp))
                                 }
-                                Num("$done/${list.size}", Modifier.padding(top = 28.dp))
+                                Num("$done/${all.size}", Modifier.padding(top = 28.dp))
                             }
                         }
                         items(list, key = { it.habit.id }) { habitRow(it) }
                     }
                 }
-            } else if (habits.isNotEmpty()) {
-                item(key = "do-now") { SectionTitle("Do now") }
-                items(habits.sortedWith(byIgnored), key = { it.habit.id }) { habitRow(it) }
+            } else if (restHabits.isNotEmpty()) {
+                item(key = "do-now") { SectionTitle("Later today") }
+                items(restHabits, key = { it.habit.id }) { habitRow(it) }
             }
-            if (tasksToday.isNotEmpty()) {
+            if (restTasks.isNotEmpty()) {
                 item(key = "tasks-today") { SectionTitle("Tasks today") }
-                items(tasksToday, key = { "t${it.id}" }) { t -> TaskRow(t, onOpenTask); RowDivider() }
+                items(restTasks, key = { "t${it.id}" }) { t -> TaskRow(t, onOpenTask); RowDivider() }
+            }
+            if (doneCount > 0) {
+                item(key = "done-toggle") {
+                    Column {
+                        com.earnd.app.ui.theme.ListRow(onClick = { doneOpen = !doneOpen }, Modifier.padding(top = 12.dp)) {
+                            Text("Done ($doneCount)", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, color = Earnd.palette.secondary)
+                            Icon(if (doneOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                                if (doneOpen) "Collapse done" else "Expand done", tint = Earnd.palette.muted)
+                        }
+                        RowDivider()
+                    }
+                }
+                if (doneOpen) {
+                    items(doneHabits, key = { "d${it.habit.id}" }) { habitRow(it) }
+                    items(doneTasks, key = { "dt${it.id}" }) { t -> TaskRow(t, onOpenTask); RowDivider() }
+                }
             }
             item { Box(Modifier.size(88.dp)) }
         }

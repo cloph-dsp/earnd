@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.earnd.app.ui.theme.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import com.earnd.app.ui.theme.ChamferPanel
@@ -74,23 +76,35 @@ fun TimeBankCard(
             var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
             LaunchedEffect(s?.id) { while (s != null) { now = System.currentTimeMillis(); delay(1000) } }
             if (s != null && s.plannedEndAt > now) {
+                val leftMs = s.plannedEndAt - now
+                val total = (s.plannedEndAt - s.startedAt).coerceAtLeast(1L)
                 Text(
-                    if (s.reason == SessionReason.ALL_DONE) "Open for the rest of today" else "Open",
-                    style = MaterialTheme.typography.titleSmall, color = p.amber,
+                    if (s.reason == SessionReason.ALL_DONE) "OPEN FOR THE REST OF TODAY" else "OPEN · TIME LEFT",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp), color = p.secondary,
                 )
-                Text(formatRemaining(s.plannedEndAt - now) + " left", style = MaterialTheme.typography.displaySmall, color = p.amber)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("${((leftMs + 59_999) / 60_000).toInt()}", style = NumberStyle.copy(fontSize = 48.sp, lineHeight = 52.sp), color = p.amber)
+                    Text(" min", Modifier.padding(bottom = 6.dp), style = MaterialTheme.typography.bodyMedium, color = p.secondary)
+                    Spacer(Modifier.weight(1f))
+                    Num(formatRemaining(leftMs), Modifier.padding(bottom = 6.dp), color = p.secondary)
+                }
+                DrainRuler(leftMs.toFloat() / total)
+                Num("Until " + UiFormats.value.formatTime(s.plannedEndAt, java.time.ZoneId.systemDefault()), color = p.secondary)
                 if (s.reason == SessionReason.SPEND) {
                     Text("Unused whole minutes go back to the bank.", style = MaterialTheme.typography.bodySmall, color = p.secondary)
                 }
                 Spacer(Modifier.height(4.dp))
-                OutlinedButton(onClick = onStop) { Text("Lock now") }
+                OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Lock now") }
             } else {
+                val scale = state.unlockCapMin ?: DRAIN_REFERENCE_MIN
                 Text("LOCKED · BALANCE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp), color = p.secondary)
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(if (state.loading) "—" else "${state.balance}", style = NumberStyle.copy(fontSize = 34.sp, lineHeight = 38.sp), color = p.amber)
                     Text(" min", Modifier.padding(bottom = 4.dp), style = MaterialTheme.typography.bodySmall, color = p.secondary)
+                    Spacer(Modifier.weight(1f))
+                    Num("of $scale min", Modifier.padding(bottom = 4.dp), color = p.secondary)
                 }
-                DrainRuler(state.balance, state.unlockCapMin ?: DRAIN_REFERENCE_MIN)
+                DrainRuler(state.balance, scale)
                 if (state.nextExpiryAt != null && state.minutesExpiringNext > 0) {
                     Num(
                         "${state.minutesExpiringNext} min expire at " +
@@ -118,18 +132,29 @@ fun TimeBankCard(
 
 @Composable
 private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
+    val p = Earnd.palette
     val options = UnlockCap.choices(SPEND_CHOICES, balance, cap)
     var pick by remember(balance, cap) { mutableIntStateOf(options.first()) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() } }
+    Text("Minutes to open", style = MaterialTheme.typography.labelSmall, color = p.secondary)
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        options.take(5).forEach { m ->
-            FilterChip(
-                selected = m == pick, onClick = { pick = m },
-                label = { Text(if (m == balance) "All" else if (m == options.last() && cap != null) "Max $m" else "$m", style = NumberStyle) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Earnd.palette.amber, selectedLabelColor = Earnd.palette.onAmber,
-                ),
-            )
+        options.forEach { m ->
+            val sel = m == pick
+            Box(
+                Modifier.weight(1f).heightIn(min = 48.dp)
+                    .background(if (sel) p.amber else Color.Transparent)
+                    .border(1.dp, if (sel) p.amber else p.line)
+                    .selectable(selected = sel, role = Role.RadioButton, onClick = { pick = m }),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("$m", style = NumberStyle, color = if (sel) p.onAmber else p.text)
+            }
         }
     }
     Button(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Unlock ${formatMinutes(pick)}") }
+    Text(
+        "Leisure apps until " + UiFormats.value.formatTime(now + pick * 60_000L, java.time.ZoneId.systemDefault()),
+        style = MaterialTheme.typography.bodySmall, color = p.secondary,
+    )
 }

@@ -23,6 +23,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,11 +54,10 @@ import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.EarndTheme
 import com.earnd.app.ui.theme.Num
 import com.earnd.app.ui.theme.NumberStyle
-import com.earnd.app.ui.theme.OutlinedButton
 import kotlinx.coroutines.delay
 
 /**
- * Full-screen focus timer. Shown over the lock screen; Back does nothing, and the guard brings it
+ * Full-screen focus timer. Shown over the lock screen; Back asks to stop, and the guard brings it
  * back whenever another app comes to the front. Cancel asks first and discards the progress.
  */
 class FocusActivity : ComponentActivity() {
@@ -68,7 +70,7 @@ class FocusActivity : ComponentActivity() {
         enableEdgeToEdge()
         setShowWhenLocked(true)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = Unit
+            override fun handleOnBackPressed() { askCancel = true }
         })
         askCancel = intent.getBooleanExtra(EXTRA_ASK_CANCEL, false)
         setContent {
@@ -142,6 +144,8 @@ private fun FocusScreen(
     val progress = if (done) 1f else FocusMath.progress(s, now)
     var habit by remember { mutableStateOf<com.earnd.app.data.entity.HabitEntity?>(null) }
     LaunchedEffect(s.habitId) { habit = ServiceLocator.db.habitDao().get(s.habitId) }
+    var showInfo by rememberSaveable { mutableStateOf(false) }
+    val reward = s.rewardMinutes ?: habit?.minutesPerCheckIn
     var askFinish by remember { mutableStateOf(false) }
     val minSession = habit?.let { com.earnd.app.domain.TimedHabit.minSession(it) } ?: 0
     LaunchedEffect(s.stopwatch) { while (s.stopwatch && s.state == FocusState.ACTIVE) { now = clock.now(); delay(500) } }
@@ -164,7 +168,8 @@ private fun FocusScreen(
                 val topLeft = Offset(stroke / 2, stroke / 2)
                 val arc = Size(size.width - stroke, size.height - stroke)
                 drawArc(track, 0f, 360f, false, topLeft, arc, style = Stroke(stroke))
-                drawArc(amber, -90f, 360f * progress, false, topLeft, arc, style = Stroke(stroke, cap = StrokeCap.Butt))
+                val sweep = if (s.stopwatch || done) progress else (1f - progress).coerceIn(0f, 1f)
+                drawArc(amber, -90f, 360f * sweep, false, topLeft, arc, style = Stroke(stroke, cap = StrokeCap.Butt))
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -188,7 +193,7 @@ private fun FocusScreen(
                             val r = com.earnd.app.domain.TimedHabit.stopwatchReward(h, FocusMath.elapsedMs(s, now))
                             if (r == null) "min $minSession min to count" else "+$r min so far"
                         } ?: ""
-                        else -> "of $total min"
+                        else -> if (reward != null) "+$reward min when done" else "of $total min"
                     },
                     Modifier.padding(top = 4.dp),
                 )
@@ -202,10 +207,15 @@ private fun FocusScreen(
         }
         Spacer(Modifier.weight(1f))
         if (!done) {
-            Text(
-                "Other apps wait until the timer ends. Phone calls, SMS and maps still work; internet calls (e.g. WhatsApp) only if that app is always-open.",
-                style = MaterialTheme.typography.bodySmall, color = p.muted, textAlign = TextAlign.Center,
-            )
+            TextButton(onClick = { showInfo = !showInfo }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("What still works?", color = p.secondary)
+            }
+            if (showInfo) {
+                Text(
+                    "Other apps wait until the timer ends. Phone calls, SMS and maps still work; internet calls (e.g. WhatsApp) only if that app is always-open.",
+                    style = MaterialTheme.typography.bodySmall, color = p.muted, textAlign = TextAlign.Center,
+                )
+            }
             TextButton(onClick = { onKeepOn(!keepOn) }) {
                 Text(if (keepOn) "Screen stays on" else "Keep screen on", color = if (keepOn) p.amber else p.secondary)
             }
@@ -215,7 +225,7 @@ private fun FocusScreen(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) { Text("Finish") }
             }
-            OutlinedButton(onClick = { onAskCancel(true) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Cancel") }
+            TextButton(onClick = { onAskCancel(true) }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel", color = p.secondary) }
         }
         Spacer(Modifier.height(8.dp))
     }
@@ -233,19 +243,18 @@ private fun FocusScreen(
     if (askCancel && !done && s.stopwatch) {
         AlertDialog(
             onDismissRequest = { onAskCancel(false) },
-            title = { Text("Cancel this session?") },
+            title = { Text("Stop this session?") },
             text = { Text("Nothing is credited. Use Finish to keep what you practised.") },
-            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text("Cancel session", color = p.red) } },
+            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text("Stop", color = p.text) } },
             dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text("Keep going") } },
         )
     } else if (askCancel && !done) {
-        val lost = FocusMath.minutesLost(s, now)
         AlertDialog(
             onDismissRequest = { onAskCancel(false) },
-            title = { Text("Cancel and lose $lost min of progress?") },
-            text = { Text("Nothing is credited. Next time the timer starts from zero.") },
-            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text("Cancel focus", color = p.red) } },
-            dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text("Keep going") } },
+            title = { Text("Stop this session?") },
+            text = { Text("Progress is lost.") },
+            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text("Stop", color = p.text) } },
+            dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text("Keep going", color = p.amber) } },
         )
     }
 }

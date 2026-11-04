@@ -32,6 +32,9 @@
     <string name="alarms_channel_missed">Missed alarms</string>
     <string name="alarms_missed_title">Missed alarm</string>
     <string name="alarms_ring_done">Done</string>
+    <string name="alarms_ring_silence">Silence</string>
+    <string name="alarms_ring_ignored">ignored %d×</string>
+    <string name="alarms_ring_reward">+%d min</string>
     <plurals name="alarms_ring_snooze">
         <item quantity="one">Snooze %1$d min (%2$d left)</item>
         <item quantity="other">Snooze %1$d min (%2$d left)</item>

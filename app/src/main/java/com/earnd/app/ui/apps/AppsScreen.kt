@@ -138,12 +138,12 @@ private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) {
-            Text("Charging: " + Charging.label(current), style = MaterialTheme.typography.labelSmall)
+            Text("Counts ${Charging.effective(current)}% of time", style = MaterialTheme.typography.labelSmall)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             Charging.RATES.forEach { r ->
                 DropdownMenuItem(
-                    text = { Text("Metered $r%" + if (r == Charging.DEFAULT_RATE) " (default)" else "") },
+                    text = { Text("Counts $r% of time" + if (r == Charging.DEFAULT_RATE) " (default)" else "") },
                     onClick = { open = false; onPick(r) },
                 )
             }
@@ -181,16 +181,31 @@ private fun AppList(
     val essentials = ServiceLocator.essentialApps
     val leisure = rules.filter { it.rule == AppRule.LEISURE && !it.isWebsite }.map { it.key }.toSet()
     val allowed = rules.filter { it.rule == AppRule.ALLOWED }.map { it.key }.toSet()
+    var query by rememberSaveable { mutableStateOf("") }
+    val shown = remember(apps, leisure, query) {
+        val q = query.trim()
+        apps.filter { q.isEmpty() || it.label.contains(q, ignoreCase = true) }
+            .sortedWith(compareBy<InstalledApp> { it.pkg !in leisure }.thenBy { it.label.lowercase() })
+    }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         item { Text(header, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 12.dp)) }
-        items(apps, key = { it.pkg }) { app ->
+        item {
+            OutlinedTextField(
+                value = query, onValueChange = { query = it }, singleLine = true,
+                placeholder = { Text("Search apps") },
+                trailingIcon = {
+                    if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, "Clear search") }
+                },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            )
+        }
+        items(shown, key = { it.pkg }) { app ->
             val isEssential = essentials.isEssential(app.pkg) || app.pkg in allowed
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 val bmp = remember(app.pkg) { runCatching { app.icon?.toBitmap(96, 96)?.asImageBitmap() }.getOrNull() }
                 if (bmp != null) Image(bmp, null, Modifier.size(36.dp)) else Box(Modifier.size(36.dp))
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(app.label, style = MaterialTheme.typography.bodyLarge)
-                    Text(app.pkg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 trailing(app, app.pkg in leisure, isEssential)
             }

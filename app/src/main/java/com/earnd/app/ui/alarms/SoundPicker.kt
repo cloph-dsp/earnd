@@ -64,9 +64,6 @@ fun SoundPickerDialog(current: String?, onPick: (String?) -> Unit, onDismiss: ()
                     SoundRow(o.title + if (o.type == "custom") "  (custom)" else "  (${o.type})", current == o.uri,
                         playing == o.uri, o.uri, { onPick(o.uri) }) { preview(o.uri) }
                 }
-                if (options.none { it.type == "custom" }) item {
-                    Text("Custom files: earnd-cli sound.push <file>", style = MaterialTheme.typography.bodySmall)
-                }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },

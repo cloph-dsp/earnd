@@ -1,6 +1,12 @@
 package com.earnd.app.blocking
 
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.earnd.app.ui.theme.DrainRuler
 import com.earnd.app.domain.UnlockCap
 import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.RowDivider
@@ -49,6 +55,25 @@ import com.earnd.app.domain.RefuseReason
 /** What the gate tells about a metered app: [realMinutes] of use left at [ratePct] (null = free, rate 0). */
 data class GateInfo(val realMinutes: Int?, val ratePct: Int, val balance: Int = 0)
 
+/** True when the system turned animations off; then numbers snap instead of tweening. */
+@Composable
+private fun reducedMotion(): Boolean {
+    val ctx = LocalContext.current
+    return remember {
+        runCatching {
+            android.provider.Settings.Global.getFloat(ctx.contentResolver,
+                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+        }.getOrDefault(false)
+    }
+}
+
+/** The balance, animated briefly so a check-in visibly pays out. */
+@Composable
+private fun animatedBalance(balance: Int): Int {
+    val v by animateIntAsState(balance, tween(if (reducedMotion()) 0 else 450), label = "balance")
+    return v
+}
+
 /** Full-screen lock/gate UI. Stateless: takes state and callbacks. */
 @Composable
 fun LockedScreen(
@@ -65,34 +90,65 @@ fun LockedScreen(
     gate: GateInfo? = null,
     onOpen: () -> Unit = {},
 ) {
+    val confirm = cause == BlockCause.CONFIRM && gate != null
+    val bedtime = cause == BlockCause.BEDTIME
+    // Smallest session the balance allows, else the smallest pass we ask the user to earn.
+    val passes = UnlockCap.choices(LockedViewModel.SESSION_CHOICES, ui.balanceMinutes, ui.unlockCapMin)
+    val need = passes.firstOrNull() ?: LockedViewModel.SESSION_CHOICES.first()
+    val enough = !ui.hardMode && passes.isNotEmpty()
+    // Most-ignored pending habit first (comeback misses), then any other earnable item.
+    val habitsPending = ui.items.filterIsInstance<EarnItem.Habit>().sortedByDescending { it.day.comebackMissed }
+    val primary: EarnItem? = if (confirm || bedtime || enough) null else habitsPending.firstOrNull() ?: ui.items.firstOrNull()
+    val rest = ui.items.filter { it !== primary }
+    val shownBalance = animatedBalance(ui.balanceMinutes)
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (cause == BlockCause.CONFIRM && gate != null) GateHeader(target, gate) else Header(cause, target, until, ui.balanceMinutes)
+            if (confirm) GateHeader(target, gate!!, shownBalance)
+            else Header(cause, target, until, shownBalance, need, enough)
             if (message != null) {
                 Text(refuseText(message), color = Earnd.palette.red,
                     style = MaterialTheme.typography.bodyMedium)
             }
-            when (cause) {
-                BlockCause.BEDTIME -> FilledTonalButton(onGrace, Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.blocking_grace))
+            if (bedtime) {
+                FilledTonalButton(onGrace, Modifier.fillMaxWidth()) { Text(stringResource(R.string.blocking_grace)) }
+                Spacer(Modifier.weight(1f))
+            } else {
+                if (ui.hardMode && !confirm) Text(stringResource(R.string.blocking_hard_mode_note),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                when {
+                    primary is EarnItem.Habit -> Button({ onCheckIn(primary) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(if (primary.minutes > 0)
+                            stringResource(R.string.blocking_checkin_primary_min, primary.day.habit.name, primary.minutes)
+                        else stringResource(R.string.blocking_checkin_primary, primary.day.habit.name))
+                    }
+                    primary is EarnItem.Task -> Button({ onTask(primary) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.blocking_complete_primary, primary.title, primary.minutes))
+                    }
+                    confirm -> Button(onOpen, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.blocking_open_gate, target))
+                    }
+                    enough -> Button({ onStartSession(need) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.blocking_open_pass, target, need))
+                    }
                 }
-                BlockCause.CONFIRM -> {
-                    SessionChoices(ui, onStartSession, title = stringResource(R.string.blocking_gate_pass))
+                if (!ui.hardMode && (enough || confirm)) {
+                    // Outside confirm the primary covers the smallest pass; longer ones stay quiet.
+                    SessionChoices(ui, onStartSession,
+                        title = if (confirm) stringResource(R.string.blocking_gate_pass) else stringResource(R.string.blocking_use_time),
+                        skip = if (confirm) null else need)
                 }
-                else -> SessionChoices(ui, onStartSession)
-            }
-            if (cause != BlockCause.BEDTIME) {
                 SectionTitle(stringResource(R.string.blocking_earn_title))
                 LazyColumn(Modifier.weight(1f)) {
-                    if (ui.items.isEmpty()) item {
+                    if (rest.isEmpty()) item {
                         Text(stringResource(R.string.blocking_nothing_to_earn),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    items(ui.items, key = { it.key() }) { item ->
+                    items(rest, key = { it.key() }) { item ->
                         when (item) {
                             is EarnItem.Habit -> EarnRow(item.day.habit.name, progress(item), item.minutes,
                                 photo = item.needsPhoto) { onCheckIn(item) }
@@ -103,15 +159,8 @@ fun LockedScreen(
                         RowDivider()
                     }
                 }
-            } else {
-                Spacer(Modifier.weight(1f))
             }
-            if (cause == BlockCause.CONFIRM && gate != null) {
-                Button(onOpen, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.blocking_gate_open)) }
-                OutlinedButton(onHome, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                    Text(stringResource(R.string.blocking_go_home), color = Earnd.palette.secondary)
-                }
-            } else TextButton(onHome, Modifier.fillMaxWidth()) {
+            TextButton(onHome, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.blocking_go_home), color = Earnd.palette.secondary)
             }
         }
@@ -128,7 +177,7 @@ private fun progress(item: EarnItem.Habit): String =
     stringResource(R.string.blocking_habit_progress, item.day.done, item.day.required)
 
 @Composable
-private fun Header(cause: BlockCause, target: String, until: String?, balance: Int) {
+private fun Header(cause: BlockCause, target: String, until: String?, balance: Int, need: Int, enough: Boolean) {
     val p = Earnd.palette
     Column(Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.Start) {
         Row(
@@ -147,32 +196,43 @@ private fun Header(cause: BlockCause, target: String, until: String?, balance: I
             )
         }
         Spacer(Modifier.height(16.dp))
-        Text(stringResource(R.string.blocking_not_yet), style = MaterialTheme.typography.headlineMedium)
+        Text(
+            when {
+                cause == BlockCause.BEDTIME -> stringResource(R.string.blocking_bedtime_headline)
+                enough -> stringResource(R.string.blocking_have_headline, balance)
+                else -> stringResource(R.string.blocking_need_headline, need, target)
+            },
+            style = MaterialTheme.typography.headlineMedium,
+        )
         Spacer(Modifier.height(4.dp))
-        val sub = when {
-            cause == BlockCause.BEDTIME && until != null -> stringResource(R.string.blocking_bedtime_until, until)
-            else -> pluralStringResource(R.plurals.blocking_balance, balance, balance)
+        if (cause == BlockCause.BEDTIME) {
+            if (until != null) Text(stringResource(R.string.blocking_bedtime_until, until),
+                style = MaterialTheme.typography.bodyMedium, color = p.secondary)
+        } else {
+            Text(pluralStringResource(R.plurals.blocking_balance, balance, balance),
+                style = MaterialTheme.typography.bodyMedium, color = p.secondary)
+            DrainRuler(balance, need, Modifier.padding(top = 4.dp))
         }
-        Text(sub, style = MaterialTheme.typography.bodyMedium, color = p.secondary)
     }
 }
 
 @Composable
-private fun GateHeader(target: String, gate: GateInfo) {
+private fun GateHeader(target: String, gate: GateInfo, balance: Int) {
     val p = Earnd.palette
     Column(Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.Start) {
         Row(
-            Modifier.background(p.red, Chamfer).padding(horizontal = 12.dp, vertical = 6.dp),
+            Modifier.background(p.amber, Chamfer).padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.blocking_gate_badge_app, target), style = MaterialTheme.typography.labelLarge, color = p.onRed)
+            Text(stringResource(R.string.blocking_gate_badge_app, target),
+                style = MaterialTheme.typography.labelLarge, color = p.onAmber)
         }
         Spacer(Modifier.height(16.dp))
-        Text(target, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp, lineHeight = 30.sp))
+        Text(stringResource(R.string.blocking_have_headline, balance), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(8.dp))
         Num(
             if (gate.realMinutes == null) stringResource(R.string.blocking_gate_free)
-            else stringResource(R.string.blocking_gate_line, rateLabel(gate.ratePct), gate.balance, gate.realMinutes),
+            else stringResource(R.string.blocking_gate_rate_line, rateLabel(gate.ratePct), gate.realMinutes),
             color = p.secondary,
         )
     }
@@ -186,19 +246,20 @@ private fun rateLabel(pct: Int): String = when (pct) {
 }
 
 @Composable
-private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit, title: String = stringResource(R.string.blocking_use_time)) {
+private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit, title: String = stringResource(R.string.blocking_use_time), skip: Int? = null) {
     when {
-        ui.hardMode -> Text(stringResource(R.string.blocking_hard_mode_note),
-            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ui.hardMode -> Unit
         ui.balanceMinutes <= 0 -> Unit
         else -> {
-            SectionTitle(title)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val all = UnlockCap.choices(LockedViewModel.SESSION_CHOICES, ui.balanceMinutes, ui.unlockCapMin)
-                val shown = (all.dropLast(1).take(2) + all.last()).distinct()
-                shown.forEach { m ->
-                    QuietButton({ onStart(m) }, Modifier.weight(1f)) {
-                        Text(stringResource(R.string.blocking_minutes_short, m))
+            val all = UnlockCap.choices(LockedViewModel.SESSION_CHOICES, ui.balanceMinutes, ui.unlockCapMin)
+            val shown = (all.dropLast(1).take(2) + all.last()).distinct().filter { it != skip }
+            if (shown.isNotEmpty()) {
+                SectionTitle(title)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    shown.forEach { m ->
+                        QuietButton({ onStart(m) }, Modifier.weight(1f)) {
+                            Text(stringResource(R.string.blocking_minutes_short, m))
+                        }
                     }
                 }
             }

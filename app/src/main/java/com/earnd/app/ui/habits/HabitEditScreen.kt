@@ -13,6 +13,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import com.earnd.app.ui.theme.Button
@@ -54,7 +61,7 @@ import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.WeekdayPicker
 import com.earnd.app.ui.common.launchUi
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
     val sl = ServiceLocator
@@ -74,19 +81,84 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
     val isNew = h.id == 0L
     val set: (HabitEntity) -> Unit = { habit = it }
 
-    EditScaffold(if (isNew) "New habit" else "Edit habit", onBack = onDone, actions = {
-        TextButton(enabled = h.name.isNotBlank(), onClick = {
-            launchUi {
-                val id = sl.habitService.save(
-                    h.copy(name = h.name.trim(), minutesPerCheckIn = HabitRules.rewardMinutes(h, sl.settings.current())),
-                )
-                AlarmConfigs.apply(OwnerKind.HABIT, id, alarm)
-                onDone()
+    var more by remember(h.id) { mutableStateOf(false) }
+    val save: () -> Unit = {
+        launchUi {
+            val id = sl.habitService.save(
+                h.copy(name = h.name.trim(), minutesPerCheckIn = HabitRules.rewardMinutes(h, sl.settings.current())),
+            )
+            AlarmConfigs.apply(OwnerKind.HABIT, id, alarm)
+            onDone()
+        }
+    }
+    val summary = moreSummary(h)
+    androidx.compose.material3.Scaffold(
+        topBar = {
+            androidx.compose.material3.TopAppBar(
+                title = { Text(if (isNew) "New habit" else "Edit habit") },
+                navigationIcon = { androidx.compose.material3.IconButton(onClick = onDone) { Icon(androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
+            )
+        },
+        bottomBar = {
+            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()) {
+                Button(onClick = save, enabled = h.name.isNotBlank(), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Save") }
             }
-        }) { Text("Save") }
-    }) {
+        },
+    ) { pad ->
+    androidx.compose.foundation.layout.Column(
+        Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
         OutlinedTextField(h.name, { set(h.copy(name = it)) }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
 
+        SectionTitle("When")
+        ChoiceChips(ScheduleKind.values().toList(), h.scheduleKind, {
+            when (it) {
+                ScheduleKind.DAILY -> "Every day"; ScheduleKind.WEEKDAYS -> "Some days"; ScheduleKind.EVERY_N_DAYS -> "Every few days"
+                ScheduleKind.TIMES_PER_WEEK -> "Times per week"; ScheduleKind.RULE -> "Custom"
+            }
+        }) { k ->
+            set(h.copy(
+                scheduleKind = k,
+                timesPerWeek = if (k == ScheduleKind.TIMES_PER_WEEK && h.timesPerWeek == 0) 3 else h.timesPerWeek,
+                scheduleRule = if (k == ScheduleKind.RULE && h.scheduleRule == null) RRule.weekly(listOf(java.time.LocalDate.ofEpochDay(h.anchorEpochDay).dayOfWeek), 2).toString() else h.scheduleRule,
+            ))
+        }
+        when (h.scheduleKind) {
+            ScheduleKind.WEEKDAYS -> WeekdayPicker(h.weekdayMask) { set(h.copy(weekdayMask = it)) }
+            ScheduleKind.EVERY_N_DAYS -> NumberField("Every how many days", h.everyNDays, { set(h.copy(everyNDays = (it ?: 1).coerceAtLeast(1))) })
+            ScheduleKind.TIMES_PER_WEEK -> NumberField("Days per week (any days)", h.timesPerWeek, { set(h.copy(timesPerWeek = (it ?: 1).coerceIn(1, 7))) })
+            ScheduleKind.RULE -> HabitRuleEditor(h, set)
+            ScheduleKind.DAILY -> Unit
+        }
+        SectionTitle("Reminder")
+        SwitchRow(
+            "Remind only on some days", h.reminderDays != 0,
+            { on -> set(h.copy(reminderDays = if (on) h.weekdayMask.takeIf { it != 0 } ?: 0b1111111 else 0)) },
+            hint = if (h.reminderDays == 0) "Reminds on every day the habit is scheduled." else null,
+        )
+        if (h.reminderDays != 0) WeekdayPicker(h.reminderDays) { m -> set(h.copy(reminderDays = m.takeIf { it != 0 } ?: h.reminderDays)) }
+        OutlinedTextField(
+            h.reminderMessage.orEmpty(), { set(h.copy(reminderMessage = it.take(120).ifBlank { null })) },
+            label = { Text("Reminder message (optional)") }, placeholder = { Text(h.name.ifBlank { "Uses the habit name" }) },
+            singleLine = true, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        )
+        SwitchRow("Custom reminder for this habit", alarm != null, { on ->
+            if (!on) alarm = null else launchUi { alarm = AlarmConfigs.defaults(OwnerKind.HABIT).copy(ownerId = h.id) }
+        }, hint = if (alarm == null) "Uses your default reminder settings." else null)
+        alarm?.let { a -> AlarmConfigEditor(a) { alarm = it } }
+
+        androidx.compose.foundation.layout.Row(
+            Modifier.fillMaxWidth().padding(top = 20.dp).heightIn(min = 48.dp).clickable { more = !more },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+                Text("More options", style = MaterialTheme.typography.titleSmall)
+                if (!more && summary.isNotEmpty()) Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(if (more) "Hide" else "Show", style = MaterialTheme.typography.labelLarge, color = Earnd.palette.amber)
+        }
+        androidx.compose.animation.AnimatedVisibility(more) {
+            androidx.compose.foundation.layout.Column {
         SectionTitle("Look")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             HabitLook.icons.forEach { (key, icon) ->
@@ -109,26 +181,6 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
             }
         }
 
-        SectionTitle("When")
-        ChoiceChips(ScheduleKind.values().toList(), h.scheduleKind, {
-            when (it) {
-                ScheduleKind.DAILY -> "Every day"; ScheduleKind.WEEKDAYS -> "Some days"; ScheduleKind.EVERY_N_DAYS -> "Every few days"
-                ScheduleKind.TIMES_PER_WEEK -> "Times per week"; ScheduleKind.RULE -> "Custom"
-            }
-        }) { k ->
-            set(h.copy(
-                scheduleKind = k,
-                timesPerWeek = if (k == ScheduleKind.TIMES_PER_WEEK && h.timesPerWeek == 0) 3 else h.timesPerWeek,
-                scheduleRule = if (k == ScheduleKind.RULE && h.scheduleRule == null) RRule.weekly(listOf(java.time.LocalDate.ofEpochDay(h.anchorEpochDay).dayOfWeek), 2).toString() else h.scheduleRule,
-            ))
-        }
-        when (h.scheduleKind) {
-            ScheduleKind.WEEKDAYS -> WeekdayPicker(h.weekdayMask) { set(h.copy(weekdayMask = it)) }
-            ScheduleKind.EVERY_N_DAYS -> NumberField("Every how many days", h.everyNDays, { set(h.copy(everyNDays = (it ?: 1).coerceAtLeast(1))) })
-            ScheduleKind.TIMES_PER_WEEK -> NumberField("Days per week (any days)", h.timesPerWeek, { set(h.copy(timesPerWeek = (it ?: 1).coerceIn(1, 7))) })
-            ScheduleKind.RULE -> HabitRuleEditor(h, set)
-            ScheduleKind.DAILY -> Unit
-        }
         Text("Part of the day", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
         ChoiceChips(DaySegment.values().toList(), h.segment, HabitLook::segmentLabel) { set(h.copy(segment = it)) }
         NumberField("Times per day", h.timesPerDay, { set(h.copy(timesPerDay = (it ?: 1).coerceIn(1, 50))) }, Modifier.padding(top = 8.dp))
@@ -202,22 +254,8 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        SectionTitle("Reminder")
-        SwitchRow(
-            "Remind only on some days", h.reminderDays != 0,
-            { on -> set(h.copy(reminderDays = if (on) h.weekdayMask.takeIf { it != 0 } ?: 0b1111111 else 0)) },
-            hint = if (h.reminderDays == 0) "Reminds on every day the habit is scheduled." else null,
-        )
-        if (h.reminderDays != 0) WeekdayPicker(h.reminderDays) { m -> set(h.copy(reminderDays = m.takeIf { it != 0 } ?: h.reminderDays)) }
-        OutlinedTextField(
-            h.reminderMessage.orEmpty(), { set(h.copy(reminderMessage = it.take(120).ifBlank { null })) },
-            label = { Text("Reminder message (optional)") }, placeholder = { Text(h.name.ifBlank { "Uses the habit name" }) },
-            singleLine = true, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        )
-        SwitchRow("Custom reminder for this habit", alarm != null, { on ->
-            if (!on) alarm = null else launchUi { alarm = AlarmConfigs.defaults(OwnerKind.HABIT).copy(ownerId = h.id) }
-        }, hint = if (alarm == null) "Uses your default reminder settings." else null)
-        alarm?.let { a -> AlarmConfigEditor(a) { alarm = it } }
+            }
+        }
 
         if (!isNew) {
             SectionTitle("Manage")
@@ -225,6 +263,7 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
                 OutlinedButton(onClick = { launchUi { sl.habitService.archive(h.id); onDone() } }) { Text("Archive") }
                 Button(onClick = { confirmDelete = true }) { Text("Delete") }
             }
+        }
         }
     }
     if (confirmDelete) {
@@ -296,3 +335,15 @@ private fun FocusDurations(h: HabitEntity, settings: com.earnd.app.data.Settings
         }, Modifier.fillMaxWidth())
     }
 }
+
+/** One-line summary of non-default "More options" values. */
+private fun moreSummary(h: HabitEntity): String = buildList {
+    if (h.segment != DaySegment.NONE) add(HabitLook.segmentLabel(h.segment))
+    if (h.timesPerDay > 1) add("${h.timesPerDay}x a day")
+    if (h.targetQuantity != null) add("target")
+    if (h.focusMinutes != null) add("${h.focusMinutes} min focus")
+    if (h.stopwatch) add("stopwatch")
+    if (h.rewardMinutes != null) add("${h.rewardMinutes} min reward")
+    if (!h.overTargetReward) add("no bonus")
+    if (h.photoRequired != null) add(if (h.photoRequired == true) "photo" else "tap")
+}.joinToString(" · ")

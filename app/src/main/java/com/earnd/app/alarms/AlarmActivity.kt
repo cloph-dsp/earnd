@@ -26,9 +26,12 @@ class AlarmActivity : ComponentActivity() {
         setTurnScreenOn(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         current = WeakReference(this)
-        // Back must not dismiss silently: the user has to choose Stop or Snooze.
+        // Back = Silence (same path as the Silence button).
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = Unit
+            override fun handleOnBackPressed() {
+                val o = AlarmKeys.ownerOf(intent) ?: return finish()
+                act { AlarmsModule.actions.stop(o.first, o.second) }
+            }
         })
         bind(intent)
     }
@@ -51,6 +54,8 @@ class AlarmActivity : ComponentActivity() {
                     label = label,
                     snoozesLeft = left,
                     snoozeMinutes = NagSchedule.SNOOZE_MIN,
+                    ignoredCount = intent.getIntExtra("com.earnd.app.alarms.EXTRA_IGNORED", 0),
+                    rewardMinutes = intent.getIntExtra("com.earnd.app.alarms.EXTRA_REWARD_MIN", 0),
                     onStop = { act { actions.stop(o.first, o.second) } },
                     onSnooze = { act { actions.snooze(o.first, o.second) } },
                     onDone = { act { actions.done(o.first, o.second) } },

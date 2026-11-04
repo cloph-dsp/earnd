@@ -35,4 +35,14 @@
     <string name="blocking_gate_free">Counts at 0%: free while open</string>
     <string name="blocking_gate_open">Open and start counting</string>
     <string name="blocking_gate_pass">Or use a fixed pass</string>
+    <string name="blocking_need_headline">%1$d min to open %2$s</string>
+    <string name="blocking_have_headline">You have %1$d min</string>
+    <string name="blocking_bedtime_headline">Time to rest</string>
+    <string name="blocking_open_pass">Open %1$s (%2$d min)</string>
+    <string name="blocking_open_gate">Open %1$s</string>
+    <string name="blocking_checkin_primary">Check in: %1$s</string>
+    <string name="blocking_checkin_primary_min">Check in: %1$s (+%2$d min)</string>
+    <string name="blocking_complete_primary">Done: %1$s (+%2$d min)</string>
+    <string name="blocking_gate_rate_line">%1$s · about %2$d min of use</string>
+    <string name="blocking_gate_badge_confirm">%1$s · counting</string>
 </resources>

@@ -66,6 +66,7 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
         )
         alarm = AlarmConfigs.custom(OwnerKind.TASK, taskId)
     }
+    val taskDefaultReward = remember { sl.settings.settings }.collectAsState(initial = com.earnd.app.data.Settings()).value.defaultTaskRewardMin
     val t = task ?: return
     val isNew = t.id == 0L
     val isSub = t.parentId != null
@@ -102,7 +103,7 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
 
             SectionTitle("Reward")
             SwitchRow("Earn minutes for this task", t.rewardMinutes != null, { on ->
-                set(t.copy(rewardMinutes = if (on) 5 else null))
+                set(t.copy(rewardMinutes = if (on) (taskDefaultReward ?: 5) else null))
             }, hint = "Tasks never lock anything on their own.")
             t.rewardMinutes?.let { r -> NumberField("Minutes earned", r, { set(t.copy(rewardMinutes = (it ?: 0).coerceIn(0, 600))) }) }
 

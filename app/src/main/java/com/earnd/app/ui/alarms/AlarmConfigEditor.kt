@@ -1,5 +1,13 @@
 package com.earnd.app.ui.alarms
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,7 +54,29 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
             ReminderChips(cfg, onChange)
         }
         Text("Style", style = MaterialTheme.typography.labelLarge)
-        ChoiceChips(AlarmStyle.values().toList(), cfg.style, ::styleLabel) { onChange(cfg.copy(style = it)) }
+        Row(Modifier.fillMaxWidth()) {
+            AlarmStyle.values().forEach { st ->
+                val on = cfg.style == st
+                val label = when (st) { AlarmStyle.SILENT -> "Silent"; AlarmStyle.NOTIFICATION -> "Notification"; AlarmStyle.FULL_SCREEN -> "Alarm" }
+                Box(
+                    Modifier.weight(1f).heightIn(min = 48.dp)
+                        .background(if (on) com.earnd.app.ui.theme.Earnd.palette.amber else androidx.compose.ui.graphics.Color.Transparent)
+                        .border(1.dp, if (on) com.earnd.app.ui.theme.Earnd.palette.amber else com.earnd.app.ui.theme.Earnd.palette.line)
+                        .selectable(on, role = androidx.compose.ui.semantics.Role.RadioButton) { onChange(cfg.copy(style = st)) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(label, style = MaterialTheme.typography.labelLarge,
+                        color = if (on) com.earnd.app.ui.theme.Earnd.palette.onAmber else MaterialTheme.colorScheme.onBackground)
+                }
+            }
+        }
+        var advanced by remember { mutableStateOf(false) }
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { advanced = !advanced }, verticalAlignment = Alignment.CenterVertically) {
+            Text("Advanced", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(if (advanced) "Hide" else "Show", style = MaterialTheme.typography.labelLarge, color = com.earnd.app.ui.theme.Earnd.palette.amber)
+        }
+        AnimatedVisibility(advanced) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("If I don't respond", style = MaterialTheme.typography.labelLarge)
         ChoiceChips(NagMode.values().toList(), cfg.nagMode, ::nagLabel) { onChange(cfg.copy(nagMode = it)) }
         if (cfg.nagMode == NagMode.FIXED) {
@@ -71,6 +101,8 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
         }
         if (cfg.style == AlarmStyle.FULL_SCREEN) {
             NumberField("Snoozes allowed", cfg.snoozeMaxCount, { onChange(cfg.copy(snoozeMaxCount = (it ?: 0).coerceIn(0, 10))) })
+        }
+            }
         }
     }
 }
