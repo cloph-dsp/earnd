@@ -70,6 +70,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 
@@ -78,13 +79,13 @@ private val SEGMENT_ORDER = listOf(DaySegment.MORNING, DaySegment.AFTERNOON, Day
 @Composable
 fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoCheckIn: (Long) -> Unit, onOpenTask: (Long) -> Unit = {}) {
     val sl = ServiceLocator
-    val todayDay = remember { sl.clock.today().toEpochDay() }
-    val habits by remember { sl.habitService.observeToday() }.collectAsState(initial = emptyList())
-    val checkIns by remember { sl.db.checkInDao().observeForDay(todayDay) }.collectAsState(initial = emptyList())
+    val todayDay by produceState(sl.clock.today().toEpochDay()) { while (true) { value = sl.clock.today().toEpochDay(); delay(30_000) } }
+    val loadedHabits by remember { sl.habitService.observeToday() }.collectAsState(initial = null)
+    val habits = loadedHabits.orEmpty()
+    val checkIns by remember(todayDay) { sl.db.checkInDao().observeForDay(todayDay) }.collectAsState(initial = emptyList())
     val balance by remember { sl.timeBank.observeBalance() }.collectAsState(initial = null)
     val session by remember { sl.timeBank.observeActiveSession() }.collectAsState(initial = null)
     val settings by remember { sl.settings.settings }.collectAsState(initial = Settings())
-    val appRules by remember { sl.db.appRuleDao().observeAll() }.collectAsState(initial = emptyList())
     val snackbar = remember { SnackbarHostState() }
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
     val byHabit = checkIns.groupBy { it.habitId }
@@ -94,9 +95,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
 
     val allDone = habits.isNotEmpty() && habits.all(doneOf)
     val bank = BankState(balance?.minutes ?: 0, session, settings.hardMode, allDone = allDone, allDoneUnlock = settings.allDoneUnlock, unlockCapMin = settings.unlockCapMin,
-        nextExpiryAt = balance?.nextExpiryAt, minutesExpiringNext = balance?.minutesExpiringNext ?: 0,
-        metered = if (settings.hardMode) emptyList() else appRules.filter { it.rule == com.earnd.app.data.entity.AppRule.LEISURE && !it.isWebsite && com.earnd.app.domain.Charging.effective(it.meterPct) != com.earnd.app.domain.Charging.DEFAULT_RATE }
-            .map { com.earnd.app.domain.Charging.note(it.label, com.earnd.app.domain.Charging.effective(it.meterPct)) })
+        nextExpiryAt = balance?.nextExpiryAt, minutesExpiringNext = balance?.minutesExpiringNext ?: 0)
     val inBedtime = TimeBank.bedtimeWindow(settings)?.contains(System.currentTimeMillis(), sl.clock.zone()) == true
 
     val nags by remember { sl.db.nagStateDao().observeAll() }.collectAsState(initial = emptyList())
@@ -174,7 +173,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                         Num("$done/${habits.size} habits", Modifier.padding(top = 6.dp))
                     }
                 }
-            } else {
+            } else if (loadedHabits != null) {
                 item {
                     Text(
                         "Nothing scheduled today, so nothing is locked. Add a habit when you're ready.",

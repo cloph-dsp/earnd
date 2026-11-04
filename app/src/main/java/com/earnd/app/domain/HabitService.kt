@@ -12,7 +12,10 @@ import com.earnd.app.data.entity.LedgerKind
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.RewardMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flatMapLatest
 import java.time.LocalDate
 
 /**
@@ -33,7 +36,19 @@ class HabitService(
     private val clock: Clock,
     private val bus: ChangeBus,
     private val settings: SettingsRepository? = null,
+    /** How often the observed streams re-check the date, so they roll over at midnight. */
+    private val dayTickMs: Long = 30_000,
 ) {
+    /** Emits today's date now and again whenever it changes; observed lists must not freeze on the day they were collected. */
+    private fun todayChanges(): Flow<LocalDate> = flow {
+        var last: LocalDate? = null
+        while (true) {
+            val t = clock.today()
+            if (t != last) { last = t; emit(t) }
+            delay(dayTickMs)
+        }
+    }
+
     fun isScheduled(h: HabitEntity, day: LocalDate): Boolean = HabitSchedule.isScheduled(h, day)
 
     private suspend fun settingsNow(): Settings = settings?.current() ?: Settings()
@@ -56,10 +71,10 @@ class HabitService(
         }
     }
 
-    /** Habits scheduled today with their progress. "Today" is fixed at collection time. */
-    fun observeToday(): Flow<List<HabitDay>> {
-        val today = clock.today()
-        return combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
+    /** Habits scheduled today with their progress; follows the date across midnight. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun observeToday(): Flow<List<HabitDay>> = todayChanges().flatMapLatest { today ->
+        combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
             val byHabit = cs.groupBy { it.habitId }
             val week = weekDoneBefore(hs, today)
             val due = hs.filter { HabitSchedule.isDueOn(it, today, week[it.id] ?: 0) }
@@ -69,9 +84,9 @@ class HabitService(
     }
 
     /** Every active habit with today's progress, flagged whether it is due today. */
-    fun observeAllActive(): Flow<List<Pair<HabitDay, Boolean>>> {
-        val today = clock.today()
-        return combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun observeAllActive(): Flow<List<Pair<HabitDay, Boolean>>> = todayChanges().flatMapLatest { today ->
+        combine(habits.observeActive(), checkIns.observeForDay(today.toEpochDay())) { hs, cs ->
             val byHabit = cs.groupBy { it.habitId }
             val week = weekDoneBefore(hs, today)
             val missed = comebackMissed(hs, today, cs)
