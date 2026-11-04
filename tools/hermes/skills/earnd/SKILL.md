@@ -56,6 +56,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `habits.create` | `name` (required), `times` (1-20/day), `schedule` = DAILY, WEEKDAYS, EVERY_N_DAYS, TIMES_PER_WEEK, RULE, `days` = mon,wed,fri / weekdays / weekends (implies schedule=WEEKDAYS), `every` (N days), `per_week` (1-7, any days; implies TIMES_PER_WEEK), `weeks` (N, with `days`: every N weeks), `monthdays` (e.g. `1,15,last`), `rule` (RRULE), `start` (date), `segment` = NONE, MORNING, AFTERNOON, EVENING, `target`, `unit`, `icon`, `color` (#RRGGBB), `mode` = TAP, PHOTO |
 | (habits.create, more) | `minutes` (reward per check-in, 0-240), `photo` = true/false, `reminders` = HH:MM list e.g. `08:00,14:00,21:00` or `none`, `remind_days` = mon,tue / all, `message` (reminder text) |
 | (habits.create, timed) | `focus_min` (main focus length 1-240 or none), `focus_options` = durations with rewards e.g. `10:5,20:10,30:15` (reward optional = linear) or `none`, `stopwatch` = on/off (open-ended count-up focus), `sw_rate` (earned min per focused min, default 0.5), `sw_min` (minimum session minutes, default 5, 0 = none), `sw_cap` (counted minutes cap or none) |
+| (habits.create, over target) | `over_target_reward` = on/off (default on: check-ins beyond `times` earn up to +50%; off: they are recorded but earn 0). Off is allowed remotely, on is phone-only |
 | `habits.update` | `id` plus any create field (`minutes` only lower, `photo` only on; timed fields only tighter: rate per minute never higher (max 1.0 if the habit was not timed), `sw_min` only up, `sw_cap` only down, never turn timing/stopwatch off) |
 | alarm keys (habits and tasks create/update) | `alarm` = SILENT, NOTIFICATION, FULL_SCREEN, `at_due`, `offsets` (minutes before, tasks: `60,15`), `nag` = OFF, PROGRESSIVE, FIXED, `nag_every`, `nag_max` (or none), `vibrate`, `snooze_max`, `ring_sec` (1-600 seconds, or `none` = app default; allowed both directions), `volume` (10-100 % of the alarm stream, or `none` = default; allowed both directions), `sound` = `default` (clears), `system:<title>` or `custom:<file>` (keys from `sounds.list`) |
 | `sounds.list` | - (keys `default`, `system:<title>`, `custom:<filename>` with title, uri, type alarm/notification/ringtone/custom) |
@@ -73,8 +74,9 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `rules.blockable_apps` | launchable apps as label + pkg (find the package to block) |
 | `rules.block_app` | `pkg` (e.g. com.instagram.android), optional `label` |
 | `rules.block_site` | `domain` (e.g. reddit.com; URLs are reduced to the host) |
+| `rules.set_charging` | `pkg` (a blocked app), `rate` = `full`, 0, 25, 50 or 100. Metered apps (rate 0-100 %) open without a session while the balance is above 0 and cost that % of their foreground time; background playback is free. Remotely only stricter: a higher rate, or metered -> full. Lowering a rate or full -> metered is phone-only (`forbidden_weaken`). `rules.list` shows each app's `charging` |
 | `settings.get` | all settings plus the list of tightenable keys |
-| `settings.tighten` | `key=value` pairs: unlockCapMin, hardMode, blockingEnabled, allDoneUnlock, resetPeriod (DAILY only; WEEKLY and ROLLING are weakening), weakenCooldownMin, bedtimeEnabled, bedtimeStartMin/EndMin (HH:MM ok), bedtimeGraceMin, defaultTaskRewardMin, defaultHabitRewardMin, rewardMode, photoRequiredDefault, removalPuzzle |
+| `settings.tighten` | `key=value` pairs: unlockCapMin, hardMode, blockingEnabled, allDoneUnlock, resetPeriod (DAILY only; WEEKLY and ROLLING are weakening), weakenCooldownMin, bedtimeEnabled, bedtimeStartMin/EndMin (HH:MM ok), bedtimeGraceMin, rollingExpiryHours (only lower, e.g. 15), defaultTaskRewardMin, defaultHabitRewardMin, rewardMode, photoRequiredDefault, removalPuzzle |
 | `tasks.complete` / `tasks.uncomplete` / `tasks.skip` / `tasks.delete` | `id` (`skip` moves a recurring task to its next occurrence without reward) |
 | `audit.list` | optional `limit` (1-500); recent remote changes |
 
@@ -110,6 +112,9 @@ earnd-cli tasks.update id=42 sound=default
 earnd-cli rules.blockable_apps
 earnd-cli rules.block_app pkg=com.instagram.android
 earnd-cli rules.block_site domain=reddit.com
+earnd-cli rules.set_charging pkg=com.aspiro.tidal rate=100   # stricter only; rate=full = back to sessions
+earnd-cli habits.update id=3 over_target_reward=off
+earnd-cli settings.tighten rollingExpiryHours=15
 earnd-cli settings.tighten unlockCapMin=30
 earnd-cli habits.update id=6 focus_min=10 focus_options=10:5,20:10,30:15
 earnd-cli habits.update id=5 stopwatch=on sw_rate=0.5 sw_min=10
@@ -117,6 +122,11 @@ earnd-cli settings.tighten comebackBonus=false   # turning it back on is phone-o
 earnd-cli settings.tighten hardMode=true bedtimeEnabled=true bedtimeStartMin=23:00 bedtimeEndMin=07:00
 earnd-cli habits.list all=true   # find archived ids, then: earnd-cli habits.unarchive id=7
 ```
+
+## Debug build only: set charging on the phone (agent setup)
+Bypasses the weakening gates (needs adb shell DUMP). Adds the app to the leisure list if missing:
+`adb shell am broadcast -n com.earnd.app/.blocking.DebugChargingReceiver -a com.earnd.app.blocking.DEBUG_SET_CHARGING --es pkg com.aspiro.tidal --es rate 50`
+(rate = full | 0 | 25 | 50 | 100; packages: AntennaPod `de.danoeh.antennapod`, YouTube `app.morphe.android.youtube`, TIDAL `com.aspiro.tidal`).
 
 ## Pitfalls
 - `{"error":"disabled"}`: remote access is off. Ask the user to enable it in Earnd settings.

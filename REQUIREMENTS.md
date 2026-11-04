@@ -31,6 +31,17 @@ tier.
 - Blocking is implemented with an AccessibilityService that detects the foreground app (and browser
   address bar for websites) and shows a full-screen "locked" screen listing what can be done to earn
   time, with a one-tap path into check-in. Exit goes to the home screen.
+- Per-app charging: each blocked app is FULL (default: needs an unlock session) or METERED at 0/25/50/100 %
+  (default 50 % when switching). A metered app needs no session: while it is in the foreground and the balance
+  is above 0 it stays open and the balance is debited at rate x foreground time (whole minutes, fractional time
+  carried over); background playback costs nothing. At balance 0 the normal lock screen shows. A running
+  session covers metered apps (no double charge). Bedtime, hard mode (disables metering) and focus apply as
+  for any leisure app. Settings > Blocking > apps list has a "Charging" selector per leisure app; the Today
+  card notes metered apps ("TIDAL · 50%"). Lowering a rate or FULL -> METERED is a weakening (puzzle and hard-mode
+  cooldown on the phone, refused remotely: `rules.set_charging` only goes stricter).
+- Rolling expiry options: 12/15/24/36/48/72 h; `settings.tighten rollingExpiryHours=<lower>` works remotely.
+- Habit flag "Reward beyond target" (default on = +50 % overflow rule). Off: check-ins beyond `timesPerDay` are
+  recorded but earn 0. Remote `over_target_reward=off` allowed, `on` phone-only.
 - Tasks earn minutes only if the task has a reward set (default reward configurable); tasks never lock
   the phone on their own.
 

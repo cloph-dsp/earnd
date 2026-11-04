@@ -16,6 +16,7 @@ import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.Priority
 import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.data.entity.TaskEntity
+import com.earnd.app.domain.Charging
 import com.earnd.app.domain.HabitProgress
 import com.earnd.app.domain.HabitSchedule
 import com.earnd.app.domain.Recurrence
@@ -110,6 +111,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         "rules.list" -> rulesList()
         "rules.block_app" -> blockApp(a)
         "rules.block_site" -> blockSite(a)
+        "rules.set_charging" -> setCharging(a)
         "rules.blockable_apps" -> {
             val blocked = backend.appRules().filter { it.rule == AppRule.LEISURE && !it.isWebsite }.map { it.key }.toSet()
             ok("apps" to backend.launchableApps().map { (label, pkg) -> Json.obj("label" to label, "pkg" to pkg, "blocked" to (pkg in blocked)) })
@@ -194,6 +196,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 "unit" to h.unit,
                 "streak" to backend.streak(h.id),
                 "rewardMinutes" to HabitProgress.rewardMinutes(h, backend.settings()),
+                "overTargetReward" to h.overTargetReward,
                 "photoRequired" to photoOn(h, backend.settings()),
                 "focusMin" to h.focusMinutes,
                 "focusOptions" to TimedHabit.options(h, backend.settings()).map { Json.obj("minutes" to it.minutes, "reward" to it.reward) },
@@ -264,6 +267,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                     else -> TimedHabit.format(runCatching { TimedHabit.parse(v) }.getOrElse { bad(it.message ?: "bad focus_options") })
                 },
                 stopwatch = a.bool("stopwatch") ?: h.stopwatch,
+                overTargetReward = a.bool("over_target_reward") ?: h.overTargetReward,
                 stopwatchRate = if (a.has("sw_rate")) a.double("sw_rate", TimedHabit.RATE_RANGE) else h.stopwatchRate,
                 stopwatchMinMin = a.int("sw_min", 0..240) ?: h.stopwatchMinMin,
                 stopwatchCapMin = a.intOrNone(listOf("sw_cap"), 1..1440).let { if (it != null) it.value else h.stopwatchCapMin },
@@ -281,6 +285,9 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             }
             if (photoOn(existing, s) && !photoOn(h, s)) {
                 throw WeakenForbidden("photo proof can only be turned off on the phone")
+            }
+            if (!existing.overTargetReward && h.overTargetReward) {
+                throw WeakenForbidden("reward beyond target can only be turned on on the phone")
             }
             timedWeakening(existing, h, s)?.let { throw WeakenForbidden(it) }
         }
@@ -487,7 +494,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     private suspend fun rulesList(): Map<String, Any?> {
         val rules = backend.appRules().sortedBy { it.label.lowercase() }
         fun pick(rule: AppRule, web: Boolean) =
-            rules.filter { it.rule == rule && it.isWebsite == web }.map { Json.obj("key" to it.key, "label" to it.label) }
+            rules.filter { it.rule == rule && it.isWebsite == web }.map { Json.obj("key" to it.key, "label" to it.label, "charging" to if (web) null else rateName(it.meterPct)) }
         return ok("blockedApps" to pick(AppRule.LEISURE, false), "blockedSites" to pick(AppRule.LEISURE, true), "alwaysOpen" to pick(AppRule.ALLOWED, false))
     }
 
@@ -497,6 +504,22 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         val label = a.text("label") ?: backend.launchableApps().firstOrNull { it.second == pkg }?.first ?: pkg
         backend.blockRule(pkg, label, isWebsite = false)
         return ok("pkg" to pkg, "label" to label)
+    }
+
+    private fun rateName(pct: Int?) = pct?.toString() ?: "full"
+
+    /** Charging may only get stricter remotely: a higher rate, or METERED -> FULL. */
+    private suspend fun setCharging(a: RemoteArgs): Map<String, Any?> {
+        val pkg = a.text("pkg") ?: bad("missing pkg")
+        val raw = a.str("rate") ?: bad("missing rate (full, 0, 25, 50 or 100)")
+        val rate = Charging.parse(raw) ?: bad("bad rate: $raw (full, 0, 25, 50 or 100)")
+        val cur = backend.appRules().firstOrNull { it.rule == AppRule.LEISURE && !it.isWebsite && it.key == pkg }
+            ?: throw NotFound("blocked app $pkg")
+        if (Charging.loosens(cur.meterPct, rate.pct)) {
+            throw WeakenForbidden("lowering a rate or switching full to metered can only be done on the phone")
+        }
+        if (cur.meterPct != rate.pct) backend.setCharging(pkg, rate.pct)
+        return ok("pkg" to pkg, "rate" to rateName(rate.pct), "changed" to (cur.meterPct != rate.pct))
     }
 
     private suspend fun blockSite(a: RemoteArgs): Map<String, Any?> {
@@ -545,6 +568,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     private fun checkSettingRanges(s: Settings) {
         fun chk(k: String, v: Int?, r: IntRange) { if (v != null && v !in r) bad("$k must be ${r.first}..${r.last}") }
         chk("unlockCapMin", s.unlockCapMin, 1..1440)
+        chk("rollingExpiryHours", s.rollingExpiryHours, 1..336)
         chk("weakenCooldownMin", s.weakenCooldownMin, 0..1440)
         chk("bedtimeStartMin", s.bedtimeStartMin, 0..1439)
         chk("bedtimeEndMin", s.bedtimeEndMin, 0..1439)
@@ -568,7 +592,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "habits.checkin", "habits.undo",
             "tasks.list", "tasks.get", "tasks.create", "tasks.update",
             "tasks.complete", "tasks.uncomplete", "tasks.skip", "tasks.delete",
-            "rules.list", "rules.block_app", "rules.block_site", "rules.blockable_apps",
+            "rules.list", "rules.block_app", "rules.block_site", "rules.blockable_apps", "rules.set_charging",
             "settings.get", "settings.tighten",
         )
         private val READ_ONLY = setOf(
@@ -602,7 +626,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             "hardMode", "blockingEnabled", "allDoneUnlock", "resetPeriod", "weakenCooldownMin",
             "bedtimeEnabled", "bedtimeStartMin", "bedtimeEndMin", "bedtimeGraceMin",
             "defaultTaskRewardMin", "defaultHabitRewardMin", "rewardMode", "photoRequiredDefault",
-            "unlockCapMin", "removalPuzzle", "comebackBonus",
+            "unlockCapMin", "removalPuzzle", "comebackBonus", "rollingExpiryHours",
         )
 
         private val PACKAGE_SHAPE = Regex("[A-Za-z][A-Za-z0-9_]*([.][A-Za-z][A-Za-z0-9_]*)+")

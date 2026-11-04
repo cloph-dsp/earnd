@@ -268,6 +268,16 @@ class BlockPolicy(rules: AppRuleDao, sessions: SessionDao, habits: HabitService,
 Decision order: blocking disabled / vacation -> Allow; essential pkg -> Allow; not leisure (pkg nor url host) -> Allow;
 bedtime window (outside one-off grace) -> Block(BEDTIME); active session -> Allow; all-done unlock -> Allow;
 nothing scheduled today -> Allow; otherwise Block(NO_BALANCE).
+Metering: `AppRuleEntity.meterPct` (null = FULL; 0/25/50/100 = METERED, db v9). After the active-session check,
+a metered app with balance > 0 (and not hard mode) gives `BlockDecision.Metered(rate)`. `GuardAccessibilityService.recheck`
+calls `MeterEngine.advance(now, interactive)` (charges time since the last check at the previous rate; nothing when
+the screen is off; one step capped at 60 s) before deciding, then `MeterEngine.switchTo(rate)`. `MeterMath` keeps
+elapsed x rate as a carry (persisted in raw setting `meter.carry`) and debits whole minutes through
+`TimeBank.debitMetered` (FIFO over lots in rolling mode, ledger kind METER, shortfall forgiven; sessions and refunds
+untouched). `Charging` holds rates, strictness (FULL > any rate) and parsing; `PendingRuleChanges.setCharging` applies
+stricter changes at once and queues loosening ones ("CHARGE:<pct|FULL>") behind the hard-mode cooldown.
+Debug build: `DebugChargingReceiver` (DUMP-protected) sets a rate by adb.
+`HabitEntity.overTargetReward` (v9, default true) makes `HabitProgress.checkInReward` return 0 beyond `timesPerDay`.
 
 ```kotlin
 // alarms

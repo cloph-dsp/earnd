@@ -10,6 +10,7 @@ import com.earnd.app.domain.BlockPolicy
 import com.earnd.app.domain.ChangeBus
 import com.earnd.app.domain.Clock
 import com.earnd.app.domain.HabitService
+import com.earnd.app.domain.MeterEngine
 import com.earnd.app.domain.SystemTimeClock
 import com.earnd.app.domain.TaskService
 import com.earnd.app.domain.TimeBank
@@ -45,7 +46,16 @@ object ServiceLocator {
     val blockPolicy: BlockPolicy by lazy {
         BlockPolicy(db.appRuleDao(), db.sessionDao(), habitService, settings, essentialApps, clock,
             focusActive = { now -> com.earnd.app.focus.FocusMath.isRunning(db.focusDao().get(), now) },
-            ownPackage = appContext.packageName)
+            ownPackage = appContext.packageName,
+            balance = { now -> timeBank.balance(now).minutes })
+    }
+    /** Charges metered leisure apps for foreground time (see [MeterEngine]). */
+    val meterEngine: MeterEngine by lazy {
+        MeterEngine(
+            debit = { timeBank.debitMetered(it) },
+            loadCarry = { settings.rawGet("meter.carry")?.toLongOrNull() ?: 0L },
+            saveCarry = { settings.rawPut("meter.carry", it.toString()) },
+        )
     }
     val nagEngine: NagEngine by lazy {
         NagEngine(db.nagStateDao(), db.alarmConfigDao(), settings, clock) { kind, id ->

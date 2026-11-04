@@ -51,6 +51,8 @@ interface RemoteBackend {
     suspend fun appRules(): List<AppRuleEntity>
     /** Marks an app or website as blocked (leisure). Only ever strengthens blocking. */
     suspend fun blockRule(key: String, label: String, isWebsite: Boolean)
+    /** Sets a blocked app's charging ([pct] null = FULL). The dispatcher only calls this for non-loosening changes. */
+    suspend fun setCharging(key: String, pct: Int?)
     /** Launchable installed apps as (label, package), sorted by label. */
     suspend fun launchableApps(): List<Pair<String, String>>
 

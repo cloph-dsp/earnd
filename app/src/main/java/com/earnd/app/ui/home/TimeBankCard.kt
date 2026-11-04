@@ -41,6 +41,8 @@ data class BankState(
     val allDoneUnlock: Boolean,
     val nextExpiryAt: Long? = null,
     val minutesExpiringNext: Int = 0,
+    /** Metered apps as "TIDAL · 50%". */
+    val metered: List<String> = emptyList(),
 )
 
 private val SPEND_CHOICES = listOf(5, 10, 15, 30, 60)
@@ -57,6 +59,9 @@ fun TimeBankCard(
     ChamferPanel(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val s = state.session
+            if (state.metered.isNotEmpty()) {
+                Text("Metered: " + state.metered.joinToString("   "), style = MaterialTheme.typography.bodySmall, color = p.secondary)
+            }
             var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
             LaunchedEffect(s?.id) { while (s != null) { now = System.currentTimeMillis(); delay(1000) } }
             if (s != null && s.plannedEndAt > now) {

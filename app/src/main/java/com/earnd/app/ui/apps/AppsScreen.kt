@@ -16,6 +16,9 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import com.earnd.app.ui.theme.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import com.earnd.app.domain.Charging
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -93,10 +96,17 @@ fun AppsScreen(onBack: () -> Unit) {
             }
             if (pending.isNotEmpty()) PendingList(pending) { key -> launchUi { PendingRuleChanges.cancel(key); reload++ } }
             when (tab) {
-                0 -> AppList(apps, rules, header = "Leisure apps stay locked until you start a session.") { app, isLeisure, isEssential ->
+                0 -> AppList(apps, rules, header = "Leisure apps stay locked until you start a session. Metered apps open while you have minutes and cost a share of the time they are in front.") { app, isLeisure, isEssential ->
                     if (isEssential) {
                         Text("Always open", style = MaterialTheme.typography.labelSmall)
                     } else {
+                        if (isLeisure) {
+                            val cur = rules.firstOrNull { it.key == app.pkg && !it.isWebsite }?.meterPct
+                            ChargingPicker(cur) { pct ->
+                                val apply = { launchUi { announce(PendingRuleChanges.setCharging(app.pkg, app.label, pct)) } }
+                                if (Charging.loosens(cur, pct)) gate { apply() } else apply()
+                            }
+                        }
                         Checkbox(isLeisure, { on ->
                             launchUi {
                                 if (on) { PendingRuleChanges.addLeisure(app.pkg, app.label, false); reload++ }
@@ -117,6 +127,26 @@ fun AppsScreen(onBack: () -> Unit) {
                     })
                     if (isLeisure && !isEssential) Text("Leisure", style = MaterialTheme.typography.labelSmall)
                 }
+            }
+        }
+    }
+}
+
+/** "Charging" selector of a blocked app: Full (needs a session) or Metered at 0/25/50/100% of foreground time. */
+@Composable
+private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { open = true }) {
+            Text("Charging: " + Charging.label(current), style = MaterialTheme.typography.labelSmall)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(text = { Text("Full (needs a session)") }, onClick = { open = false; onPick(null) })
+            Charging.RATES.forEach { r ->
+                DropdownMenuItem(
+                    text = { Text("Metered $r%" + if (r == Charging.DEFAULT_RATE) " (default)" else "") },
+                    onClick = { open = false; onPick(r) },
+                )
             }
         }
     }

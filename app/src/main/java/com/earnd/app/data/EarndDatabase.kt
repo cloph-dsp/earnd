@@ -16,7 +16,7 @@ import com.earnd.app.data.entity.*
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
         AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -34,8 +34,16 @@ abstract class EarndDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .build()
+
+        /** Metered leisure apps (per-app charging rate) and the per-habit "reward beyond target" flag. */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE app_rule ADD COLUMN meterPct INTEGER")
+                db.execSQL("ALTER TABLE habit ADD COLUMN overTargetReward INTEGER NOT NULL DEFAULT 1")
+            }
+        }
 
         /** Per-item ring duration and volume overrides (null = global default). */
         val MIGRATION_7_8 = object : Migration(7, 8) {

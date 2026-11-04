@@ -21,5 +21,13 @@
                 <action android:name="com.earnd.app.focus.DEBUG_CANCEL" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".blocking.DebugChargingReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.earnd.app.blocking.DEBUG_SET_CHARGING" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

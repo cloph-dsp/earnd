@@ -77,6 +77,7 @@ class RemoteDispatcherTest {
         override suspend fun blockRule(key: String, label: String, isWebsite: Boolean) {
             rules[key] = AppRuleEntity(key, AppRule.LEISURE, isWebsite, label)
         }
+        override suspend fun setCharging(key: String, pct: Int?) { rules[key] = rules.getValue(key).copy(meterPct = pct) }
         override suspend fun launchableApps() = listOf("YouTube" to "com.google.android.youtube")
         override suspend fun appendAudit(entryJson: String) { audit += entryJson }
         override suspend fun auditLog() = audit
@@ -381,5 +382,40 @@ class RemoteDispatcherTest {
         val n = b.tasks.size
         assertTrue(d.handle("tasks.create", mapOf("title" to "y", "sound" to "custom:nope.mp3")).contains("bad_args"))
         assertEquals(n, b.tasks.size)
+    }
+
+    @Test fun chargingCanOnlyGetStricterRemotely() = runTest {
+        d.handle("rules.block_app", mapOf("pkg" to "com.aspiro.tidal", "label" to "TIDAL"))
+        b.rules["com.aspiro.tidal"] = b.rules.getValue("com.aspiro.tidal").copy(meterPct = 50)
+        assertTrue(d.handle("rules.list", emptyMap()).contains("\"charging\":\"50\""))
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "25")).contains("forbidden_weaken"))
+        assertEquals(50, b.rules.getValue("com.aspiro.tidal").meterPct)
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "100")).contains("\"changed\":true"))
+        assertEquals(100, b.rules.getValue("com.aspiro.tidal").meterPct)
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "full")).contains("\"rate\":\"full\""))
+        assertEquals(null, b.rules.getValue("com.aspiro.tidal").meterPct)
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "50")).contains("forbidden_weaken"))
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "33")).contains("bad_args"))
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.nope.app", "rate" to "full")).contains("not_found"))
+    }
+
+    @Test fun rollingExpiryCanOnlyBeLoweredRemotely() = runTest {
+        assertTrue(d.handle("settings.tighten", mapOf("rollingExpiryHours" to "15")).contains("\"changed\":true"))
+        assertEquals(15, b.settings.rollingExpiryHours)
+        assertTrue(d.handle("settings.tighten", mapOf("rollingExpiryHours" to "24")).contains("forbidden_weaken"))
+        assertEquals(15, b.settings.rollingExpiryHours)
+    }
+
+    @Test fun overTargetRewardOffRemotelyOnlyOnPhone() = runTest {
+        val out = d.handle("habits.create", mapOf("name" to "Pushups", "times" to "2", "over_target_reward" to "off"))
+        assertTrue(out, out.startsWith("{\"ok\":true"))
+        val h = b.habits.values.single()
+        assertFalse(h.overTargetReward)
+        assertTrue(d.handle("habits.update", mapOf("id" to "${h.id}", "over_target_reward" to "on")).contains("forbidden_weaken"))
+        assertFalse(b.habits.getValue(h.id).overTargetReward)
+        val g = b.saveHabit(HabitEntity(name = "g", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0))
+        assertTrue(b.habits.getValue(g).overTargetReward)
+        assertTrue(d.handle("habits.update", mapOf("id" to "$g", "over_target_reward" to "off")).startsWith("{\"ok\":true"))
+        assertFalse(b.habits.getValue(g).overTargetReward)
     }
 }

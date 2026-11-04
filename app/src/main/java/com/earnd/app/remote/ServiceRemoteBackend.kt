@@ -112,6 +112,11 @@ class ServiceRemoteBackend(
     override suspend fun blockRule(key: String, label: String, isWebsite: Boolean) =
         PendingRuleChanges.addLeisure(key, label, isWebsite)
 
+    override suspend fun setCharging(key: String, pct: Int?) {
+        val label = db.appRuleDao().get(key)?.label ?: key
+        PendingRuleChanges.setCharging(key, label, pct)
+    }
+
     override suspend fun launchableApps(): List<Pair<String, String>> {
         val ctx = context ?: return emptyList()
         val pm = ctx.packageManager

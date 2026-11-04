@@ -4,6 +4,7 @@ import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.AppRule
 import com.earnd.app.data.entity.AppRuleEntity
 import com.earnd.app.domain.ChangeKind
+import com.earnd.app.domain.Charging
 
 /**
  * Block-list edits. Changes that make blocking stronger apply at once; changes that weaken it
@@ -13,21 +14,36 @@ import com.earnd.app.domain.ChangeKind
 object PendingRuleChanges {
     private const val KEY = "ui.pendingRuleChanges"
     private const val REMOVE = "-"
+    private const val CHARGE = "CHARGE:"
 
     data class Pending(val key: String, val rule: String, val isWebsite: Boolean, val label: String, val appliesAt: Long)
 
     private val dao get() = ServiceLocator.db.appRuleDao()
 
-    /** Mark as leisure (always strengthening). */
+    /** Mark as leisure (always strengthening). An existing charging rate is kept. */
     suspend fun addLeisure(key: String, label: String, isWebsite: Boolean) {
         dropPending(key)
-        dao.upsert(AppRuleEntity(key, AppRule.LEISURE, isWebsite, label))
+        dao.upsert(AppRuleEntity(key, AppRule.LEISURE, isWebsite, label, meterPct = dao.get(key)?.takeIf { it.rule == AppRule.LEISURE }?.meterPct))
         ServiceLocator.changeBus.emit(ChangeKind.BLOCKLIST)
     }
 
     /** Remove a leisure rule. Returns when it applies (now, or after the cooldown). */
     suspend fun removeLeisure(key: String, label: String, isWebsite: Boolean): Long =
         weaken(Pending(key, REMOVE, isWebsite, label, 0))
+
+    /**
+     * Sets how a blocked app is charged ([pct] null = FULL). Stricter or equal changes apply at once; loosening
+     * (FULL -> METERED, lower rate) is a weakening: it waits out the hard-mode cooldown like the other weakenings
+     * (callers put the puzzle gate in front). Returns when it applies.
+     */
+    suspend fun setCharging(key: String, label: String, pct: Int?): Long {
+        val cur = dao.get(key)?.takeIf { it.rule == AppRule.LEISURE } ?: return ServiceLocator.clock.now()
+        if (Charging.loosens(cur.meterPct, pct)) return weaken(Pending(key, CHARGE + (pct?.toString() ?: "FULL"), false, label, 0))
+        read().firstOrNull { it.key == key && it.rule.startsWith(CHARGE) }?.let { dropPending(key) }
+        dao.upsert(cur.copy(meterPct = pct))
+        ServiceLocator.changeBus.emit(ChangeKind.BLOCKLIST)
+        return ServiceLocator.clock.now()
+    }
 
     /** Mark an app as always available. */
     suspend fun allow(key: String, label: String): Long = weaken(Pending(key, AppRule.ALLOWED.name, false, label, 0))
@@ -67,6 +83,9 @@ object PendingRuleChanges {
 
     private suspend fun apply(p: Pending) {
         if (p.rule == REMOVE) dao.delete(p.key)
+        else if (p.rule.startsWith(CHARGE)) dao.get(p.key)?.let {
+            dao.upsert(it.copy(meterPct = p.rule.removePrefix(CHARGE).toIntOrNull()))
+        }
         else dao.upsert(AppRuleEntity(p.key, AppRule.valueOf(p.rule), p.isWebsite, p.label))
     }
 

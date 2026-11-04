@@ -50,4 +50,6 @@ data class HabitEntity(
     val stopwatchMinMin: Int? = null,
     /** Focused minutes counted at most per session; null = no cap. */
     val stopwatchCapMin: Int? = null,
+    /** True (default): check-ins beyond [timesPerDay] earn up to +50%. False: they are recorded but earn 0. */
+    @ColumnInfo(defaultValue = "1") val overTargetReward: Boolean = true,
 )

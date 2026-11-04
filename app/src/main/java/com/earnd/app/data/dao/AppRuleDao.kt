@@ -12,6 +12,9 @@ interface AppRuleDao {
     @Query("SELECT * FROM app_rule")
     suspend fun all(): List<AppRuleEntity>
 
+    @Query("SELECT * FROM app_rule WHERE `key` = :key")
+    suspend fun get(key: String): AppRuleEntity?
+
     @Upsert
     suspend fun upsert(r: AppRuleEntity)
 

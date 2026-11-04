@@ -79,16 +79,23 @@ class GuardAccessibilityService : AccessibilityService() {
     }
 
     private suspend fun recheck(force: Boolean) {
-        val pkg = foregroundPkg ?: return
-        if (pkg == packageName) return
+        val now = System.currentTimeMillis()
+        val pkg = foregroundPkg
+        if (pkg == null || pkg == packageName) {
+            runCatching { ServiceLocator.meterEngine.stop(now) }
+            return
+        }
         val url = lastUrl
         val key = "$pkg|${url?.let { BrowserUrls.hostOf(it) }}"
-        val now = System.currentTimeMillis()
         if (!force && key == lastCheckKey && now - lastCheckAt < SAME_KEY_MS) return
         lastCheckKey = key
         lastCheckAt = now
+        // Charge the time since the last check at the previous app's rate before deciding with the new balance.
+        val interactive = getSystemService(android.os.PowerManager::class.java)?.isInteractive != false
+        runCatching { ServiceLocator.meterEngine.advance(now, interactive) }
         val decision = runCatching { ServiceLocator.blockPolicy.decide(pkg, url, now) }
             .getOrDefault(BlockDecision.Allow)
+        runCatching { ServiceLocator.meterEngine.switchTo((decision as? BlockDecision.Metered)?.ratePct, now) }
         if (decision is BlockDecision.Block && foregroundPkg == pkg) showLock(pkg, url, decision)
     }
 

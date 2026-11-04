@@ -77,7 +77,7 @@ internal fun TimeBankPage(cur: Settings, change: Change) {
     }) { v -> change { it.copy(resetPeriod = v) } }
     if (cur.resetPeriod == ResetPeriod.ROLLING) {
         Label("Minutes expire after")
-        ChoiceChips(listOf(12, 24, 36, 48, 72), cur.rollingExpiryHours, { "$it h" }) { v ->
+        ChoiceChips(listOf(12, 15, 24, 36, 48, 72), cur.rollingExpiryHours, { "$it h" }) { v ->
             change { it.copy(rollingExpiryHours = v) }
         }
         Helper("Each earned entry expires this long after you earned it. Spending uses the oldest minutes first.")

@@ -184,6 +184,11 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         h.rewardMinutes?.let { r ->
             NumberField("Minutes earned per check-in", r, { set(h.copy(rewardMinutes = (it ?: 0).coerceIn(0, 600))) })
         }
+        SwitchRow(
+            "Reward beyond target", h.overTargetReward, { on -> set(h.copy(overTargetReward = on)) },
+            hint = if (h.overTargetReward) "Check-ins beyond the daily target earn a little extra (up to +50%)."
+            else "Check-ins beyond the daily target are recorded but earn 0 minutes.",
+        )
         Text("Check in with", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
         ChoiceChips(listOf(null, true, false), h.photoRequired, {
             when (it) {

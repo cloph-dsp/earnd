@@ -12,6 +12,8 @@ import com.earnd.app.focus.FocusRules
 sealed interface BlockDecision {
     data object Allow : BlockDecision
     data class Block(val cause: BlockCause, val until: Long?) : BlockDecision
+    /** Open because the app is metered and the balance is positive; the guard charges [ratePct] of foreground time. */
+    data class Metered(val ratePct: Int) : BlockDecision
 }
 
 /** FOCUS: a timed focus habit is running; the guard shows the focus timer instead of the lock screen. */
@@ -31,6 +33,9 @@ data class BlockFacts(
     val nothingScheduled: Boolean,
     /** Segment mode: every habit of the current day segment is done. */
     val segmentUnlock: Boolean = false,
+    /** Metered charging rate of the app (null = FULL, or hard mode, which disables metering). */
+    val meteredPct: Int? = null,
+    val balancePositive: Boolean = false,
 )
 
 /** Pure decision table; the order here is the contract. */
@@ -41,6 +46,7 @@ object BlockRules {
         !f.leisure -> BlockDecision.Allow
         f.inBedtime && !f.graceActive -> BlockDecision.Block(BlockCause.BEDTIME, f.bedtimeEndsAt)
         f.sessionActive -> BlockDecision.Allow
+        f.meteredPct != null && f.balancePositive -> BlockDecision.Metered(f.meteredPct)
         f.allDoneUnlock -> BlockDecision.Allow
         f.segmentUnlock -> BlockDecision.Allow
         f.nothingScheduled -> BlockDecision.Allow
@@ -57,6 +63,10 @@ object BlockRules {
         }
     }
 
+    /** Metered rate of a blocked app (packages only); null = FULL or not a blocked app. */
+    fun meterRate(rules: List<AppRuleEntity>, pkg: String): Int? =
+        rules.firstOrNull { it.rule == AppRule.LEISURE && !it.isWebsite && it.key == pkg }?.meterPct
+
     /** User-extended whitelist: packages marked ALLOWED. */
     fun isUserAllowed(rules: List<AppRuleEntity>, pkg: String): Boolean =
         rules.any { it.rule == AppRule.ALLOWED && !it.isWebsite && it.key == pkg }
@@ -72,6 +82,8 @@ class BlockPolicy(
     /** True while a focus session runs at [now]; then only focus-safe apps stay open (sessions are suspended). */
     private val focusActive: suspend (now: Long) -> Boolean = { false },
     private val ownPackage: String = "com.earnd.app",
+    /** Spendable balance in minutes at [now]; only consulted for metered apps. */
+    private val balance: suspend (now: Long) -> Int = { 0 },
 ) {
     /** [pkg] is the foreground package; [url] is the host (or URL) from a browser bar, or null. */
     suspend fun decide(pkg: String, url: String?, now: Long): BlockDecision {
@@ -87,6 +99,7 @@ class BlockPolicy(
         val bedtime = TimeBank.bedtimeWindow(s)
         val session = sessions.active()?.takeIf { it.plannedEndAt > now && it.startedAt <= now }
         // Cheap facts first; habit lookups only matter at the end of the table.
+        val metered = if (s.hardMode) null else BlockRules.meterRate(all, pkg)
         val f = BlockFacts(
             blockingEnabled = s.blockingEnabled,
             onVacation = s.onVacation(today.toEpochDay()),
@@ -98,6 +111,8 @@ class BlockPolicy(
             sessionActive = session != null,
             allDoneUnlock = false,
             nothingScheduled = false,
+            meteredPct = metered,
+            balancePositive = metered != null && session == null && balance(now) > 0,
         )
         val first = BlockRules.decide(f)
         if (first !is BlockDecision.Block || first.cause != BlockCause.NO_BALANCE) return first

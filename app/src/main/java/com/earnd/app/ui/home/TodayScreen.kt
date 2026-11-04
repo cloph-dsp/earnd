@@ -84,6 +84,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val balance by remember { sl.timeBank.observeBalance() }.collectAsState(initial = null)
     val session by remember { sl.timeBank.observeActiveSession() }.collectAsState(initial = null)
     val settings by remember { sl.settings.settings }.collectAsState(initial = Settings())
+    val appRules by remember { sl.db.appRuleDao().observeAll() }.collectAsState(initial = emptyList())
     val snackbar = remember { SnackbarHostState() }
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
     val byHabit = checkIns.groupBy { it.habitId }
@@ -93,7 +94,9 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
 
     val allDone = habits.isNotEmpty() && habits.all(doneOf)
     val bank = BankState(balance?.minutes ?: 0, session, settings.hardMode, allDone = allDone, allDoneUnlock = settings.allDoneUnlock, unlockCapMin = settings.unlockCapMin,
-        nextExpiryAt = balance?.nextExpiryAt, minutesExpiringNext = balance?.minutesExpiringNext ?: 0)
+        nextExpiryAt = balance?.nextExpiryAt, minutesExpiringNext = balance?.minutesExpiringNext ?: 0,
+        metered = if (settings.hardMode) emptyList() else appRules.filter { it.rule == com.earnd.app.data.entity.AppRule.LEISURE && !it.isWebsite && it.meterPct != null }
+            .map { com.earnd.app.domain.Charging.note(it.label, it.meterPct!!) })
     val inBedtime = TimeBank.bedtimeWindow(settings)?.contains(System.currentTimeMillis(), sl.clock.zone()) == true
 
     val nags by remember { sl.db.nagStateDao().observeAll() }.collectAsState(initial = emptyList())

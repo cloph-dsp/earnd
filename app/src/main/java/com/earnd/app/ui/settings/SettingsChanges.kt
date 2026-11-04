@@ -12,6 +12,7 @@ object SettingsChanges {
             (old.blockingEnabled && !new.blockingEnabled) ||
             (!old.allDoneUnlock && new.allDoneUnlock) ||
             (old.resetPeriod != ResetPeriod.ROLLING && new.resetPeriod == ResetPeriod.ROLLING) ||
+            (new.resetPeriod == ResetPeriod.ROLLING && new.rollingExpiryHours > old.rollingExpiryHours) ||
             (old.resetPeriod != ResetPeriod.WEEKLY && new.resetPeriod == ResetPeriod.WEEKLY) ||
             new.weakenCooldownMin < old.weakenCooldownMin ||
             new.bedtimeGraceMin > old.bedtimeGraceMin ||

@@ -49,6 +49,7 @@ object HabitProgress {
     fun checkInReward(h: HabitEntity, before: List<CheckInEntity>, perCheckIn: Int): Int {
         val n = required(h)
         if (before.size < n) return perCheckIn
+        if (!h.overTargetReward) return 0
         val cap = n * perCheckIn / 2
         val extraSoFar = before.sortedBy { it.at }.drop(n).sumOf { it.minutesEarned }
         return minOf(perCheckIn, (cap - extraSoFar).coerceAtLeast(0))

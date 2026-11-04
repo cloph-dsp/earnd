@@ -171,6 +171,30 @@ class TimeBank(
         startSessionLocked(minutes, SessionReason.SPEND)
     }
 
+    /**
+     * Debits up to [minutes] whole minutes for metered foreground use, FIFO like a spend. Takes what is there when the
+     * balance is smaller (the shortfall is forgiven). Returns the minutes actually debited. Does not start a session.
+     */
+    suspend fun debitMetered(minutes: Int): Int = tx.run {
+        if (minutes <= 0) return@run 0
+        val now = clock.now()
+        val s = settings.current()
+        val key = periodKey(s, now)
+        val taken: Int
+        if (s.resetPeriod == ResetPeriod.ROLLING) {
+            val l = lots(now)
+            taken = minOf(minutes, ExpiryLedger.balance(l, now))
+            if (taken <= 0) return@run 0
+            applyChanges(ExpiryLedger.spend(l, now, taken)!!)
+        } else {
+            taken = minOf(minutes, ledger.sum(key).coerceAtLeast(0))
+            if (taken <= 0) return@run 0
+        }
+        ledger.insert(LedgerEntryEntity(at = now, kind = LedgerKind.METER, minutes = -taken, periodKey = key))
+        bus.emit(ChangeKind.BALANCE)
+        taken
+    }
+
     /** Starts a session without touching the ledger; ends any running one first. */
     suspend fun startSession(minutes: Int, reason: String): SpendResult = tx.run { startSessionLocked(minutes, reason) }
 
