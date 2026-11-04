@@ -93,8 +93,12 @@ class HabitsWidget : GlanceAppWidget() {
         }
         val innerW = size.width - PAD * 2
         val innerH = size.height - PAD * 2
-        val cols = (innerW.value / MIN_CELL_W).toInt().coerceAtLeast(1)
-        val rows = (innerH.value / MIN_CELL_H).toInt().coerceAtLeast(1)
+        val maxCols = (innerW.value / MIN_CELL_W).toInt().coerceAtLeast(1)
+        val maxRows = (innerH.value / MIN_CELL_H).toInt().coerceAtLeast(1)
+        // Fewer habits than slots: shrink the grid so the cells share all the space.
+        val n = states.size
+        val rows = if (n >= maxCols * maxRows) maxRows else ((n + maxCols - 1) / maxCols).coerceIn(1, maxRows)
+        val cols = if (n >= maxCols * maxRows) maxCols else ((n + rows - 1) / rows).coerceIn(1, maxCols)
         val capacity = cols * rows
         val overflow = states.size > capacity && capacity > 1
         val shown = if (overflow) states.take(capacity - 1) else states.take(capacity)
