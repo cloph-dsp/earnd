@@ -76,10 +76,7 @@ internal fun TimeBankPage(cur: Settings, change: Change) {
         when (it) { ResetPeriod.DAILY -> "Daily"; ResetPeriod.WEEKLY -> "Weekly"; ResetPeriod.ROLLING -> "Rolling" }
     }) { v -> change { it.copy(resetPeriod = v) } }
     if (cur.resetPeriod == ResetPeriod.ROLLING) {
-        Label("Minutes expire after")
-        ChoiceChips(listOf(12, 15, 24, 36, 48, 72), cur.rollingExpiryHours, { "$it h" }) { v ->
-            change { it.copy(rollingExpiryHours = v) }
-        }
+        ExpiryHoursSlider(cur.rollingExpiryHours) { v -> change { it.copy(rollingExpiryHours = v) } }
         Helper("Each earned entry expires this long after you earned it. Spending uses the oldest minutes first.")
     }
     if (cur.resetPeriod == ResetPeriod.WEEKLY) {
@@ -234,3 +231,23 @@ internal fun AboutPage() {
     Text("Earnd" + (version?.let { " $it" } ?: ""), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 12.dp))
     Helper("Earnd is free software (GPL-3.0). Everything stays on this phone.")
 }
+
+
+/** Hour slider; the value is committed on release so hard-mode/puzzle gates run once, not per step. */
+@Composable
+private fun ExpiryHoursSlider(current: Int, onCommit: (Int) -> Unit) {
+    var v by androidx.compose.runtime.remember(current) {
+        androidx.compose.runtime.mutableFloatStateOf(current.coerceIn(MIN_EXPIRY_H, MAX_EXPIRY_H).toFloat())
+    }
+    Label("Minutes expire after: ${v.toInt()} h")
+    androidx.compose.material3.Slider(
+        value = v,
+        onValueChange = { v = it },
+        valueRange = MIN_EXPIRY_H.toFloat()..MAX_EXPIRY_H.toFloat(),
+        steps = MAX_EXPIRY_H - MIN_EXPIRY_H - 1,
+        onValueChangeFinished = { if (v.toInt() != current) onCommit(v.toInt()) },
+    )
+}
+
+private const val MIN_EXPIRY_H = 6
+private const val MAX_EXPIRY_H = 72
