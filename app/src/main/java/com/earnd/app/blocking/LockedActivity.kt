@@ -45,6 +45,12 @@ class LockedActivity : ComponentActivity() {
             ?.let { runCatching { BlockCause.valueOf(it) }.getOrNull() } ?: BlockCause.NO_BALANCE
         val target = intent.getStringExtra(EXTRA_HOST) ?: appLabel(intent.getStringExtra(EXTRA_PKG))
         val until = intent.getLongExtra(EXTRA_UNTIL, 0L).takeIf { it > 0 }?.let(::formatTime)
+        val gateKey = intent.getStringExtra(EXTRA_KEY)
+        val rate = intent.getIntExtra(EXTRA_RATE, 100)
+        val gate = if (cause == BlockCause.CONFIRM) {
+            val bal = intent.getIntExtra(EXTRA_BAL, 0)
+            GateInfo(if (rate <= 0) null else (bal * 100L / rate).toInt(), rate)
+        } else null
         setContent {
             EarndTheme {
                 val vm: LockedViewModel = viewModel(key = cause.name) { LockedViewModel(cause) }
@@ -62,6 +68,12 @@ class LockedActivity : ComponentActivity() {
                     onStartSession = vm::startSession,
                     onGrace = vm::startGrace,
                     onHome = ::goHome,
+                    gate = gate,
+                    onOpen = {
+                        // The leisure app is still underneath; it counts from now, and again for 2 min after leaving it.
+                        gateKey?.let { ServiceLocator.grants.grant(it, ServiceLocator.clock.now()) }
+                        finish()
+                    },
                 )
             }
         }
@@ -92,6 +104,14 @@ class LockedActivity : ComponentActivity() {
         private const val EXTRA_HOST = "com.earnd.app.blocking.HOST"
         private const val EXTRA_CAUSE = "com.earnd.app.blocking.CAUSE"
         private const val EXTRA_UNTIL = "com.earnd.app.blocking.UNTIL"
+        private const val EXTRA_KEY = "com.earnd.app.blocking.KEY"
+        private const val EXTRA_RATE = "com.earnd.app.blocking.RATE"
+        private const val EXTRA_BAL = "com.earnd.app.blocking.BAL"
+
+        /** Confirmation before a metered leisure app starts counting. [key] is the rule key the grant is for. */
+        fun gateIntent(context: Context, pkg: String, host: String?, key: String, ratePct: Int, balanceMin: Int): Intent =
+            intent(context, pkg, host, BlockCause.CONFIRM, null)
+                .putExtra(EXTRA_KEY, key).putExtra(EXTRA_RATE, ratePct).putExtra(EXTRA_BAL, balanceMin)
 
         fun intent(context: Context, pkg: String, host: String?, cause: BlockCause, until: Long?): Intent =
             Intent(context, LockedActivity::class.java)

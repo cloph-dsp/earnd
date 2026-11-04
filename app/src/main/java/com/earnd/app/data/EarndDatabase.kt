@@ -16,7 +16,7 @@ import com.earnd.app.data.entity.*
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
         AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -34,8 +34,15 @@ abstract class EarndDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .build()
+
+        /** Metering is the default model: former FULL rows (null rate) become METERED at 100 percent. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("UPDATE app_rule SET meterPct = 100 WHERE meterPct IS NULL")
+            }
+        }
 
         /** Metered leisure apps (per-app charging rate) and the per-habit "reward beyond target" flag. */
         val MIGRATION_8_9 = object : Migration(8, 9) {

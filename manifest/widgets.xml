@@ -3,17 +3,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <receiver
-            android:name="com.earnd.app.widgets.LockWidgetReceiver"
-            android:exported="true"
-            android:label="@string/widgets_lock_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widgets_lock_info" />
-        </receiver>
-        <receiver
             android:name="com.earnd.app.widgets.TasksWidgetReceiver"
             android:exported="true"
             android:label="@string/widgets_tasks_name">

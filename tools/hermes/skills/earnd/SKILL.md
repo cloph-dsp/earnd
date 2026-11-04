@@ -50,7 +50,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 ## Commands
 | Command | Arguments |
 |---|---|
-| `status` | - (returns balanceMinutes, resetMode DAILY/WEEKLY/ROLLING, resetsAt (null in ROLLING), nextExpiryAt (epoch ms) and minutesExpiringNext: in ROLLING mode each earned entry expires after N hours, and minutesExpiringNext minutes lapse at nextExpiryAt) |
+| `status` | - (returns balanceMinutes, resetMode DAILY/WEEKLY/ROLLING, resetsAt (null in ROLLING), nextExpiryAt (epoch ms) and minutesExpiringNext: in ROLLING mode each earned entry expires after N hours, and minutesExpiringNext minutes lapse at nextExpiryAt; `counting` = {pkg, rate, since} while a leisure app is being metered, else null) |
 | `habits.list` | `all=true` to include archived |
 | `habits.get` | `id` |
 | `habits.create` | `name` (required), `times` (1-20/day), `schedule` = DAILY, WEEKDAYS, EVERY_N_DAYS, TIMES_PER_WEEK, RULE, `days` = mon,wed,fri / weekdays / weekends (implies schedule=WEEKDAYS), `every` (N days), `per_week` (1-7, any days; implies TIMES_PER_WEEK), `weeks` (N, with `days`: every N weeks), `monthdays` (e.g. `1,15,last`), `rule` (RRULE), `start` (date), `segment` = NONE, MORNING, AFTERNOON, EVENING, `target`, `unit`, `icon`, `color` (#RRGGBB), `mode` = TAP, PHOTO |
@@ -74,7 +74,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `rules.blockable_apps` | launchable apps as label + pkg (find the package to block) |
 | `rules.block_app` | `pkg` (e.g. com.instagram.android), optional `label` |
 | `rules.block_site` | `domain` (e.g. reddit.com; URLs are reduced to the host) |
-| `rules.set_charging` | `pkg` (a blocked app), `rate` = `full`, 0, 25, 50 or 100. Metered apps (rate 0-100 %) open without a session while the balance is above 0 and cost that % of their foreground time; background playback is free. Remotely only stricter: a higher rate, or metered -> full. Lowering a rate or full -> metered is phone-only (`forbidden_weaken`). `rules.list` shows each app's `charging` |
+| `rules.set_charging` | `pkg` (a blocked app), `rate` = 0, 25, 50 or 100 (`full` = 100). Every leisure app/site is metered: it costs that % of its foreground time (screen on, no call) while the balance is above 0, after a confirmation on the phone; background playback is free. Remotely only stricter (a higher rate). Lowering a rate is phone-only (`forbidden_weaken`). `rules.list` shows each app's `charging` |
 | `settings.get` | all settings plus the list of tightenable keys |
 | `settings.tighten` | `key=value` pairs: unlockCapMin, hardMode, blockingEnabled, allDoneUnlock, resetPeriod (DAILY only; WEEKLY and ROLLING are weakening), weakenCooldownMin, bedtimeEnabled, bedtimeStartMin/EndMin (HH:MM ok), bedtimeGraceMin, rollingExpiryHours (only lower, e.g. 15), defaultTaskRewardMin, defaultHabitRewardMin, rewardMode, photoRequiredDefault, removalPuzzle |
 | `tasks.complete` / `tasks.uncomplete` / `tasks.skip` / `tasks.delete` | `id` (`skip` moves a recurring task to its next occurrence without reward) |
@@ -112,7 +112,7 @@ earnd-cli tasks.update id=42 sound=default
 earnd-cli rules.blockable_apps
 earnd-cli rules.block_app pkg=com.instagram.android
 earnd-cli rules.block_site domain=reddit.com
-earnd-cli rules.set_charging pkg=com.aspiro.tidal rate=100   # stricter only; rate=full = back to sessions
+earnd-cli rules.set_charging pkg=com.aspiro.tidal rate=100   # stricter only
 earnd-cli habits.update id=3 over_target_reward=off
 earnd-cli settings.tighten rollingExpiryHours=15
 earnd-cli settings.tighten unlockCapMin=30
@@ -126,7 +126,7 @@ earnd-cli habits.list all=true   # find archived ids, then: earnd-cli habits.una
 ## Debug build only: set charging on the phone (agent setup)
 Bypasses the weakening gates (needs adb shell DUMP). Adds the app to the leisure list if missing:
 `adb shell am broadcast -n com.earnd.app/.blocking.DebugChargingReceiver -a com.earnd.app.blocking.DEBUG_SET_CHARGING --es pkg com.aspiro.tidal --es rate 50`
-(rate = full | 0 | 25 | 50 | 100; packages: AntennaPod `de.danoeh.antennapod`, YouTube `app.morphe.android.youtube`, TIDAL `com.aspiro.tidal`).
+(rate = 0 | 25 | 50 | 100; packages: AntennaPod `de.danoeh.antennapod`, YouTube `app.morphe.android.youtube`, TIDAL `com.aspiro.tidal`).
 
 ## Pitfalls
 - `{"error":"disabled"}`: remote access is off. Ask the user to enable it in Earnd settings.
@@ -139,3 +139,7 @@ Bypasses the weakening gates (needs adb shell DUMP). Adds the app to the leisure
 
 ## Verification
 After a write, re-read with `tasks.get id=...` or `habits.get id=...` and check the field changed.
+
+Debug build only: print the metering state (what counts, rate, balance, remaining real time, grants, overlay):
+`adb shell am broadcast -n com.earnd.app/.blocking.DebugMeterReceiver -a com.earnd.app.blocking.DEBUG_METER_STATE`
+(result data is returned and logged with tag EarndDebug). Test by opening a leisure app (real one, via `adb shell monkey -p <pkg> 1`).

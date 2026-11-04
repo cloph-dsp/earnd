@@ -30,11 +30,13 @@ class MeteringTest {
     private var carry = 0L
     private val engine = MeterEngine({ bank.debitMetered(it) }, { carry }, { carry = it })
 
+    private fun act(pct: Int?) = pct?.let { MeterActive("k", "p", it, clock.now()) }
+
     private suspend fun earn(m: Int, src: Long) = bank.earn(m, LedgerKind.EARN_HABIT, OwnerKind.HABIT, src)
 
     /** Foreground at [pct] for [seconds], in 30 s ticks like the guard. Returns minutes debited. */
     private suspend fun use(pct: Int?, seconds: Int): Int {
-        engine.switchTo(pct, clock.now())
+        engine.switchTo(act(pct), clock.now())
         var debited = 0
         repeat(seconds / 30) {
             clock.nowMs += 30_000
@@ -66,17 +68,18 @@ class MeteringTest {
     }
 
     @Test fun oneStepIsCappedAgainstLongGaps() {
-        assertEquals(MeterMath.accrue(0, 60_000, 100), MeterMath.accrue(0, 3_600_000, 100))
+        assertEquals(MeterMath.accrue(0, MeterMath.MAX_STEP_MS, 100), MeterMath.accrue(0, 3_600_000, 100))
         assertEquals(MeterMath.Step(0, 0), MeterMath.accrue(0, -5, 100))
     }
 
     @Test fun strictnessOrdering() {
-        assertTrue(Charging.loosens(null, 100))
+        assertFalse(Charging.loosens(null, 100))
+        assertEquals(100, Charging.effective(null))
         assertTrue(Charging.loosens(50, 25))
         assertFalse(Charging.loosens(50, 50))
         assertFalse(Charging.loosens(50, 100))
         assertFalse(Charging.loosens(25, null))
-        assertEquals(Charging.Rate(null), Charging.parse("FULL"))
+        assertEquals(Charging.Rate(100), Charging.parse("FULL"))
         assertEquals(Charging.Rate(50), Charging.parse("50%"))
         assertNull(Charging.parse("30"))
         assertNull(Charging.parse(""))
@@ -124,14 +127,14 @@ class MeteringTest {
         use(50, 60)
         assertEquals(30_000L * 100, carry)
         val fresh = MeterEngine({ bank.debitMetered(it) }, { carry }, { carry = it })
-        fresh.switchTo(50, clock.now())
+        fresh.switchTo(act(50), clock.now())
         clock.nowMs += 60_000
         assertEquals(1, fresh.advance(clock.now()))
     }
 
     @Test fun screenOffChargesNothing() = runTest {
         earn(10, 1)
-        engine.switchTo(100, clock.now())
+        engine.switchTo(act(100), clock.now())
         clock.nowMs += 60_000
         assertEquals(0, engine.advance(clock.now(), interactive = false))
         assertEquals(10, bank.balance().minutes)
@@ -139,7 +142,7 @@ class MeteringTest {
 
     @Test fun stopChargesUpToNowThenNothing() = runTest {
         earn(10, 1)
-        engine.switchTo(100, clock.now())
+        engine.switchTo(act(100), clock.now())
         clock.nowMs += 60_000
         assertEquals(1, engine.stop(clock.now()))
         clock.nowMs += 60_000
@@ -239,7 +242,7 @@ class MeteringTest {
             AppRuleEntity("site.com", AppRule.LEISURE, isWebsite = true, label = "S", meterPct = 25),
         )
         assertEquals(50, BlockRules.meterRate(rules, "com.aspiro.tidal"))
-        assertNull(BlockRules.meterRate(rules, "com.full"))
+        assertEquals(100, BlockRules.meterRate(rules, "com.full")) // legacy FULL row = default 100
         assertNull(BlockRules.meterRate(rules, "com.allowed"))
         assertNull(BlockRules.meterRate(rules, "site.com"))
     }

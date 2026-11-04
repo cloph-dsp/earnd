@@ -31,14 +31,30 @@ tier.
 - Blocking is implemented with an AccessibilityService that detects the foreground app (and browser
   address bar for websites) and shows a full-screen "locked" screen listing what can be done to earn
   time, with a one-tap path into check-in. Exit goes to the home screen.
-- Per-app charging: each blocked app is FULL (default: needs an unlock session) or METERED at 0/25/50/100 %
-  (default 50 % when switching). A metered app needs no session: while it is in the foreground and the balance
-  is above 0 it stays open and the balance is debited at rate x foreground time (whole minutes, fractional time
-  carried over); background playback costs nothing. At balance 0 the normal lock screen shows. A running
-  session covers metered apps (no double charge). Bedtime, hard mode (disables metering) and focus apply as
-  for any leisure app. Settings > Blocking > apps list has a "Charging" selector per leisure app; the Today
-  card notes metered apps ("TIDAL · 50%"). Lowering a rate or FULL -> METERED is a weakening (puzzle and hard-mode
-  cooldown on the phone, refused remotely: `rules.set_charging` only goes stricter).
+- Metering is the default charging model for ALL leisure apps and sites: each is metered at 0/25/50/100 %
+  (default 100 %; former FULL apps migrated to 100 %). The balance is debited only while that app is in the
+  foreground AND the screen is on and unlocked AND no call is in progress (telephony state or in-call /
+  in-communication audio mode). Notification shade and keyboard over the app keep counting; a picture-in-picture
+  window of a leisure app counts at its rate; in split-screen a visible leisure window counts (one charge at a
+  time: the highest rate). Accounting is event driven (window change, screen on/off, user present) at second
+  resolution, fractions carried over (persisted), debited through the time bank (FIFO / rolling expiry). When the
+  balance reaches 0 while counting, the lock screen shows at once (an in-process timer is set for the predicted
+  zero time, or the next lot expiry).
+- Gate: opening a leisure app/site without a counting grant shows a confirmation ("<App>, 23 min left, counts at
+  50 % while open") with "Open (start counting)", "Back to home", the same earn rows and a fixed-pass option.
+  Accepting grants that app/site; after leaving it the grant lasts 2 minutes (return within 2 min = no
+  re-confirm). Balance 0 shows the lock screen instead.
+- Overlay while counting: a small draggable pill (about 26 dp, mono 11 sp, e.g. "23:41 \½" = real time left at the
+  current rate, no app name; long-press shows the name) in an accessibility overlay window; amber, red in the last
+  2 minutes, one short vibration at 1 minute left. Drag snaps to the nearest side edge; tap collapses to a ~12 dp
+  dot / expands; position remembered per app. It only covers its own pixels and goes away when leaving the app or
+  when the screen turns off.
+- Manual unlock sessions are an optional fixed "pass" (Today button, lock screen and gate): while a pass is active
+  nothing is metered. Hard mode disables metering (only all-done / segment unlocks, as before). Bedtime and focus
+  apply as for any leisure app. Settings > Blocking > apps list has a "Charging" selector per leisure app; the Today
+  card notes apps charged at other than 100 %. Lowering a rate is a weakening (puzzle and hard-mode cooldown on
+  the phone, refused remotely: `rules.set_charging` only goes stricter). Remote `status` reports
+  `counting {pkg, rate, since}`; balance cannot be changed remotely.
 - Rolling expiry options: 12/15/24/36/48/72 h; `settings.tighten rollingExpiryHours=<lower>` works remotely.
 - Habit flag "Reward beyond target" (default on = +50 % overflow rule). Off: check-ins beyond `timesPerDay` are
   recorded but earn 0. Remote `over_target_reward=off` allowed, `on` phone-only.
@@ -107,8 +123,8 @@ tier.
 - Works fully offline.
 
 ## 6. Widgets
-- 1x1 lock widget: shows locked/unlocked + remaining time; tap toggles (start session if balance and
-  allowed; lock if unlocked; open app to earn if no balance).
+- (The 1x1 lock widget was removed; the overlay and the Today card show the balance.)
+- 1x1 habit widget: one habit; tap checks in.
 - 4x2 tasks widget: pending tasks (overdue/today first) with a checkbox per task; tap opens the task;
   "+" adds.
 

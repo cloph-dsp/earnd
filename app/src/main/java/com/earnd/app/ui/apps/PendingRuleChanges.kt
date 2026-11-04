@@ -23,7 +23,7 @@ object PendingRuleChanges {
     /** Mark as leisure (always strengthening). An existing charging rate is kept. */
     suspend fun addLeisure(key: String, label: String, isWebsite: Boolean) {
         dropPending(key)
-        dao.upsert(AppRuleEntity(key, AppRule.LEISURE, isWebsite, label, meterPct = dao.get(key)?.takeIf { it.rule == AppRule.LEISURE }?.meterPct))
+        dao.upsert(AppRuleEntity(key, AppRule.LEISURE, isWebsite, label, meterPct = dao.get(key)?.takeIf { it.rule == AppRule.LEISURE }?.meterPct ?: Charging.DEFAULT_RATE))
         ServiceLocator.changeBus.emit(ChangeKind.BLOCKLIST)
     }
 
@@ -38,7 +38,7 @@ object PendingRuleChanges {
      */
     suspend fun setCharging(key: String, label: String, pct: Int?): Long {
         val cur = dao.get(key)?.takeIf { it.rule == AppRule.LEISURE } ?: return ServiceLocator.clock.now()
-        if (Charging.loosens(cur.meterPct, pct)) return weaken(Pending(key, CHARGE + (pct?.toString() ?: "FULL"), false, label, 0))
+        if (Charging.loosens(cur.meterPct, pct)) return weaken(Pending(key, CHARGE + (pct ?: Charging.DEFAULT_RATE).toString(), false, label, 0))
         read().firstOrNull { it.key == key && it.rule.startsWith(CHARGE) }?.let { dropPending(key) }
         dao.upsert(cur.copy(meterPct = pct))
         ServiceLocator.changeBus.emit(ChangeKind.BLOCKLIST)

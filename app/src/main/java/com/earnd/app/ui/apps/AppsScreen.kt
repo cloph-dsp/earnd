@@ -96,7 +96,7 @@ fun AppsScreen(onBack: () -> Unit) {
             }
             if (pending.isNotEmpty()) PendingList(pending) { key -> launchUi { PendingRuleChanges.cancel(key); reload++ } }
             when (tab) {
-                0 -> AppList(apps, rules, header = "Leisure apps stay locked until you start a session. Metered apps open while you have minutes and cost a share of the time they are in front.") { app, isLeisure, isEssential ->
+                0 -> AppList(apps, rules, header = "Leisure apps are metered: they open while you have minutes and cost a share of the time they are in front. A manual pass makes them free for a fixed time.") { app, isLeisure, isEssential ->
                     if (isEssential) {
                         Text("Always open", style = MaterialTheme.typography.labelSmall)
                     } else {
@@ -132,7 +132,7 @@ fun AppsScreen(onBack: () -> Unit) {
     }
 }
 
-/** "Charging" selector of a blocked app: Full (needs a session) or Metered at 0/25/50/100% of foreground time. */
+/** "Charging" selector of a leisure app: 0/25/50/100% of foreground time. */
 @Composable
 private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
     var open by remember { mutableStateOf(false) }
@@ -141,7 +141,6 @@ private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
             Text("Charging: " + Charging.label(current), style = MaterialTheme.typography.labelSmall)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(text = { Text("Full (needs a session)") }, onClick = { open = false; onPick(null) })
             Charging.RATES.forEach { r ->
                 DropdownMenuItem(
                     text = { Text("Metered $r%" + if (r == Charging.DEFAULT_RATE) " (default)" else "") },

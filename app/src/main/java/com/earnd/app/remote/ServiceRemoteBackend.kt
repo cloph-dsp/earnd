@@ -67,6 +67,7 @@ class ServiceRemoteBackend(
             "habitsComplete" to habits.count { (counts[it.id] ?: 0) >= it.timesPerDay },
             "tasksOverdue" to (buckets[TaskBucket.OVERDUE] ?: 0),
             "tasksToday" to (buckets[TaskBucket.TODAY] ?: 0),
+            "counting" to com.earnd.app.ServiceLocator.meterEngine.current()?.let { Json.obj("pkg" to it.pkg, "rate" to it.ratePct, "since" to it.since) },
         )
     }
 

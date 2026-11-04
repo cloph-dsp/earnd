@@ -13,11 +13,14 @@ sealed interface BlockDecision {
     data object Allow : BlockDecision
     data class Block(val cause: BlockCause, val until: Long?) : BlockDecision
     /** Open because the app is metered and the balance is positive; the guard charges [ratePct] of foreground time. */
-    data class Metered(val ratePct: Int) : BlockDecision
+    data class Metered(val ratePct: Int, val key: String = "") : BlockDecision
 }
 
-/** FOCUS: a timed focus habit is running; the guard shows the focus timer instead of the lock screen. */
-enum class BlockCause { NO_BALANCE, BEDTIME, HARD_MODE, FOCUS }
+/**
+ * FOCUS: a timed focus habit is running; the guard shows the focus timer instead of the lock screen.
+ * CONFIRM: not a lock; the gate asking to start counting a metered leisure app.
+ */
+enum class BlockCause { NO_BALANCE, BEDTIME, HARD_MODE, FOCUS, CONFIRM }
 
 /** Everything [BlockRules.decide] needs, already resolved. */
 data class BlockFacts(
@@ -33,8 +36,10 @@ data class BlockFacts(
     val nothingScheduled: Boolean,
     /** Segment mode: every habit of the current day segment is done. */
     val segmentUnlock: Boolean = false,
-    /** Metered charging rate of the app (null = FULL, or hard mode, which disables metering). */
+    /** Metered charging rate of the matching leisure rule (null only in hard mode, which disables metering). */
     val meteredPct: Int? = null,
+    /** Rule key (package or site host) the rate belongs to. */
+    val meteredKey: String = "",
     val balancePositive: Boolean = false,
 )
 
@@ -46,10 +51,10 @@ object BlockRules {
         !f.leisure -> BlockDecision.Allow
         f.inBedtime && !f.graceActive -> BlockDecision.Block(BlockCause.BEDTIME, f.bedtimeEndsAt)
         f.sessionActive -> BlockDecision.Allow
-        f.meteredPct != null && f.balancePositive -> BlockDecision.Metered(f.meteredPct)
         f.allDoneUnlock -> BlockDecision.Allow
         f.segmentUnlock -> BlockDecision.Allow
         f.nothingScheduled -> BlockDecision.Allow
+        f.meteredPct != null && f.balancePositive -> BlockDecision.Metered(f.meteredPct, f.meteredKey)
         else -> BlockDecision.Block(BlockCause.NO_BALANCE, null)
     }
 
@@ -63,9 +68,18 @@ object BlockRules {
         }
     }
 
-    /** Metered rate of a blocked app (packages only); null = FULL or not a blocked app. */
+    /** The leisure rule matching a package or (in a browser) a site host, preferring the site. */
+    fun leisureRule(rules: List<AppRuleEntity>, pkg: String, urlHost: String?): AppRuleEntity? {
+        val host = urlHost?.lowercase()?.removePrefix("www.")
+        return rules.firstOrNull { r ->
+            r.rule == AppRule.LEISURE && r.isWebsite && host != null &&
+                r.key.lowercase().removePrefix("www.").let { host == it || host.endsWith(".$it") }
+        } ?: rules.firstOrNull { it.rule == AppRule.LEISURE && !it.isWebsite && it.key == pkg }
+    }
+
+    /** Effective metered rate of a leisure package; null when it is not a leisure app. */
     fun meterRate(rules: List<AppRuleEntity>, pkg: String): Int? =
-        rules.firstOrNull { it.rule == AppRule.LEISURE && !it.isWebsite && it.key == pkg }?.meterPct
+        leisureRule(rules, pkg, null)?.let { Charging.effective(it.meterPct) }
 
     /** User-extended whitelist: packages marked ALLOWED. */
     fun isUserAllowed(rules: List<AppRuleEntity>, pkg: String): Boolean =
@@ -99,7 +113,8 @@ class BlockPolicy(
         val bedtime = TimeBank.bedtimeWindow(s)
         val session = sessions.active()?.takeIf { it.plannedEndAt > now && it.startedAt <= now }
         // Cheap facts first; habit lookups only matter at the end of the table.
-        val metered = if (s.hardMode) null else BlockRules.meterRate(all, pkg)
+        val rule = BlockRules.leisureRule(all, pkg, url?.let(::hostOf))
+        val metered = if (s.hardMode || rule == null) null else Charging.effective(rule.meterPct)
         val f = BlockFacts(
             blockingEnabled = s.blockingEnabled,
             onVacation = s.onVacation(today.toEpochDay()),
@@ -112,10 +127,13 @@ class BlockPolicy(
             allDoneUnlock = false,
             nothingScheduled = false,
             meteredPct = metered,
+            meteredKey = rule?.key.orEmpty(),
             balancePositive = metered != null && session == null && balance(now) > 0,
         )
         val first = BlockRules.decide(f)
-        if (first !is BlockDecision.Block || first.cause != BlockCause.NO_BALANCE) return first
+        val needsUnlockFacts = first is BlockDecision.Metered ||
+            (first is BlockDecision.Block && first.cause == BlockCause.NO_BALANCE)
+        if (!needsUnlockFacts) return first
         return BlockRules.decide(f.copy(
             allDoneUnlock = s.allDoneUnlock && habits.allDone(today),
             nothingScheduled = !habits.anythingScheduled(today),

@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * weakening gates; the app is added to the leisure list when it is not there yet.
  * adb shell am broadcast -n com.earnd.app/.blocking.DebugChargingReceiver \
  *   -a com.earnd.app.blocking.DEBUG_SET_CHARGING --es pkg com.aspiro.tidal --es rate 50
- * rate = full | 0 | 25 | 50 | 100. The result is logged (tag EarndDebug) and returned as the broadcast result data.
+ * rate = 0 | 25 | 50 | 100 (full = 100). The result is logged (tag EarndDebug) and returned as the broadcast result data.
  */
 class DebugChargingReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -25,7 +25,7 @@ class DebugChargingReceiver : BroadcastReceiver() {
         val pkg = intent.getStringExtra("pkg")?.trim().orEmpty()
         val rate = Charging.parse(intent.getStringExtra("rate").orEmpty())
         if (pkg.isEmpty() || rate == null) {
-            setResult(1, "usage: --es pkg <package> --es rate full|0|25|50|100", null)
+            setResult(1, "usage: --es pkg <package> --es rate 0|25|50|100", null)
             return
         }
         ServiceLocator.init(context)

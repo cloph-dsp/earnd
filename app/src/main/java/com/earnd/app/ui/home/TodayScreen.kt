@@ -95,8 +95,8 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val allDone = habits.isNotEmpty() && habits.all(doneOf)
     val bank = BankState(balance?.minutes ?: 0, session, settings.hardMode, allDone = allDone, allDoneUnlock = settings.allDoneUnlock, unlockCapMin = settings.unlockCapMin,
         nextExpiryAt = balance?.nextExpiryAt, minutesExpiringNext = balance?.minutesExpiringNext ?: 0,
-        metered = if (settings.hardMode) emptyList() else appRules.filter { it.rule == com.earnd.app.data.entity.AppRule.LEISURE && !it.isWebsite && it.meterPct != null }
-            .map { com.earnd.app.domain.Charging.note(it.label, it.meterPct!!) })
+        metered = if (settings.hardMode) emptyList() else appRules.filter { it.rule == com.earnd.app.data.entity.AppRule.LEISURE && !it.isWebsite && com.earnd.app.domain.Charging.effective(it.meterPct) != com.earnd.app.domain.Charging.DEFAULT_RATE }
+            .map { com.earnd.app.domain.Charging.note(it.label, com.earnd.app.domain.Charging.effective(it.meterPct)) })
     val inBedtime = TimeBank.bedtimeWindow(settings)?.contains(System.currentTimeMillis(), sl.clock.zone()) == true
 
     val nags by remember { sl.db.nagStateDao().observeAll() }.collectAsState(initial = emptyList())

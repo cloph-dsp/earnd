@@ -15,7 +15,7 @@ add (not rename) members. Times are epoch millis (`Long`) unless noted; local da
 | `blocking` | `GuardAccessibilityService`, `LockedActivity`, `EssentialApps`, `UrlExtractor` |
 | `alarms` | `AlarmPlanner`, `NagEngine`, `AlarmReceiver`, `BootReceiver`, `PendingNotifier`, `RingingAlarmActivity`, channels |
 | `ui` | `MainActivity`, navigation graph, screens per feature (`ui.habits`, `ui.tasks`, `ui.home`, `ui.settings`, `ui.apps`), `ui.theme` |
-| `widgets` | Glance `LockWidget` (1x1), `TasksWidget` (4x2), receivers, `WidgetRefresher` |
+| `widgets` | Glance `HabitWidget` (1x1), `TasksWidget` (4x2), receivers, `WidgetRefresher` |
 | `remote` | `RemoteCommandProvider` / receiver reachable from adb shell only, JSON codec |
 | `photo` | CameraX capture screen, `PhotoStore` (app-private `files/photos/`) |
 | `focus` | Timed focus habits: `FocusManager` (start/cancel/complete/restore), `FocusMath`/`FocusRules` (pure), `FocusActivity`, `FocusNotifier`, `FocusChime`, `FocusReceiver` |
@@ -268,15 +268,26 @@ class BlockPolicy(rules: AppRuleDao, sessions: SessionDao, habits: HabitService,
 Decision order: blocking disabled / vacation -> Allow; essential pkg -> Allow; not leisure (pkg nor url host) -> Allow;
 bedtime window (outside one-off grace) -> Block(BEDTIME); active session -> Allow; all-done unlock -> Allow;
 nothing scheduled today -> Allow; otherwise Block(NO_BALANCE).
-Metering: `AppRuleEntity.meterPct` (null = FULL; 0/25/50/100 = METERED, db v9). After the active-session check,
-a metered app with balance > 0 (and not hard mode) gives `BlockDecision.Metered(rate)`. `GuardAccessibilityService.recheck`
-calls `MeterEngine.advance(now, interactive)` (charges time since the last check at the previous rate; nothing when
-the screen is off; one step capped at 60 s) before deciding, then `MeterEngine.switchTo(rate)`. `MeterMath` keeps
-elapsed x rate as a carry (persisted in raw setting `meter.carry`) and debits whole minutes through
-`TimeBank.debitMetered` (FIFO over lots in rolling mode, ledger kind METER, shortfall forgiven; sessions and refunds
-untouched). `Charging` holds rates, strictness (FULL > any rate) and parsing; `PendingRuleChanges.setCharging` applies
-stricter changes at once and queues loosening ones ("CHARGE:<pct|FULL>") behind the hard-mode cooldown.
-Debug build: `DebugChargingReceiver` (DUMP-protected) sets a rate by adb.
+Metering (default model for every leisure app/site): `AppRuleEntity.meterPct` (0/25/50/100, null = 100; db v10
+migrates FULL rows to 100). `BlockRules.leisureRule` matches the rule (site host preferred, then package);
+free unlocks (session, all-done, segment, nothing scheduled) are checked before metering; metered with balance > 0
+gives `BlockDecision.Metered(rate, key)`; hard mode disables it. `GuardAccessibilityService.recheck` (events:
+window state/content/windows-changed, screen on/off, user present, change bus; plus a 1 s ticker while a leisure
+target is in front) decides: Block -> lock screen; Metered without `Grants.active(key)` -> gate (`LockedActivity`
+cause CONFIRM, `gateIntent`; accepting calls `Grants.grant`, the guard calls `enter`/`leave` so a grant survives
+2 min after leaving); Metered with grant -> counted. `CountRules` (pure) picks what counts: foreground target plus
+visible leisure windows from `getWindows()` (PiP / split-screen), highest rate wins, and `CountRules.active`
+(screen interactive, keyguard not locked, no call by telephony state or audio mode). `MeterEngine` (`MeterActive`
+key/pkg/rate/since) charges `advance(now, allowed)`; `MeterMath` keeps elapsed x rate as a carry (raw setting
+`meter.carry`) and `msUntilZero` predicts the zero time, which the guard turns into an exact `delay` job
+(min with the next lot expiry) that re-checks and shows the lock. Debits go through `TimeBank.debitMetered`
+(FIFO over lots, ledger kind METER). `MeterOverlay` is a plain View in a TYPE_ACCESSIBILITY_OVERLAY window
+(NOT_FOCUSABLE | NOT_TOUCH_MODAL); formatting/snap/vibration thresholds are pure in `OverlayMath`; positions per
+package in SharedPreferences `meter_overlay`. `Charging` holds rates and parsing; `PendingRuleChanges.setCharging`
+applies stricter changes at once and queues loosening ones behind the hard-mode cooldown. The remote `status`
+includes `counting`.
+Debug build (DUMP-protected receivers): `DebugChargingReceiver` sets a rate; `DebugMeterReceiver`
+(`DEBUG_METER_STATE`) prints the meter state (counting target, rate, balance, remaining, carry, grants, overlay).
 `HabitEntity.overTargetReward` (v9, default true) makes `HabitProgress.checkInReward` return 0 beyond `timesPerDay`.
 
 ```kotlin

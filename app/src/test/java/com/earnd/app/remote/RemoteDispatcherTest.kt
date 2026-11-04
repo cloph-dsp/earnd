@@ -392,11 +392,11 @@ class RemoteDispatcherTest {
         assertEquals(50, b.rules.getValue("com.aspiro.tidal").meterPct)
         assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "100")).contains("\"changed\":true"))
         assertEquals(100, b.rules.getValue("com.aspiro.tidal").meterPct)
-        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "full")).contains("\"rate\":\"full\""))
-        assertEquals(null, b.rules.getValue("com.aspiro.tidal").meterPct)
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "full")).contains("\"rate\":\"100\""))
+        assertEquals(100, b.rules.getValue("com.aspiro.tidal").meterPct)
         assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "50")).contains("forbidden_weaken"))
         assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.aspiro.tidal", "rate" to "33")).contains("bad_args"))
-        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.nope.app", "rate" to "full")).contains("not_found"))
+        assertTrue(d.handle("rules.set_charging", mapOf("pkg" to "com.nope.app", "rate" to "100")).contains("not_found"))
     }
 
     @Test fun rollingExpiryCanOnlyBeLoweredRemotely() = runTest {

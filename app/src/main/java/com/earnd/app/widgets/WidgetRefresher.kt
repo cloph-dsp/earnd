@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Keeps all widgets current: ChangeBus events, session end, and a periodic fallback. */
 object WidgetRefresher {
     private const val PERIODIC = "widgets_periodic"
-    private const val SESSION_END = "widgets_session_end"
     private const val MIDNIGHT = "widgets_midnight"
     private val relevant = setOf(
         ChangeKind.TASKS, ChangeKind.BALANCE, ChangeKind.SESSION, ChangeKind.SETTINGS,
@@ -33,7 +32,6 @@ object WidgetRefresher {
     private val started = AtomicBoolean(false)
 
     suspend fun updateAll(context: Context) {
-        LockWidget().updateAll(context)
         TasksWidget().updateAll(context)
         HabitWidget().updateAll(context)
     }
@@ -70,19 +68,6 @@ object WidgetRefresher {
         WorkManager.getInstance(context).enqueueUniqueWork(MIDNIGHT, policy, req)
     }
 
-    /** Schedules a refresh just after the running session ends; cancels it when none runs. */
-    fun scheduleSessionEnd(context: Context, endsAt: Long?) {
-        val wm = WorkManager.getInstance(context)
-        if (endsAt == null) {
-            wm.cancelUniqueWork(SESSION_END)
-            return
-        }
-        val delay = (endsAt - ServiceLocator.clock.now()).coerceAtLeast(0) + 1_000
-        val req = OneTimeWorkRequestBuilder<WidgetUpdateWorker>()
-            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-            .build()
-        wm.enqueueUniqueWork(SESSION_END, ExistingWorkPolicy.REPLACE, req)
-    }
 }
 
 class WidgetUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {

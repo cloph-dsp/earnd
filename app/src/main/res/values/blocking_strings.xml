@@ -28,4 +28,9 @@
     <string name="blocking_try_again">That didn\'t work. Try again.</string>
     <string name="blocking_guard_off_title">Blocking is off</string>
     <string name="blocking_guard_off_text">Earnd cannot lock leisure apps right now. Tap to switch the Earnd service back on in Accessibility settings.</string>
+    <string name="blocking_gate_badge">Leisure</string>
+    <string name="blocking_gate_left">%1$d min left · counts at %2$d%% while open</string>
+    <string name="blocking_gate_free">Counts at 0%: free while open</string>
+    <string name="blocking_gate_open">Open (start counting)</string>
+    <string name="blocking_gate_pass">Or use a fixed pass</string>
 </resources>

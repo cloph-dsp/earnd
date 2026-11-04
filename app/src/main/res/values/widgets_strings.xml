@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widgets_lock_name">Earnd lock</string>
-    <string name="widgets_lock_description">See whether leisure apps are open, and tap to start or end a session.</string>
-    <string name="widgets_lock_open">Open</string>
-    <string name="widgets_lock_locked">Locked</string>
-    <string name="widgets_lock_bedtime">Bedtime</string>
-    <string name="widgets_minutes_compact">%1$dm</string>
     <string name="widgets_minutes_short">%1$d min</string>
     <string name="widgets_tasks_name">Earnd tasks</string>
     <string name="widgets_tasks_description">Your pending tasks, overdue and today first.</string>

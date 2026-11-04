@@ -43,7 +43,10 @@ import com.earnd.app.R
 import com.earnd.app.domain.BlockCause
 import com.earnd.app.domain.RefuseReason
 
-/** Full-screen lock UI. Stateless: takes state and callbacks. */
+/** What the gate tells about a metered app: [realMinutes] of use left at [ratePct] (null = free, rate 0). */
+data class GateInfo(val realMinutes: Int?, val ratePct: Int)
+
+/** Full-screen lock/gate UI. Stateless: takes state and callbacks. */
 @Composable
 fun LockedScreen(
     cause: BlockCause,
@@ -56,13 +59,15 @@ fun LockedScreen(
     onStartSession: (Int) -> Unit,
     onGrace: () -> Unit,
     onHome: () -> Unit,
+    gate: GateInfo? = null,
+    onOpen: () -> Unit = {},
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Header(cause, target, until, ui.balanceMinutes)
+            if (cause == BlockCause.CONFIRM && gate != null) GateHeader(target, gate) else Header(cause, target, until, ui.balanceMinutes)
             if (message != null) {
                 Text(refuseText(message), color = Earnd.palette.red,
                     style = MaterialTheme.typography.bodyMedium)
@@ -70,6 +75,10 @@ fun LockedScreen(
             when (cause) {
                 BlockCause.BEDTIME -> FilledTonalButton(onGrace, Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.blocking_grace))
+                }
+                BlockCause.CONFIRM -> {
+                    AmberButton(onOpen, Modifier.fillMaxWidth()) { Text(stringResource(R.string.blocking_gate_open)) }
+                    SessionChoices(ui, onStartSession, title = stringResource(R.string.blocking_gate_pass))
                 }
                 else -> SessionChoices(ui, onStartSession)
             }
@@ -142,13 +151,34 @@ private fun Header(cause: BlockCause, target: String, until: String?, balance: I
 }
 
 @Composable
-private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit) {
+private fun GateHeader(target: String, gate: GateInfo) {
+    val p = Earnd.palette
+    Column(Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.Start) {
+        Row(
+            Modifier.background(p.amber, Chamfer).padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.blocking_gate_badge), style = MaterialTheme.typography.labelLarge, color = p.onAmber)
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(target, style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            if (gate.realMinutes == null) stringResource(R.string.blocking_gate_free)
+            else stringResource(R.string.blocking_gate_left, gate.realMinutes, gate.ratePct),
+            style = MaterialTheme.typography.bodyMedium, color = p.secondary,
+        )
+    }
+}
+
+@Composable
+private fun SessionChoices(ui: LockedUi, onStart: (Int) -> Unit, title: String = stringResource(R.string.blocking_use_time)) {
     when {
         ui.hardMode -> Text(stringResource(R.string.blocking_hard_mode_note),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ui.balanceMinutes <= 0 -> Unit
         else -> {
-            SectionTitle(stringResource(R.string.blocking_use_time))
+            SectionTitle(title)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val all = UnlockCap.choices(LockedViewModel.SESSION_CHOICES, ui.balanceMinutes, ui.unlockCapMin)
                 val shown = (all.dropLast(1).take(2) + all.last()).distinct()

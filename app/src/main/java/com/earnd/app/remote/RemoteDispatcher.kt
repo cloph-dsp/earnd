@@ -494,7 +494,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     private suspend fun rulesList(): Map<String, Any?> {
         val rules = backend.appRules().sortedBy { it.label.lowercase() }
         fun pick(rule: AppRule, web: Boolean) =
-            rules.filter { it.rule == rule && it.isWebsite == web }.map { Json.obj("key" to it.key, "label" to it.label, "charging" to if (web) null else rateName(it.meterPct)) }
+            rules.filter { it.rule == rule && it.isWebsite == web }.map { Json.obj("key" to it.key, "label" to it.label, "charging" to rateName(it.meterPct)) }
         return ok("blockedApps" to pick(AppRule.LEISURE, false), "blockedSites" to pick(AppRule.LEISURE, true), "alwaysOpen" to pick(AppRule.ALLOWED, false))
     }
 
@@ -506,20 +506,21 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         return ok("pkg" to pkg, "label" to label)
     }
 
-    private fun rateName(pct: Int?) = pct?.toString() ?: "full"
+    private fun rateName(pct: Int?) = Charging.effective(pct).toString()
 
-    /** Charging may only get stricter remotely: a higher rate, or METERED -> FULL. */
+    /** Charging may only get stricter remotely: a higher rate. */
     private suspend fun setCharging(a: RemoteArgs): Map<String, Any?> {
         val pkg = a.text("pkg") ?: bad("missing pkg")
-        val raw = a.str("rate") ?: bad("missing rate (full, 0, 25, 50 or 100)")
-        val rate = Charging.parse(raw) ?: bad("bad rate: $raw (full, 0, 25, 50 or 100)")
+        val raw = a.str("rate") ?: bad("missing rate (0, 25, 50 or 100)")
+        val rate = Charging.parse(raw) ?: bad("bad rate: $raw (0, 25, 50 or 100)")
         val cur = backend.appRules().firstOrNull { it.rule == AppRule.LEISURE && !it.isWebsite && it.key == pkg }
             ?: throw NotFound("blocked app $pkg")
         if (Charging.loosens(cur.meterPct, rate.pct)) {
-            throw WeakenForbidden("lowering a rate or switching full to metered can only be done on the phone")
+            throw WeakenForbidden("lowering a rate can only be done on the phone")
         }
-        if (cur.meterPct != rate.pct) backend.setCharging(pkg, rate.pct)
-        return ok("pkg" to pkg, "rate" to rateName(rate.pct), "changed" to (cur.meterPct != rate.pct))
+        val curPct = Charging.effective(cur.meterPct)
+        if (curPct != rate.pct) backend.setCharging(pkg, rate.pct)
+        return ok("pkg" to pkg, "rate" to rateName(rate.pct), "changed" to (curPct != rate.pct))
     }
 
     private suspend fun blockSite(a: RemoteArgs): Map<String, Any?> {

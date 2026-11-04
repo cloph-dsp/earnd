@@ -57,6 +57,8 @@ object ServiceLocator {
             saveCarry = { settings.rawPut("meter.carry", it.toString()) },
         )
     }
+    /** Counting grants: leisure targets the user confirmed at the gate (see [com.earnd.app.domain.Grants]). */
+    val grants: com.earnd.app.domain.Grants by lazy { com.earnd.app.domain.Grants() }
     val nagEngine: NagEngine by lazy {
         NagEngine(db.nagStateDao(), db.alarmConfigDao(), settings, clock) { kind, id ->
             when (kind) {
