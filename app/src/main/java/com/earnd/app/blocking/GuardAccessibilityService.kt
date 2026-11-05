@@ -179,8 +179,21 @@ class GuardAccessibilityService : AccessibilityService() {
         return Env(usable, CountRules.inCall(call, mode))
     }
 
+    /** The package of the focused application window, or null when the system does not say (secure window, none). */
+    private fun activeAppPackage(): String? = runCatching {
+        windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.isActive }?.root?.let { r ->
+            val p = r.packageName?.toString()
+            @Suppress("DEPRECATION")
+            runCatching { r.recycle() }
+            p
+        }
+    }.getOrNull()
+
     private suspend fun recheck(force: Boolean) {
         val now = System.currentTimeMillis()
+        // A dialog, chooser or bubble from another package can take the last window event and leave the app that is
+        // really in front forgotten (counter gone until the next switch): trust the focused window over the last event.
+        activeAppPackage()?.takeIf { it != foregroundPkg && !isTransientSystemUi(it) }?.let { foregroundPkg = it; lastUrl = null }
         val pkg = foregroundPkg
         if (pkg == null || pkg == packageName) { pauseCounting(now); return }
         val url = lastUrl

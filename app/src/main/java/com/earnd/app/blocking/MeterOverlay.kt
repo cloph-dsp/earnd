@@ -41,12 +41,16 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
     private var low = false
     private var collapsed = false
     private var showLabelUntil = 0L
+    private var createdAt = 0L
 
     val shown: Boolean get() = view != null
 
     /** Shows or updates the counter. [remainingMs] is real time left at the current rate. */
     fun show(pkg: String, label: String, remainingMs: Long, ratePct: Int) {
-        if (view == null || this.pkg != pkg) { hide(); create(pkg) }
+        // A view the system dropped (window recreated, display change) is still non-null here, so look at the window too.
+        val stale = view?.let { !it.isAttachedToWindow && System.currentTimeMillis() - createdAt > ATTACH_GRACE_MS } == true
+        if (view == null || stale || this.pkg != pkg) { hide(); create(pkg) }
+        if (view == null) return
         this.label = label
         text = OverlayMath.text(remainingMs, ratePct)
         low = OverlayMath.isLow(remainingMs)
@@ -85,9 +89,16 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
         p.gravity = Gravity.TOP or if (left) Gravity.START else Gravity.END
         p.x = px(4)
         p.y = prefs.getInt("y_$forPkg", px(120))
+        // Only keep the view once the window exists: an addView that throws must not leave a ghost that blocks every retry.
+        try {
+            wm.addView(tv, p)
+        } catch (e: Throwable) {
+            android.util.Log.w("Earnd", "Counter overlay could not be added", e)
+            return
+        }
         view = tv
         params = p
-        wm.addView(tv, p)
+        createdAt = System.currentTimeMillis()
         MeterOverlayState.visible = true
     }
 
@@ -177,6 +188,7 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
     }
 
     private companion object {
+        const val ATTACH_GRACE_MS = 1_500L
         val AMBER = Color.parseColor("#FFB000")
         val RED = Color.parseColor("#FF4A3D")
         val DARK = Color.parseColor("#121110")
