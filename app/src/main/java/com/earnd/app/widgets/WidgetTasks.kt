@@ -6,6 +6,7 @@ import com.earnd.app.domain.TaskBucket
 import com.earnd.app.domain.today
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -44,7 +45,7 @@ internal object WidgetTasks {
     private fun shortDate(epochDay: Long, today: Long): String {
         val fmt = DateTimeFormats.current
         return if (epochDay in (today + 1)..(today + 6)) {
-            LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("EEE"))
+            LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault()))
         } else {
             fmt.formatDate(epochDay)
         }

@@ -39,9 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.earnd.app.R
 
 /** Cards for each permission; re-checks status when the user returns from system settings. */
 @Composable
@@ -61,8 +63,8 @@ fun PermissionCards(modifier: Modifier = Modifier) {
             run {
                 Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(p.title + if (p.optional) " (optional)" else "", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                        if (granted) Text("On", style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber) else Text("Off", style = MaterialTheme.typography.labelMedium, color = Earnd.palette.red)
+                        Text(if (p.optional) stringResource(R.string.onboarding_perm_optional, p.title) else p.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        if (granted) Text(stringResource(R.string.onboarding_perm_on), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber) else Text(stringResource(R.string.onboarding_perm_off), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.red)
                     }
                     Text(p.why, style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(top = 2.dp))
                     if (!granted) {
@@ -79,7 +81,7 @@ fun PermissionCards(modifier: Modifier = Modifier) {
                                 runCatching { context.startActivity(intentFn(context)) }
                                     .onFailure { context.startActivity(Intent(Settings.ACTION_SETTINGS)) }
                             }
-                        }, modifier = Modifier.padding(top = 8.dp)) { Text("Allow") }
+                        }, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.onboarding_perm_allow)) }
                     }
                 }
             }
@@ -92,8 +94,8 @@ fun PermissionCards(modifier: Modifier = Modifier) {
 @Composable
 fun PermissionsScreen(onBack: () -> Unit) {
     Scaffold(topBar = {
-        TopAppBar(title = { Text("Permissions") }, navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
+        TopAppBar(title = { Text(stringResource(R.string.onboarding_permissions_title)) }, navigationIcon = {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.onboarding_back)) }
         })
     }) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(16.dp)) {

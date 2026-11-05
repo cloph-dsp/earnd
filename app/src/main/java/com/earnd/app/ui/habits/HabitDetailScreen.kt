@@ -32,6 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 import androidx.compose.ui.unit.dp
 import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.CheckInEntity
@@ -104,31 +107,31 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
     EditScaffold(h?.name ?: "", onBack = onBack, actions = {
         if (h != null) {
             if (h.archived) {
-                TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id); reload++ } }) { Text("Restore") }
+                TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id); reload++ } }) { Text(stringResource(R.string.habits_restore)) }
             } else {
-                IconButton(onClick = { confirmArchive = true }) { Icon(Icons.Outlined.Archive, "Archive") }
+                IconButton(onClick = { confirmArchive = true }) { Icon(Icons.Outlined.Archive, stringResource(R.string.habits_archive)) }
             }
         }
-        IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, "Edit") }
+        IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, stringResource(R.string.habits_edit)) }
     }) {
         if (h == null) return@EditScaffold
         if (confirmArchive) AlertDialog(
             onDismissRequest = { confirmArchive = false },
-            title = { Text("Archive ${h.name}?") },
-            text = { Text("It leaves Today and stops counting. You can restore it from the Habits tab.") },
-            confirmButton = { TextButton(onClick = { confirmArchive = false; launchUi { sl.habitService.archive(h.id); onBack() } }) { Text("Archive") } },
-            dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.habits_archive_title, h.name)) },
+            text = { Text(stringResource(R.string.habits_archive_body)) },
+            confirmButton = { TextButton(onClick = { confirmArchive = false; launchUi { sl.habitService.archive(h.id); onBack() } }) { Text(stringResource(R.string.habits_archive)) } },
+            dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text(stringResource(R.string.habits_cancel)) } },
         )
         Text(
-            when (streak) { 0 -> "A fresh start today."; 1 -> "Done 1 day in a row."; else -> "Done $streak days in a row." },
+            if (streak == 0) stringResource(R.string.habits_streak_zero) else Str.plural(R.plurals.habits_streak_days, streak),
             style = MaterialTheme.typography.titleMedium,
         )
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Stat("Current streak", streak, Modifier.weight(1f))
-            Stat("Best streak", best, Modifier.weight(1f))
-            Stat("Days done", perfect, Modifier.weight(1f))
+            Stat(stringResource(R.string.habits_stat_current), streak, Modifier.weight(1f))
+            Stat(stringResource(R.string.habits_stat_best), best, Modifier.weight(1f))
+            Stat(stringResource(R.string.habits_stat_days_done), perfect, Modifier.weight(1f))
         }
-        if (h.archived) Text("Archived. Restore it to see it on Today again.", style = MaterialTheme.typography.bodySmall)
+        if (h.archived) Text(stringResource(R.string.habits_archived_note), style = MaterialTheme.typography.bodySmall)
         if (!h.archived && com.earnd.app.domain.TimedHabit.isTimed(h)) {
             val st by androidx.compose.runtime.remember { sl.settings.settings }.collectAsState(initial = com.earnd.app.data.Settings())
             val context = androidx.compose.ui.platform.LocalContext.current
@@ -141,22 +144,22 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
 
         val byDay = year.groupBy { it.epochDay }
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { month = month.minusMonths(1) }) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, "Previous month") }
+            IconButton(onClick = { month = month.minusMonths(1) }) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, stringResource(R.string.habits_prev_month)) }
             Text(
-                month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " " + month.year,
+                month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) } + " " + month.year,
                 style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
             )
             IconButton(enabled = month < YearMonth.from(today), onClick = { month = month.plusMonths(1) }) {
-                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, "Next month")
+                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, stringResource(R.string.habits_next_month))
             }
         }
         MonthCalendar(month, today, h, byDay, Color(h.colorArgb))
         if (month < YearMonth.from(today.minusDays(365))) {
-            Text("Only the last year is shown here.", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.habits_last_year_only), style = MaterialTheme.typography.bodySmall)
         }
 
-        SectionTitle("Recent check-ins")
-        if (history.isEmpty()) Text("No check-ins yet.", style = MaterialTheme.typography.bodyMedium)
+        SectionTitle(stringResource(R.string.habits_recent_checkins))
+        if (history.isEmpty()) Text(stringResource(R.string.habits_no_checkins), style = MaterialTheme.typography.bodyMedium)
         history.sortedByDescending { it.at }.take(30).forEach { c ->
             val p = Earnd.palette
             ListRow(onClick = {}, minHeight = 60.dp) {
@@ -168,9 +171,9 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
                     )
                 }
                 if (c.minutesEarned > 0) Num("+${c.minutesEarned}", Modifier.padding(start = 10.dp), color = p.amber, style = NumberStyle.copy(fontSize = 14.sp))
-                if (c.photoPath != null) Icon(Icons.Outlined.PhotoCamera, "Photo", Modifier.padding(start = 8.dp).size(16.dp), tint = p.muted)
+                if (c.photoPath != null) Icon(Icons.Outlined.PhotoCamera, stringResource(R.string.habits_photo), Modifier.padding(start = 8.dp).size(16.dp), tint = p.muted)
                 IconButton(onClick = { launchUi { HabitActions.undo(c.id); reload++ } }) {
-                    Icon(Icons.AutoMirrored.Outlined.Undo, "Undo check-in", tint = p.secondary)
+                    Icon(Icons.AutoMirrored.Outlined.Undo, stringResource(R.string.habits_undo_checkin), tint = p.secondary)
                 }
             }
         }

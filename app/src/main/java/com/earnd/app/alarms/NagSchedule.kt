@@ -14,6 +14,8 @@ object NagSchedule {
     val PROGRESSIVE_GAPS_MIN = listOf(10, 15, 25, 40, 60, 90, 120, 180, 240)
     const val DIGEST_AFTER_MS = 7L * 24 * 60 * 60 * 1000
     const val SNOOZE_MIN = 10
+    /** Choices on the ringing screen; each one uses a snooze. */
+    val SNOOZE_CHOICES_MIN = listOf(10, 30, 60, 120)
     private const val MINUTE = 60_000L
 
     fun gapMin(nagCount: Int, cfg: AlarmConfigEntity?): Int? = when (cfg?.nagMode ?: NagMode.PROGRESSIVE) {

@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared bits of the settings area -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_allow">Allow</string>
+    <string name="settings_off">Off</string>
+    <string name="settings_from">From</string>
+    <string name="settings_until">Until</string>
+    <string name="settings_at">At</string>
+    <string name="settings_follow_system">Follow system</string>
+    <string name="settings_minutes_short">%1$d min</string>
+
+    <!-- Category pages -->
+    <string name="settings_page_blocking">Blocking</string>
+    <string name="settings_page_time_bank">Time bank</string>
+    <string name="settings_page_schedule">Schedule</string>
+    <string name="settings_page_reminders">Reminders &amp; alarms</string>
+    <string name="settings_page_appearance">Appearance</string>
+    <string name="settings_page_remote">Remote control</string>
+    <string name="settings_page_backup">Backup &amp; data</string>
+    <string name="settings_page_permissions">Permissions</string>
+    <string name="settings_page_about">About</string>
+
+    <!-- Category summaries -->
+    <string name="settings_sum_locked">Locked</string>
+    <string name="settings_sum_max_min">max %1$d min</string>
+    <string name="settings_sum_no_cap">no unlock cap</string>
+    <string name="settings_sum_hard_mode">hard mode</string>
+    <string name="settings_sum_resets_daily">Resets daily</string>
+    <string name="settings_sum_resets_weekly">Resets weekly</string>
+    <string name="settings_sum_expires_after">Expires after %1$d h</string>
+    <string name="settings_sum_min_per_habit">%1$d min per habit</string>
+    <string name="settings_sum_day_starts">Day starts %1$s</string>
+    <string name="settings_sum_day_starts_weekend">Day starts %1$s, weekends %2$s</string>
+    <string name="settings_sum_bedtime">Bedtime %1$s-%2$s</string>
+    <string name="settings_sum_bedtime_off">Bedtime off</string>
+    <string name="settings_sum_quiet">Quiet %1$s-%2$s</string>
+    <string name="settings_sum_nudge">Morning nudge %1$s</string>
+    <string name="settings_sum_nudge_off">Morning nudge off</string>
+    <string name="settings_sum_report">Report %1$s</string>
+    <string name="settings_sum_report_off">Report off</string>
+    <string name="settings_sum_theme_system">System theme</string>
+    <string name="settings_sum_compact">compact</string>
+    <string name="settings_sum_comfortable">comfortable</string>
+    <string name="settings_sum_remote_on">Local agent allowed</string>
+    <string name="settings_sum_backup">Export, import or clear your data</string>
+    <string name="settings_sum_permissions">What Earnd is allowed to do</string>
+    <string name="settings_sum_about">Free software, GPL-3.0</string>
+
+    <!-- Hard mode and pending changes -->
+    <string name="settings_hard_mode_applies_at">Hard mode: this change applies at %1$s.</string>
+    <string name="settings_looser_applies_at">Looser settings apply at %1$s.</string>
+
+    <!-- Permissions page -->
+    <string name="settings_permissions_blurb">Usage access, overlay, notifications and exact alarms.</string>
+    <string name="settings_permissions_review">Review permissions</string>
+
+    <!-- Blocking -->
+    <string name="settings_blocking_apps_section">Apps and sites</string>
+    <string name="settings_blocking_lock_leisure">Lock leisure apps</string>
+    <string name="settings_blocking_choose_apps">Choose apps, sites and always-open apps</string>
+    <string name="settings_blocking_unlock_section">Unlock window</string>
+    <string name="settings_blocking_longest">Longest single unlock</string>
+    <string name="settings_blocking_no_cap">No cap</string>
+    <string name="settings_blocking_cap_helper">"Unlocks stop after this long. Minutes you don't use stay banked for the next one."</string>
+    <string name="settings_blocking_puzzle_section">Puzzle</string>
+    <string name="settings_blocking_puzzle_label">Puzzle before removing a block or loosening a rule</string>
+    <string name="settings_puzzle_none">None</string>
+    <string name="settings_puzzle_arithmetic">Arithmetic</string>
+    <string name="settings_puzzle_sentence">Type a sentence</string>
+    <string name="settings_blocking_hard_mode">Hard mode</string>
+    <string name="settings_blocking_hard_mode_hint">"Minutes can't be spent by hand; leisure opens only when everything is done. Loosening any setting waits for the cooldown."</string>
+    <string name="settings_blocking_cooldown">Cooldown before loosening (minutes)</string>
+
+    <!-- Time bank -->
+    <string name="settings_bank_reset_section">Reset</string>
+    <string name="settings_bank_reset_label">Saved minutes reset</string>
+    <string name="settings_bank_reset_daily">Daily</string>
+    <string name="settings_bank_reset_weekly">Weekly</string>
+    <string name="settings_bank_reset_rolling">Rolling</string>
+    <string name="settings_bank_expire_after">Minutes expire after: %1$d h</string>
+    <string name="settings_bank_rolling_helper">Each earned entry expires this long after you earned it. Spending uses the oldest minutes first.</string>
+    <string name="settings_bank_week_starts">Week starts on</string>
+    <string name="settings_bank_unlocking_section">Unlocking</string>
+    <string name="settings_bank_all_done_unlock">"Open everything when today's habits are done"</string>
+    <string name="settings_bank_rewards_section">Reward defaults</string>
+    <string name="settings_bank_habit_paid">Habit minutes are paid</string>
+    <string name="settings_bank_paid_each">With each check-in</string>
+    <string name="settings_bank_paid_once">Once everything is done</string>
+    <string name="settings_bank_default_habit_min">Default minutes per check-in</string>
+    <string name="settings_bank_default_task_reward">Default task reward (minutes, blank = none)</string>
+    <string name="settings_bank_promise">I promise to prove it</string>
+    <string name="settings_bank_promise_hint">Habits check in with a photo unless you set otherwise on the habit.</string>
+    <string name="settings_bank_comeback_section">Comeback</string>
+    <string name="settings_bank_comeback_bonus">Comeback bonus</string>
+    <string name="settings_bank_comeback_hint">After missed days, the first check-in earns up to double. Skipping never pays more than doing.</string>
+
+    <!-- Schedule -->
+    <string name="settings_sched_day_start_section">Day start</string>
+    <string name="settings_sched_day_starts_weekdays">Day starts (weekdays)</string>
+    <string name="settings_sched_later_weekend">Later start on weekends</string>
+    <string name="settings_sched_later_weekend_hint">"On Saturday and Sunday, habit reminders and nags move later by the difference. Tasks with a set time don't move."</string>
+    <string name="settings_sched_day_starts_weekends">Day starts (weekends)</string>
+    <string name="settings_sched_quiet_section">Quiet hours</string>
+    <string name="settings_sched_quiet_helper">No nagging in this window. On weekends it ends later by the same shift.</string>
+    <string name="settings_sched_bedtime_section">Bedtime</string>
+    <string name="settings_sched_bedtime_lock">Lock leisure apps at night</string>
+    <string name="settings_sched_bedtime_grace">One-off grace (minutes)</string>
+    <string name="settings_sched_parts_section">Parts of the day</string>
+    <string name="settings_sched_parts_switch">Unlock by part of the day</string>
+    <string name="settings_sched_parts_hint">"Finish the morning's habits and leisure apps open until the afternoon starts, and so on."</string>
+    <string name="settings_sched_morning">Morning</string>
+    <string name="settings_sched_afternoon">Afternoon</string>
+    <string name="settings_sched_evening">Evening</string>
+    <string name="settings_sched_vacation_section">Vacation</string>
+    <string name="settings_vacation_blurb">Pauses blocking and streaks between two dates.</string>
+    <string name="settings_vacation_from">From (%1$s)</string>
+    <string name="settings_vacation_to">To</string>
+    <string name="settings_vacation_set">Set vacation</string>
+    <string name="settings_vacation_clear">Clear</string>
+
+    <!-- Reminders -->
+    <string name="settings_rem_nudges_section">Nudges</string>
+    <string name="settings_rem_morning_nudge">Morning nudge</string>
+    <string name="settings_rem_morning_nudge_hint">"A short summary of today's habits. Later on weekends when the weekend start is later."</string>
+    <string name="settings_rem_daily_report">Daily report</string>
+    <string name="settings_rem_daily_report_hint">"In the evening: what got done, what didn't, and leisure minutes used."</string>
+    <string name="settings_rem_ringing_section">Alarm ringing</string>
+    <string name="settings_rem_ring_for">Ring for</string>
+    <string name="settings_rem_volume">Alarm volume: %1$d%%</string>
+    <string name="settings_rem_volume_helper">Share of the device alarm volume. The system alarm volume is not changed.</string>
+    <string name="settings_rem_gentle">Gentle start</string>
+    <string name="settings_rem_gentle_hint">Volume rises over 20 s. Not used for rings of 10 s or less.</string>
+    <string name="settings_rem_defaults_section">Defaults for new items</string>
+    <string name="settings_rem_default_tasks">Default for tasks</string>
+    <string name="settings_rem_default_habits">Default for habit reminders</string>
+    <string name="settings_rem_default_hide">Hide: %1$s</string>
+    <string name="settings_rem_default_edit">Edit: %1$s</string>
+    <string name="settings_rem_status_section">Status</string>
+    <string name="settings_rem_exact_title">Exact alarms</string>
+    <string name="settings_rem_exact_ok">Allowed. Reminders ring on time.</string>
+    <string name="settings_rem_exact_no">Not allowed. Reminders may arrive late.</string>
+
+    <!-- Appearance -->
+    <string name="settings_app_theme">Theme</string>
+    <string name="settings_app_theme_light">Light</string>
+    <string name="settings_app_theme_dark">Dark</string>
+    <string name="settings_app_density">Habit list</string>
+    <string name="settings_app_density_compact">Compact</string>
+    <string name="settings_app_density_comfortable">Comfortable</string>
+    <string name="settings_app_date_format">Date format</string>
+    <string name="settings_app_date_dmy">DD/MM/YYYY</string>
+    <string name="settings_app_date_ymd">YYYY-MM-DD</string>
+    <string name="settings_app_date_mdy">MM/DD/YYYY</string>
+    <string name="settings_app_time_format">Time format</string>
+    <string name="settings_app_time_24">24-hour</string>
+    <string name="settings_app_time_12">12-hour</string>
+
+    <!-- Backup page -->
+    <string name="settings_backup_section">Backup</string>
+    <string name="settings_danger_section">Danger zone</string>
+
+    <!-- About -->
+    <string name="settings_about_blurb">Earnd is free software (GPL-3.0). Everything stays on this phone.</string>
+
+    <!-- Remote -->
+    <string name="settings_remote_allow">Allow a local agent over adb</string>
+    <string name="settings_remote_hint">It can read and manage habits and tasks. It can never unlock apps or change blocking.</string>
+    <string name="settings_remote_last">Last remote action: %1$s</string>
+    <string name="settings_remote_none">none yet</string>
+    <string name="settings_remote_refused">%1$s (refused)</string>
+
+    <!-- Backup section -->
+    <string name="backup_blurb">A JSON file with your habits, tasks, history, time bank, blocked apps and settings. Photos are not included.</string>
+    <string name="backup_export">Export</string>
+    <string name="backup_import">Import</string>
+    <string name="backup_exported">Exported %1$d rows.</string>
+    <string name="backup_export_failed">Export failed: %1$s</string>
+    <string name="backup_cant_import">"Can't import: %1$s"</string>
+    <string name="backup_imported">Backup imported.</string>
+    <string name="backup_import_failed">Import failed: %1$s</string>
+    <string name="backup_replace_title">Replace everything?</string>
+    <string name="backup_replace_body">"This backup has %1$d rows. Everything on this phone is replaced by it. This can't be undone."</string>
+    <string name="backup_replace_confirm">Replace</string>
+    <string name="backup_clear_blurb">Deletes habits, tasks, history, saved minutes, blocked apps and settings from this phone.</string>
+    <string name="backup_clear_button">Clear all data</string>
+    <string name="backup_clear_title">Clear all data?</string>
+    <string name="backup_clear_body">Habits, tasks, history, saved minutes, blocked apps and settings are all deleted. Type %1$s to confirm.</string>
+    <string name="backup_clear_confirm">Delete everything</string>
+    <string name="backup_cleared">All data cleared.</string>
+    <string name="backup_clear_failed">"Couldn't clear: %1$s"</string>
+
+    <!-- Backup file errors (shown to the user when an import is refused) -->
+    <string name="backup_err_open">Could not open the file</string>
+    <string name="backup_err_not_json">Not a valid JSON file: %1$s</string>
+    <string name="backup_err_not_backup">Not an Earnd backup</string>
+    <string name="backup_err_no_format_version">Missing format version</string>
+    <string name="backup_err_newer">Backup is from a newer version of Earnd</string>
+    <string name="backup_err_no_schema_version">Missing schema version</string>
+    <string name="backup_err_no_tables">Missing tables</string>
+    <string name="backup_err_table_not_list">Table %1$s is not a list</string>
+    <string name="backup_err_row_not_object">Row in %1$s is not an object</string>
+    <string name="backup_err_unsupported_value">Unsupported value in %1$s.%2$s</string>
+    <string name="backup_err_unknown_schema">Unknown backup schema</string>
+    <string name="backup_err_unknown_table">Unknown table \"%1$s\"</string>
+    <string name="backup_err_unknown_column">Unknown column \"%1$s\" in %2$s</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_p1_title">Welcome to Earnd</string>
+    <string name="onboarding_p1_body">"Pick the apps that pull you away. Earnd keeps them closed until you've done a little of what matters to you."</string>
+    <string name="onboarding_p2_title">Earn your time</string>
+    <string name="onboarding_p2_body">Each habit check-in and finished task adds minutes to your bank. Start a session whenever you like, and the apps open until it ends.</string>
+    <string name="onboarding_p3_title">How it works: habits</string>
+    <string name="onboarding_p3_body">Add a few habits and pick when they happen. Check in with a tap, or with a photo if you want proof. Each check-in earns minutes.</string>
+    <string name="onboarding_p4_title">How it works: tasks</string>
+    <string name="onboarding_p4_body">Tasks are for one-off things. They never lock anything, but a task can carry a reward that adds minutes when you finish it.</string>
+    <string name="onboarding_p5_title">How it works: unlocking</string>
+    <string name="onboarding_p5_body">Spend saved minutes to open your leisure apps for a while, or finish everything planned today and they open on their own. Saved minutes reset each day or week.</string>
+    <string name="onboarding_p6_title">Gentle by design</string>
+    <string name="onboarding_p6_body">Days with nothing planned never lock anything. Phone, messages, maps and settings always stay open. Your data stays on this phone.</string>
+    <string name="onboarding_permissions_title">Permissions</string>
+    <string name="onboarding_permissions_later">You can change these later in Settings.</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_keep_title">Keep Earnd running</string>
+    <string name="onboarding_restricted_title">If the blocking service is greyed out</string>
+    <string name="onboarding_restricted_body">Android may mark it as a restricted setting. Open App info, tap the three-dot menu at the top right, choose Allow restricted settings, then turn the blocking service on again.</string>
+    <string name="onboarding_open_app_info">Open App info</string>
+    <string name="onboarding_oem_title">On %1$s phones</string>
+    <string name="onboarding_generic_battery">If reminders stop or blocking turns itself off, check that battery use for Earnd is set to Unrestricted.</string>
+    <string name="onboarding_back">Back</string>
+
+    <!-- Permission cards -->
+    <string name="onboarding_perm_a11y_title">Blocking service</string>
+    <string name="onboarding_perm_a11y_why">Lets Earnd notice when a leisure app or site opens and show the lock screen. Nothing is recorded or sent anywhere.</string>
+    <string name="onboarding_perm_usage_title">Usage access</string>
+    <string name="onboarding_perm_usage_why">Optional backup for spotting the app in front. Earnd works without it.</string>
+    <string name="onboarding_perm_notif_title">Notifications</string>
+    <string name="onboarding_perm_notif_why">Reminders and the single list of things still waiting for you.</string>
+    <string name="onboarding_perm_exact_title">Exact alarms</string>
+    <string name="onboarding_perm_exact_why">So reminders ring on time instead of whenever the system gets round to it.</string>
+    <string name="onboarding_perm_battery_title">Run in the background</string>
+    <string name="onboarding_perm_battery_why">Stops the system from putting Earnd to sleep, which would silence alarms and blocking.</string>
+    <string name="onboarding_perm_fullscreen_title">Full-screen alarms</string>
+    <string name="onboarding_perm_fullscreen_why">Lets an alarm you chose to be loud fill the screen, even when the phone is locked.</string>
+    <string name="onboarding_perm_optional">%1$s (optional)</string>
+    <string name="onboarding_perm_on">On</string>
+    <string name="onboarding_perm_off">Off</string>
+    <string name="onboarding_perm_allow">Allow</string>
+
+    <!-- Phone-maker guidance -->
+    <string name="onboarding_oem_battery_unrestricted">Settings &gt; Apps &gt; Earnd &gt; Battery: Unrestricted.</string>
+    <string name="onboarding_oem_xiaomi_1">Settings &gt; Apps &gt; Manage apps &gt; Earnd &gt; Autostart: on.</string>
+    <string name="onboarding_oem_xiaomi_2">Same page &gt; Battery saver: No restrictions.</string>
+    <string name="onboarding_oem_xiaomi_3">"In Recents, pull down on Earnd and tap the lock so it isn't cleared."</string>
+    <string name="onboarding_oem_samsung_2">Settings &gt; Battery &gt; Background usage limits: make sure Earnd is not in Sleeping or Deep sleeping apps.</string>
+    <string name="onboarding_oem_nothing_2">In Recents, long-press Earnd and lock it.</string>
+    <string name="onboarding_oem_oneplus_1">"Settings &gt; Apps &gt; Earnd &gt; Battery: Unrestricted (or Don't optimise)."</string>
+    <string name="onboarding_oem_oneplus_2">Same page: allow Auto launch and background activity.</string>
+    <string name="onboarding_oem_oneplus_3">"In Recents, lock Earnd so it isn't cleared."</string>
+    <string name="onboarding_oem_huawei_1">Settings &gt; Battery &gt; App launch &gt; Earnd: switch to Manage manually and turn on all three options.</string>
+    <string name="onboarding_oem_huawei_2">In Recents, pull down on Earnd to lock it.</string>
+
+    <!-- Alarm editor -->
+    <string name="alarmsui_daily_reminder_at">Daily reminder at</string>
+    <string name="alarmsui_reminders">Reminders</string>
+    <string name="alarmsui_style">Style</string>
+    <string name="alarmsui_style_silent">Silent</string>
+    <string name="alarmsui_style_notification">Notification</string>
+    <string name="alarmsui_style_alarm">Alarm</string>
+    <string name="alarmsui_style_full_screen">Full-screen alarm</string>
+    <string name="alarmsui_advanced">Advanced</string>
+    <string name="alarmsui_hide">Hide</string>
+    <string name="alarmsui_show">Show</string>
+    <string name="alarmsui_if_no_response">"If I don't respond"</string>
+    <string name="alarmsui_nag_off">Leave it</string>
+    <string name="alarmsui_nag_progressive">Remind, spacing out</string>
+    <string name="alarmsui_nag_fixed">Remind every…</string>
+    <string name="alarmsui_nag_every">Every (minutes)</string>
+    <string name="alarmsui_nag_max">Stop after this many (blank = keep going)</string>
+    <string name="alarmsui_vibrate">Vibrate</string>
+    <string name="alarmsui_sound">Sound: %1$s</string>
+    <string name="alarmsui_choose">Choose</string>
+    <string name="alarmsui_ring_for">Ring for</string>
+    <string name="alarmsui_volume">Volume</string>
+    <string name="alarmsui_default">Default</string>
+    <string name="alarmsui_percent">%1$d%%</string>
+    <string name="alarmsui_snoozes_allowed">Snoozes allowed</string>
+    <string name="alarmsui_weekend_shift">Today (weekend) it rings at %1$s.</string>
+    <string name="alarmsui_ring_minutes">%1$d min</string>
+    <string name="alarmsui_ring_seconds">%1$d s</string>
+    <string name="alarmsui_ring_custom">Custom (seconds, 1-600)</string>
+
+    <!-- Reminder chips and offsets -->
+    <string name="alarmsui_add_reminder">+ Add reminder</string>
+    <string name="alarmsui_no_reminders">No reminders</string>
+    <string name="alarmsui_remind_me">Remind me</string>
+    <string name="alarmsui_at_due_time">At due time</string>
+    <string name="alarmsui_custom">Custom</string>
+    <string name="alarmsui_before_word">before</string>
+    <string name="alarmsui_add">Add</string>
+    <string name="alarmsui_cancel">Cancel</string>
+    <string name="alarmsui_offset_before">%1$s before</string>
+    <string name="alarmsui_unit_min">min</string>
+    <string name="alarmsui_unit_h">h</string>
+    <string name="alarmsui_unit_days">days</string>
+    <string name="alarmsui_dur_zero">0 min</string>
+    <string name="alarmsui_dur_h">%1$d h</string>
+    <string name="alarmsui_dur_min">%1$d min</string>
+    <plurals name="alarmsui_dur_weeks">
+        <item quantity="one">%d week</item>
+        <item quantity="other">%d weeks</item>
+    </plurals>
+    <plurals name="alarmsui_dur_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+
+    <!-- Sound picker -->
+    <string name="alarmsui_sound_title">Alarm sound</string>
+    <string name="alarmsui_sound_default">Default</string>
+    <string name="alarmsui_sound_custom">"%1$s  (custom)"</string>
+    <string name="alarmsui_sound_typed">"%1$s  (%2$s)"</string>
+    <string name="alarmsui_type_alarm">alarm</string>
+    <string name="alarmsui_type_notification">notification</string>
+    <string name="alarmsui_type_ringtone">ringtone</string>
+    <string name="alarmsui_sound_close">Close</string>
+    <string name="alarmsui_sound_stop">Stop</string>
+    <string name="alarmsui_sound_play">Play</string>
+    <string name="settings_app_language">Language</string>
+</resources>

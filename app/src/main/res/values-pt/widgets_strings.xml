@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widgets_minutes_short">%1$d min</string>
+    <string name="widgets_tasks_name">Tarefas Earnd</string>
+    <string name="widgets_tasks_description">Tarefas pendentes, em atraso e de hoje primeiro.</string>
+    <string name="widgets_tasks_title">Tarefas</string>
+    <string name="widgets_tasks_empty">Nada pendente. Bom trabalho.</string>
+    <string name="widgets_habit_name">Hábito Earnd</string>
+    <string name="widgets_habit_description">Um hábito num relance. Tocar para registar.</string>
+    <string name="widgets_habit_choose">Tocar para escolher</string>
+    <string name="widgets_habit_pick_title">Escolher hábito</string>
+    <string name="widgets_habit_pick_empty">Ainda sem hábitos ativos. Adicionar um no Earnd primeiro.</string>
+    <string name="widgets_habits_name">Hábitos Earnd</string>
+    <string name="widgets_habits_description">Hábitos de hoje numa faixa. Tocar num para registar.</string>
+    <string name="widgets_habits_empty">Sem hábitos para hoje. Tocar para escolher.</string>
+    <string name="widgets_habits_pick_title">Escolher hábitos</string>
+    <string name="widgets_habits_pick_hint">Sem seleção, são mostrados todos os hábitos de hoje.</string>
+    <string name="widgets_habits_pick_save">Guardar</string>
+    <string name="widgets_habits_cell_pending">%1$s, %2$d de %3$d feitos hoje</string>
+    <string name="widgets_habits_cell_done">%1$s, feito, %2$d de %3$d hoje</string>
+    <string name="widgets_habits_more_desc">Mais %1$d hábitos. Abrir o Earnd.</string>
+    <string name="widgets_preview_habit_1">Lavar</string>
+    <string name="widgets_preview_habit_2">Ler</string>
+    <string name="widgets_preview_habit_3">Treino</string>
+    <string name="widgets_preview_habit_4">Água</string>
+    <string name="widgets_preview_done">OK</string>
+</resources>

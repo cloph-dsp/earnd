@@ -18,7 +18,9 @@ import android.os.Build
 import android.provider.Settings
 import com.earnd.app.ui.theme.Button
 import com.earnd.app.ui.theme.OutlinedButton
+import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.earnd.app.R
 import com.earnd.app.ServiceLocator
 import com.earnd.app.ui.common.launchUi
 
@@ -39,15 +42,15 @@ object Onboarding {
     suspend fun markDone() = ServiceLocator.settings.rawPut(KEY, "1")
 }
 
-private data class Page(val title: String, val body: String)
+private data class Page(@StringRes val titleRes: Int, @StringRes val bodyRes: Int)
 
 private val pages = listOf(
-    Page("Welcome to Earnd", "Pick the apps that pull you away. Earnd keeps them closed until you've done a little of what matters to you."),
-    Page("Earn your time", "Each habit check-in and finished task adds minutes to your bank. Start a session whenever you like, and the apps open until it ends."),
-    Page("How it works: habits", "Add a few habits and pick when they happen. Check in with a tap, or with a photo if you want proof. Each check-in earns minutes."),
-    Page("How it works: tasks", "Tasks are for one-off things. They never lock anything, but a task can carry a reward that adds minutes when you finish it."),
-    Page("How it works: unlocking", "Spend saved minutes to open your leisure apps for a while, or finish everything planned today and they open on their own. Saved minutes reset each day or week."),
-    Page("Gentle by design", "Days with nothing planned never lock anything. Phone, messages, maps and settings always stay open. Your data stays on this phone."),
+    Page(R.string.onboarding_p1_title, R.string.onboarding_p1_body),
+    Page(R.string.onboarding_p2_title, R.string.onboarding_p2_body),
+    Page(R.string.onboarding_p3_title, R.string.onboarding_p3_body),
+    Page(R.string.onboarding_p4_title, R.string.onboarding_p4_body),
+    Page(R.string.onboarding_p5_title, R.string.onboarding_p5_body),
+    Page(R.string.onboarding_p6_title, R.string.onboarding_p6_body),
 )
 
 @Composable
@@ -63,20 +66,20 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         if (step < pages.size) {
             val p = pages[step]
             if (step == 0) Wordmark()
-            Text(p.title, style = MaterialTheme.typography.headlineMedium)
-            Text(p.body, style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
+            Text(stringResource(p.titleRes), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(p.bodyRes), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
         } else if (step == pages.size) {
-            Text("Permissions", style = MaterialTheme.typography.headlineMedium)
-            Text("You can change these later in Settings.", style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
+            Text(stringResource(R.string.onboarding_permissions_title), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.onboarding_permissions_later), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
             PermissionCards()
         } else {
             KeepAliveGuide()
         }
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = { finish() }) { Text("Skip") }
+            TextButton(onClick = { finish() }) { Text(stringResource(R.string.onboarding_skip)) }
             Button(onClick = { if (step < lastStep) step++ else finish() }) {
-                Text(if (step < lastStep) "Next" else "Get started")
+                Text(stringResource(if (step < lastStep) R.string.onboarding_next else R.string.onboarding_get_started))
             }
         }
     }
@@ -86,12 +89,11 @@ fun OnboardingScreen(onFinished: () -> Unit) {
 @Composable
 fun KeepAliveGuide() {
     val context = LocalContext.current
-    Text("Keep Earnd running", style = MaterialTheme.typography.headlineMedium)
+    Text(stringResource(R.string.onboarding_keep_title), style = MaterialTheme.typography.headlineMedium)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Text("If the blocking service is greyed out", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.onboarding_restricted_title), style = MaterialTheme.typography.titleMedium)
         Text(
-            "Android may mark it as a restricted setting. Open App info, tap the three-dot menu at the top right, " +
-                "choose Allow restricted settings, then turn the blocking service on again.",
+            stringResource(R.string.onboarding_restricted_body),
             style = MaterialTheme.typography.bodyMedium,
         )
         OutlinedButton(onClick = {
@@ -100,15 +102,15 @@ fun KeepAliveGuide() {
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")),
                 )
             }
-        }) { Text("Open App info") }
+        }) { Text(stringResource(R.string.onboarding_open_app_info)) }
     }
     val guide = OemGuidance.forManufacturer(Build.MANUFACTURER)
     if (guide != null) {
-        Text("On ${guide.brand} phones", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
+        Text(stringResource(R.string.onboarding_oem_title, guide.brand), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
         guide.steps.forEachIndexed { i, step -> Text("${i + 1}. $step", style = MaterialTheme.typography.bodyMedium) }
     } else {
         Text(
-            "If reminders stop or blocking turns itself off, check that battery use for Earnd is set to Unrestricted.",
+            stringResource(R.string.onboarding_generic_battery),
             style = MaterialTheme.typography.bodyMedium,
         )
     }

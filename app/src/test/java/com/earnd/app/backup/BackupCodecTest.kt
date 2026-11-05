@@ -1,12 +1,16 @@
 package com.earnd.app.backup
 
+import com.earnd.app.i18n.TestStr
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Before
 import org.junit.Test
 
 class BackupCodecTest {
+    @Before fun english() = TestStr.install()
+
     private val sample = BackupData(
         schemaVersion = 2,
         exportedAt = 1_790_000_000_000L,

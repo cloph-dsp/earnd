@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="common_back">Voltar</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_add">Adicionar</string>
+    <string name="common_done">Feito</string>
+
+    <!-- Navigation -->
+    <string name="home_tab_today">Hoje</string>
+    <string name="home_tab_habits">Hábitos</string>
+    <string name="home_tab_tasks">Tarefas</string>
+    <string name="home_tab_stats">Estatísticas</string>
+    <string name="home_tab_settings">Definições</string>
+
+    <!-- Time bank card -->
+    <string name="home_bank_open_rest_of_day">ABERTAS PELO RESTO DE HOJE</string>
+    <string name="home_bank_open_time_left">ABERTAS · TEMPO RESTANTE</string>
+    <string name="home_bank_until">Até %1$s</string>
+    <string name="home_bank_unused_back">Os minutos inteiros não usados voltam ao banco.</string>
+    <string name="home_bank_lock_now">Bloquear agora</string>
+    <string name="home_bank_locked_balance">BLOQUEADAS · SALDO</string>
+    <string name="home_bank_of_scale">de %1$d min</string>
+    <string name="home_bank_expire_at">%1$d min expiram às %2$s</string>
+    <string name="home_bank_all_done">Tudo feito por hoje.</string>
+    <string name="home_bank_unlock_today">Desbloquear por hoje</string>
+    <string name="home_bank_hard_mode">Modo rígido: as apps abrem quando os hábitos de hoje estiverem feitos.</string>
+    <string name="home_bank_earn_hint">Registar um hábito ou concluir uma tarefa para ganhar minutos.</string>
+    <string name="home_bank_minutes_to_open">Minutos para abrir</string>
+    <string name="home_bank_pick_all">Tudo</string>
+    <string name="home_bank_pick_max">Máx. %1$d</string>
+    <string name="home_bank_unlock_until">Desbloquear %1$s · até %2$s</string>
+
+    <!-- Today screen -->
+    <string name="home_add_habit">Adicionar hábito</string>
+    <string name="home_bedtime_grace">Hora de deitar. Usar %1$d minutos para terminar</string>
+    <string name="home_progress">%1$d de %2$d hábitos</string>
+    <string name="home_nothing_scheduled">Nada previsto para hoje, por isso nada fica bloqueado. Adicionar um hábito quando for altura.</string>
+    <string name="home_next">Seguinte</string>
+    <string name="home_reward_min">+%1$d min</string>
+    <string name="home_ignored">ignorado %1$d×</string>
+    <string name="home_action_photo">Foto</string>
+    <string name="home_action_add">Adicionar</string>
+    <string name="home_action_check_in">Registar</string>
+    <string name="home_task">Tarefa</string>
+    <string name="home_now">Agora</string>
+    <string name="home_later_today">Mais tarde hoje</string>
+    <string name="home_tasks_today">Tarefas de hoje</string>
+    <string name="home_done_count">Feitos (%1$d)</string>
+    <string name="home_collapse_done">Recolher feitos</string>
+    <string name="home_expand_done">Expandir feitos</string>
+    <string name="home_comeback_label">%1$s regresso</string>
+    <string name="home_check_in_again">Registar novamente</string>
+    <string name="home_photo_needed">Foto necessária</string>
+    <string name="home_add_amount">Adicionar quantidade</string>
+    <string name="home_amount_prompt">Quanto? (%1$s)</string>
+    <string name="home_amount_default_unit">quantidade</string>
+
+    <!-- Refusals -->
+    <string name="home_refuse_hard_mode">O modo rígido está ativo, por isso os minutos não podem ser gastos manualmente.</string>
+    <string name="home_refuse_not_enough">Ainda não há minutos suficientes guardados.</string>
+    <string name="home_refuse_grace_used">A tolerância desta noite já foi usada.</string>
+    <string name="home_refuse_not_bedtime">Neste momento não é hora de deitar.</string>
+    <string name="home_refuse_other">Não foi possível. Experimentar outra quantidade.</string>
+
+    <!-- Puzzle gate -->
+    <string name="home_puzzle_title">Abrandar primeiro</string>
+    <string name="home_puzzle_solve">Resolver para continuar.</string>
+    <string name="home_puzzle_type">Escrever esta frase exatamente para continuar.</string>
+    <string name="home_puzzle_wrong">Incorreto. Tentar de novo.</string>
+    <string name="home_puzzle_continue">Continuar</string>
+    <string name="home_puzzle_keep">Manter</string>
+    <string name="home_puzzle_sentence_1">Escolhi bloquear esta app porque o meu tempo importa.</string>
+    <string name="home_puzzle_sentence_2">Mais tarde vou ficar contente por ter mantido este limite hoje.</string>
+    <string name="home_puzzle_sentence_3">Abrir esta app não vai concluir nada que me importe.</string>
+    <string name="home_puzzle_sentence_4">Posso recuperar os minutos se fizer primeiro um pequeno hábito.</string>
+    <string name="home_puzzle_sentence_5">Uma caminhada curta sabe melhor do que mais uma hora no ecrã.</string>
+    <string name="home_puzzle_sentence_6">Estou a flexibilizar uma regra que defini num dia mais calmo.</string>
+</resources>

@@ -13,7 +13,10 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
 import com.earnd.app.ServiceLocator
+import com.earnd.app.i18n.Str
 import com.earnd.app.data.entity.FocusState
 import com.earnd.app.domain.FocusOption
 import com.earnd.app.ui.common.launchUi
@@ -29,8 +32,8 @@ fun focusLabel(habitId: Long): String? {
     val cur = s?.takeIf { it.habitId == habitId && it.state == FocusState.ACTIVE }
     LaunchedEffect(cur) { while (cur != null) { now = ServiceLocator.clock.now(); delay(1_000) } }
     return cur?.let {
-        if (it.stopwatch) "Practising · ${FocusMath.clock(FocusMath.elapsedMs(it, now))}"
-        else "Focusing · ${FocusMath.clock(FocusMath.remainingMs(it, now))} left"
+        if (it.stopwatch) stringResource(R.string.focus_label_practising, FocusMath.clock(FocusMath.elapsedMs(it, now)))
+        else stringResource(R.string.focus_label_focusing, FocusMath.clock(FocusMath.remainingMs(it, now)))
     }
 }
 
@@ -38,15 +41,15 @@ fun focusLabel(habitId: Long): String? {
 fun startLabel(h: com.earnd.app.data.entity.HabitEntity, s: com.earnd.app.data.Settings): String {
     val opts = com.earnd.app.domain.TimedHabit.options(h, s)
     return when {
-        h.stopwatch -> "Start"
-        opts.size == 1 -> "Start ${opts[0].minutes} min"
-        else -> "Start…"
+        h.stopwatch -> Str.get(R.string.focus_start)
+        opts.size == 1 -> Str.get(R.string.focus_start_min, opts[0].minutes)
+        else -> Str.get(R.string.focus_start_choice)
     }
 }
 
 /** "+5 min · +3 comeback bonus" style confirmation, or null when there was no bonus. */
 fun bonusText(r: com.earnd.app.domain.CheckInResult): String? =
-    if (r.bonus > 0) "+${r.checkIn.minutesEarned} min · +${r.bonus} comeback bonus" else null
+    if (r.bonus > 0) Str.get(R.string.focus_bonus_text, r.checkIn.minutesEarned, r.bonus) else null
 
 /** Pending duration choice, shown by [FocusPickerHost]. */
 object FocusPicker {
@@ -78,18 +81,18 @@ fun FocusPickerHost() {
     val p = Earnd.palette
     AlertDialog(
         onDismissRequest = { FocusPicker.pending.value = null },
-        title = { Text(r.name.ifBlank { "Focus" }) },
+        title = { Text(r.name.ifBlank { stringResource(R.string.focus_fallback_name) }) },
         text = {
             Column {
                 r.options.forEach { o ->
                     TextButton(onClick = {
                         FocusPicker.pending.value = null
                         launchUi { startFocus(context, r.habitId, o.minutes) }
-                    }) { Text("${o.minutes} min  ·  +${o.reward} min", color = p.amber) }
+                    }) { Text(stringResource(R.string.focus_option, o.minutes, o.reward), color = p.amber) }
                 }
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = { FocusPicker.pending.value = null }) { Text("Not now") } },
+        dismissButton = { TextButton(onClick = { FocusPicker.pending.value = null }) { Text(stringResource(R.string.focus_not_now)) } },
     )
 }

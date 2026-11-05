@@ -39,7 +39,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.earnd.app.R
 import com.earnd.app.ServiceLocator
+import com.earnd.app.i18n.Str
 import com.earnd.app.data.Settings
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.OwnerKind
@@ -63,7 +65,9 @@ import com.earnd.app.ui.common.parseDate
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import androidx.compose.ui.Alignment
+import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -77,9 +81,11 @@ import com.earnd.app.ui.common.rememberPuzzleGate
 
 internal typealias Change = ((Settings) -> Settings) -> Unit
 
-private enum class Page(val title: String) {
-    BLOCKING("Blocking"), TIME_BANK("Time bank"), SCHEDULE("Schedule"), REMINDERS("Reminders & alarms"),
-    APPEARANCE("Appearance"), REMOTE("Remote control"), BACKUP("Backup & data"), PERMISSIONS("Permissions"), ABOUT("About"),
+private enum class Page(@StringRes val titleRes: Int) {
+    BLOCKING(R.string.settings_page_blocking), TIME_BANK(R.string.settings_page_time_bank),
+    SCHEDULE(R.string.settings_page_schedule), REMINDERS(R.string.settings_page_reminders),
+    APPEARANCE(R.string.settings_page_appearance), REMOTE(R.string.settings_page_remote),
+    BACKUP(R.string.settings_page_backup), PERMISSIONS(R.string.settings_page_permissions), ABOUT(R.string.settings_page_about),
 }
 
 @Composable
@@ -110,7 +116,7 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
             val at = sl.settings.requestWeakening(transform)
             refresh++
             if (at > sl.clock.now()) scope.launch {
-                snackbar.showSnackbar("Hard mode: this change applies at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.")
+                snackbar.showSnackbar(context.getString(R.string.settings_hard_mode_applies_at, formatMinuteOfDay(sl.clock.minuteOfDay(at))))
             }
         }
     }
@@ -133,10 +139,10 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
         pendingAt?.let { at ->
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Looser settings apply at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.",
+                    stringResource(R.string.settings_looser_applies_at, formatMinuteOfDay(sl.clock.minuteOfDay(at))),
                     Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.red,
                 )
-                TextButton(onClick = { launchUi { sl.settings.cancelPendingWeakening(); refresh++ } }) { Text("Cancel") }
+                TextButton(onClick = { launchUi { sl.settings.cancelPendingWeakening(); refresh++ } }) { Text(stringResource(R.string.settings_cancel)) }
             }
             RowDivider()
         }
@@ -147,18 +153,18 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
         val p = page
         if (p == null) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-                Text("Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 banner()
                 var remoteOn by remember { mutableStateOf(false) }
                 LaunchedEffect(page) { remoteOn = RemoteSettings.isEnabled(sl.settings) }
                 Page.entries.forEach { pg ->
-                    CategoryRow(pg.title, summary(pg, cur, remoteOn)) { page = pg }
+                    CategoryRow(stringResource(pg.titleRes), summary(pg, cur, remoteOn)) { page = pg }
                     RowDivider()
                 }
                 Spacer(Modifier.height(24.dp))
             }
         } else {
-            EditScaffold(p.title, onBack = { page = null }) {
+            EditScaffold(stringResource(p.titleRes), onBack = { page = null }) {
                 banner()
                 when (p) {
                     Page.BLOCKING -> BlockingPage(cur, change, onOpenApps)
@@ -170,11 +176,11 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
                     Page.BACKUP -> BackupPage(snackbar)
                     Page.PERMISSIONS -> {
                         Text(
-                            "Usage access, overlay, notifications and exact alarms.",
+                            stringResource(R.string.settings_permissions_blurb),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 12.dp),
                         )
-                        OutlinedButton(onClick = onOpenPermissions, modifier = Modifier.padding(top = 8.dp)) { Text("Review permissions") }
+                        OutlinedButton(onClick = onOpenPermissions, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.settings_permissions_review)) }
                     }
                     Page.ABOUT -> AboutPage()
                 }
@@ -197,30 +203,50 @@ private fun CategoryRow(title: String, summary: String, onClick: () -> Unit) {
 
 private fun summary(p: Page, s: Settings, remoteOn: Boolean): String = when (p) {
     Page.BLOCKING -> listOfNotNull(
-        if (s.blockingEnabled) "Locked" else "Off",
-        s.unlockCapMin?.let { "max $it min" } ?: "no unlock cap",
-        if (s.hardMode) "hard mode" else null,
+        if (s.blockingEnabled) Str.get(R.string.settings_sum_locked) else Str.get(R.string.settings_off),
+        s.unlockCapMin?.let { Str.get(R.string.settings_sum_max_min, it) } ?: Str.get(R.string.settings_sum_no_cap),
+        if (s.hardMode) Str.get(R.string.settings_sum_hard_mode) else null,
     ).joinToString(" · ")
     Page.TIME_BANK -> when (s.resetPeriod) {
-        ResetPeriod.DAILY -> "Resets daily"
-        ResetPeriod.WEEKLY -> "Resets weekly"
-        ResetPeriod.ROLLING -> "Expires after ${s.rollingExpiryHours} h"
+        ResetPeriod.DAILY -> Str.get(R.string.settings_sum_resets_daily)
+        ResetPeriod.WEEKLY -> Str.get(R.string.settings_sum_resets_weekly)
+        ResetPeriod.ROLLING -> Str.get(R.string.settings_sum_expires_after, s.rollingExpiryHours)
     } +
-        " · ${s.defaultHabitRewardMin} min per habit"
-    Page.SCHEDULE -> "Day starts ${formatMinuteOfDay(s.dayStartWeekdayMin)}" +
-        (if (s.laterWeekendStart) ", weekends ${formatMinuteOfDay(s.dayStartWeekendMin)}" else "") +
-        " · Bedtime " + (if (s.bedtimeEnabled) "${formatMinuteOfDay(s.bedtimeStartMin)}-${formatMinuteOfDay(s.bedtimeEndMin)}" else "off")
-    Page.REMINDERS -> "Quiet ${formatMinuteOfDay(s.quietStartMin)}-${formatMinuteOfDay(s.quietEndMin)}" +
-        " · Morning nudge " + (if (s.morningNudgeEnabled) formatMinuteOfDay(s.morningNudgeMin) else "off") +
-        " · Report " + (if (s.dailyReportEnabled) formatMinuteOfDay(s.dailyReportMin) else "off")
+        " · " + Str.get(R.string.settings_sum_min_per_habit, s.defaultHabitRewardMin)
+    Page.SCHEDULE -> (
+        if (s.laterWeekendStart) {
+            Str.get(R.string.settings_sum_day_starts_weekend, formatMinuteOfDay(s.dayStartWeekdayMin), formatMinuteOfDay(s.dayStartWeekendMin))
+        } else {
+            Str.get(R.string.settings_sum_day_starts, formatMinuteOfDay(s.dayStartWeekdayMin))
+        }
+        ) + " · " + (
+        if (s.bedtimeEnabled) {
+            Str.get(R.string.settings_sum_bedtime, formatMinuteOfDay(s.bedtimeStartMin), formatMinuteOfDay(s.bedtimeEndMin))
+        } else {
+            Str.get(R.string.settings_sum_bedtime_off)
+        }
+        )
+    Page.REMINDERS -> Str.get(R.string.settings_sum_quiet, formatMinuteOfDay(s.quietStartMin), formatMinuteOfDay(s.quietEndMin)) +
+        " · " + (
+        if (s.morningNudgeEnabled) Str.get(R.string.settings_sum_nudge, formatMinuteOfDay(s.morningNudgeMin))
+        else Str.get(R.string.settings_sum_nudge_off)
+        ) +
+        " · " + (
+        if (s.dailyReportEnabled) Str.get(R.string.settings_sum_report, formatMinuteOfDay(s.dailyReportMin))
+        else Str.get(R.string.settings_sum_report_off)
+        )
     Page.APPEARANCE -> listOf(
-        when (s.themeMode) { ThemeMode.SYSTEM -> "System theme"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" },
-        if (s.listDensity == ListDensity.COMPACT) "compact" else "comfortable",
+        Str.get(when (s.themeMode) {
+            ThemeMode.SYSTEM -> R.string.settings_sum_theme_system
+            ThemeMode.LIGHT -> R.string.settings_app_theme_light
+            ThemeMode.DARK -> R.string.settings_app_theme_dark
+        }),
+        Str.get(if (s.listDensity == ListDensity.COMPACT) R.string.settings_sum_compact else R.string.settings_sum_comfortable),
     ).joinToString(" · ")
-    Page.REMOTE -> if (remoteOn) "Local agent allowed" else "Off"
-    Page.BACKUP -> "Export, import or clear your data"
-    Page.PERMISSIONS -> "What Earnd is allowed to do"
-    Page.ABOUT -> "Free software, GPL-3.0"
+    Page.REMOTE -> if (remoteOn) Str.get(R.string.settings_sum_remote_on) else Str.get(R.string.settings_off)
+    Page.BACKUP -> Str.get(R.string.settings_sum_backup)
+    Page.PERMISSIONS -> Str.get(R.string.settings_sum_permissions)
+    Page.ABOUT -> Str.get(R.string.settings_sum_about)
 }
 
 /** Shows whether exact alarms are allowed, re-checked whenever the screen resumes. */
@@ -234,15 +260,15 @@ internal fun ExactAlarmRow() {
     }
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("Exact alarms", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.settings_rem_exact_title), style = MaterialTheme.typography.bodyLarge)
             Text(
-                if (ok) "Allowed. Reminders ring on time." else "Not allowed. Reminders may arrive late.",
+                stringResource(if (ok) R.string.settings_rem_exact_ok else R.string.settings_rem_exact_no),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (ok) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
             )
         }
         val intent = AlarmPermissions.exactAlarmSettingsIntent(context)
-        if (!ok && intent != null) TextButton(onClick = { runCatching { context.startActivity(intent) } }) { Text("Allow") }
+        if (!ok && intent != null) TextButton(onClick = { runCatching { context.startActivity(intent) } }) { Text(stringResource(R.string.settings_allow)) }
     }
 }
 
@@ -250,19 +276,19 @@ internal fun ExactAlarmRow() {
 internal fun VacationEditor(cur: Settings, change: Change) {
     var from by remember(cur.vacationFromDay) { mutableStateOf(cur.vacationFromDay?.let(::formatDate) ?: "") }
     var to by remember(cur.vacationToDay) { mutableStateOf(cur.vacationToDay?.let(::formatDate) ?: "") }
-    Text("Pauses blocking and streaks between two dates.", style = MaterialTheme.typography.bodySmall)
+    Text(stringResource(R.string.settings_vacation_blurb), style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(from, { from = it }, label = { Text("From (${dateHint()})") }, singleLine = true, modifier = Modifier.weight(1f))
-        OutlinedTextField(to, { to = it }, label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f))
+        OutlinedTextField(from, { from = it }, label = { Text(stringResource(R.string.settings_vacation_from, dateHint())) }, singleLine = true, modifier = Modifier.weight(1f))
+        OutlinedTextField(to, { to = it }, label = { Text(stringResource(R.string.settings_vacation_to)) }, singleLine = true, modifier = Modifier.weight(1f))
     }
     Row {
         val f = parseDate(from)
         val t = parseDate(to)
         TextButton(enabled = f != null && t != null && t >= f, onClick = {
             change { it.copy(vacationFromDay = f, vacationToDay = t) }
-        }) { Text("Set vacation") }
+        }) { Text(stringResource(R.string.settings_vacation_set)) }
         if (cur.vacationFromDay != null) {
-            TextButton(onClick = { change { it.copy(vacationFromDay = null, vacationToDay = null) } }) { Text("Clear") }
+            TextButton(onClick = { change { it.copy(vacationFromDay = null, vacationToDay = null) } }) { Text(stringResource(R.string.settings_vacation_clear)) }
         }
     }
 }
@@ -272,7 +298,7 @@ internal fun DefaultAlarm(kind: OwnerKind, title: String) {
     var cfg by remember { mutableStateOf<AlarmConfigEntity?>(null) }
     var open by remember { mutableStateOf(false) }
     LaunchedEffect(kind) { cfg = AlarmConfigs.defaults(kind) }
-    TextButton(onClick = { open = !open }) { Text((if (open) "Hide: " else "Edit: ") + title) }
+    TextButton(onClick = { open = !open }) { Text(stringResource(if (open) R.string.settings_rem_default_hide else R.string.settings_rem_default_edit, title)) }
     val c = cfg
     if (open && c != null) {
         AlarmConfigEditor(c) { updated -> cfg = updated; launchUi { AlarmConfigs.save(updated) } }
@@ -289,19 +315,19 @@ internal fun RemoteSection() {
         last = RemoteSettings.auditLog(sl.settings).lastOrNull()
     }
     SwitchRow(
-        "Allow a local agent over adb", enabled,
+        stringResource(R.string.settings_remote_allow), enabled,
         { v -> enabled = v; launchUi { RemoteSettings.setEnabled(sl.settings, v) } },
-        hint = "It can read and manage habits and tasks. It can never unlock apps or change blocking.",
+        hint = stringResource(R.string.settings_remote_hint),
     )
-    Text("Last remote action: " + (last?.let(::describeAudit) ?: "none yet"), style = MaterialTheme.typography.bodySmall)
+    Text(stringResource(R.string.settings_remote_last, last?.let(::describeAudit) ?: stringResource(R.string.settings_remote_none)), style = MaterialTheme.typography.bodySmall)
 }
 
 /** Turns one audit JSON line into a short readable summary; falls back to the raw line. */
 private fun describeAudit(json: String): String = runCatching {
     val o = org.json.JSONObject(json)
     val cmd = o.optString("cmd", "?")
-    val ok = if (o.optBoolean("ok", true)) "" else " (refused)"
+    val refused = !o.optBoolean("ok", true)
     val at = o.optLong("at", 0L)
     val time = if (at > 0) com.earnd.app.ui.common.formatDateTime(at) + ": " else ""
-    time + cmd + ok
+    time + if (refused) Str.get(R.string.settings_remote_refused, cmd) else cmd
 }.getOrDefault(json)

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_add">Add</string>
+    <string name="common_done">Done</string>
+
+    <!-- Navigation -->
+    <string name="home_tab_today">Today</string>
+    <string name="home_tab_habits">Habits</string>
+    <string name="home_tab_tasks">Tasks</string>
+    <string name="home_tab_stats">Stats</string>
+    <string name="home_tab_settings">Settings</string>
+
+    <!-- Time bank card -->
+    <string name="home_bank_open_rest_of_day">OPEN FOR THE REST OF TODAY</string>
+    <string name="home_bank_open_time_left">OPEN · TIME LEFT</string>
+    <string name="home_bank_until">Until %1$s</string>
+    <string name="home_bank_unused_back">Unused whole minutes go back to the bank.</string>
+    <string name="home_bank_lock_now">Lock now</string>
+    <string name="home_bank_locked_balance">LOCKED · BALANCE</string>
+    <string name="home_bank_of_scale">of %1$d min</string>
+    <string name="home_bank_expire_at">%1$d min expire at %2$s</string>
+    <string name="home_bank_all_done">Everything for today is done.</string>
+    <string name="home_bank_unlock_today">Unlock for today</string>
+    <string name="home_bank_hard_mode">Hard mode: apps open once today\'s habits are done.</string>
+    <string name="home_bank_earn_hint">Check in a habit or finish a task to earn minutes.</string>
+    <string name="home_bank_minutes_to_open">Minutes to open</string>
+    <string name="home_bank_pick_all">All</string>
+    <string name="home_bank_pick_max">Max %1$d</string>
+    <string name="home_bank_unlock_until">Unlock %1$s · until %2$s</string>
+
+    <!-- Today screen -->
+    <string name="home_add_habit">Add habit</string>
+    <string name="home_bedtime_grace">Bedtime. Take %1$d minutes to wrap up</string>
+    <string name="home_progress">%1$d of %2$d habits</string>
+    <string name="home_nothing_scheduled">Nothing scheduled today, so nothing is locked. Add a habit when you\'re ready.</string>
+    <string name="home_next">Next</string>
+    <string name="home_reward_min">+%1$d min</string>
+    <string name="home_ignored">ignored %1$d×</string>
+    <string name="home_action_photo">Photo</string>
+    <string name="home_action_add">Add</string>
+    <string name="home_action_check_in">Check in</string>
+    <string name="home_task">Task</string>
+    <string name="home_now">Now</string>
+    <string name="home_later_today">Later today</string>
+    <string name="home_tasks_today">Tasks today</string>
+    <string name="home_done_count">Done (%1$d)</string>
+    <string name="home_collapse_done">Collapse done</string>
+    <string name="home_expand_done">Expand done</string>
+    <string name="home_comeback_label">%1$s comeback</string>
+    <string name="home_check_in_again">Check in again</string>
+    <string name="home_photo_needed">Photo needed</string>
+    <string name="home_add_amount">Add amount</string>
+    <string name="home_amount_prompt">How much? (%1$s)</string>
+    <string name="home_amount_default_unit">amount</string>
+
+    <!-- Refusals -->
+    <string name="home_refuse_hard_mode">Hard mode is on, so minutes can\'t be spent by hand.</string>
+    <string name="home_refuse_not_enough">Not quite enough minutes saved yet.</string>
+    <string name="home_refuse_grace_used">Tonight\'s grace has already been used.</string>
+    <string name="home_refuse_not_bedtime">It isn\'t bedtime right now.</string>
+    <string name="home_refuse_other">That didn\'t work. Try a different amount.</string>
+
+    <!-- Puzzle gate -->
+    <string name="home_puzzle_title">Slow down first</string>
+    <string name="home_puzzle_solve">Solve this to continue.</string>
+    <string name="home_puzzle_type">Type this sentence exactly to continue.</string>
+    <string name="home_puzzle_wrong">Not quite. Try again.</string>
+    <string name="home_puzzle_continue">Continue</string>
+    <string name="home_puzzle_keep">Keep it</string>
+    <string name="home_puzzle_sentence_1">I chose to lock this app because my time matters to me.</string>
+    <string name="home_puzzle_sentence_2">Later I will be glad that I kept this boundary today.</string>
+    <string name="home_puzzle_sentence_3">Opening this app will not finish anything I care about.</string>
+    <string name="home_puzzle_sentence_4">I can earn the minutes back by doing one small habit first.</string>
+    <string name="home_puzzle_sentence_5">A short walk would feel better than another hour of scrolling.</string>
+    <string name="home_puzzle_sentence_6">I am loosening a rule I set for myself on a calmer day.</string>
+</resources>

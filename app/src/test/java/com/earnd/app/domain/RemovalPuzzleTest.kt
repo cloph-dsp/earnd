@@ -5,10 +5,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import com.earnd.app.i18n.TestStr
 import kotlin.random.Random
 
 class RemovalPuzzleTest {
+    @Before fun strings() = TestStr.install()
+
     @Test fun noneHasNoChallenge() = assertNull(RemovalPuzzle.create(PuzzleKind.NONE))
 
     @Test fun arithmeticAnswerMatchesPrompt() {

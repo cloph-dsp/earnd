@@ -13,6 +13,8 @@ import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import androidx.core.content.ContextCompat
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 
 /** One system permission or special access the app asks for, with a status check and a settings intent. */
 data class PermissionItem(
@@ -30,39 +32,39 @@ object AppPermissions {
 
     fun all(): List<PermissionItem> = buildList {
         add(PermissionItem(
-            "accessibility", "Blocking service",
-            "Lets Earnd notice when a leisure app or site opens and show the lock screen. Nothing is recorded or sent anywhere.",
+            "accessibility", Str.get(R.string.onboarding_perm_a11y_title),
+            Str.get(R.string.onboarding_perm_a11y_why),
             optional = false, granted = ::accessibilityOn,
             settingsIntent = { Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
         ))
         add(PermissionItem(
-            "usage", "Usage access",
-            "Optional backup for spotting the app in front. Earnd works without it.",
+            "usage", Str.get(R.string.onboarding_perm_usage_title),
+            Str.get(R.string.onboarding_perm_usage_why),
             optional = true, granted = ::usageAccessOn,
             settingsIntent = { Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS) },
         ))
         add(PermissionItem(
-            NOTIFICATIONS, "Notifications",
-            "Reminders and the single list of things still waiting for you.",
+            NOTIFICATIONS, Str.get(R.string.onboarding_perm_notif_title),
+            Str.get(R.string.onboarding_perm_notif_why),
             optional = false, granted = ::notificationsOn, settingsIntent = null,
         ))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(PermissionItem(
-            "exact", "Exact alarms",
-            "So reminders ring on time instead of whenever the system gets round to it.",
+            "exact", Str.get(R.string.onboarding_perm_exact_title),
+            Str.get(R.string.onboarding_perm_exact_why),
             optional = false,
             granted = { c -> c.getSystemService(AlarmManager::class.java).canScheduleExactAlarms() },
             settingsIntent = { c -> Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri(c)) },
         ))
         add(PermissionItem(
-            "battery", "Run in the background",
-            "Stops the system from putting Earnd to sleep, which would silence alarms and blocking.",
+            "battery", Str.get(R.string.onboarding_perm_battery_title),
+            Str.get(R.string.onboarding_perm_battery_why),
             optional = false,
             granted = { c -> c.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(c.packageName) },
             settingsIntent = { c -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkgUri(c)) },
         ))
         if (Build.VERSION.SDK_INT >= 34) add(PermissionItem(
-            "fullscreen", "Full-screen alarms",
-            "Lets an alarm you chose to be loud fill the screen, even when the phone is locked.",
+            "fullscreen", Str.get(R.string.onboarding_perm_fullscreen_title),
+            Str.get(R.string.onboarding_perm_fullscreen_why),
             optional = true,
             granted = { c -> c.getSystemService(NotificationManager::class.java).canUseFullScreenIntent() },
             settingsIntent = { c -> Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri(c)) },

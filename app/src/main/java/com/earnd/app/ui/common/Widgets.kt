@@ -52,14 +52,18 @@ fun <T> ChoiceChips(options: List<T>, selected: T, label: (T) -> String, onSelec
     }
 }
 
-private val WEEKDAY_LABELS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+/** Short weekday names for Monday..Sunday in the current locale ("Mon" in English, "seg." in Portuguese). */
+private fun weekdayLabels(locale: java.util.Locale): List<String> =
+    java.time.DayOfWeek.values().map { d ->
+        d.getDisplayName(java.time.format.TextStyle.SHORT, locale).replaceFirstChar { it.titlecase(locale) }
+    }
 
 /** Weekday mask picker, bit0 = Monday .. bit6 = Sunday. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WeekdayPicker(mask: Int, onChange: (Int) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        WEEKDAY_LABELS.forEachIndexed { i, l ->
+        weekdayLabels(java.util.Locale.getDefault()).forEachIndexed { i, l ->
             val on = mask and (1 shl i) != 0
             FilterChip(selected = on, onClick = { onChange(mask xor (1 shl i)) }, label = { Text(l) })
         }

@@ -17,7 +17,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.earnd.app.R
 
 /** Top bar with back arrow and optional actions over a scrolling column. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,7 +33,7 @@ fun EditScaffold(
     Scaffold(topBar = {
         TopAppBar(
             title = { Text(title) },
-            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
+            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) } },
             actions = actions,
         )
     }) { pad ->

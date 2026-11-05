@@ -1,6 +1,8 @@
 package com.earnd.app.domain
 
 import com.earnd.app.data.entity.PuzzleKind
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 import kotlin.random.Random
 
 /**
@@ -11,14 +13,15 @@ object RemovalPuzzle {
     data class Challenge(val kind: PuzzleKind, val prompt: String, val answer: String)
 
     /** Short original sentences; typed back exactly (case and punctuation count). */
-    val SENTENCES = listOf(
-        "I chose to lock this app because my time matters to me.",
-        "Later I will be glad that I kept this boundary today.",
-        "Opening this app will not finish anything I care about.",
-        "I can earn the minutes back by doing one small habit first.",
-        "A short walk would feel better than another hour of scrolling.",
-        "I am loosening a rule I set for myself on a calmer day.",
-    )
+    val SENTENCES: List<String>
+        get() = listOf(
+            Str.get(R.string.home_puzzle_sentence_1),
+            Str.get(R.string.home_puzzle_sentence_2),
+            Str.get(R.string.home_puzzle_sentence_3),
+            Str.get(R.string.home_puzzle_sentence_4),
+            Str.get(R.string.home_puzzle_sentence_5),
+            Str.get(R.string.home_puzzle_sentence_6),
+        )
 
     /** Returns null for [PuzzleKind.NONE]. */
     fun create(kind: PuzzleKind, random: Random = Random.Default): Challenge? = when (kind) {
@@ -30,7 +33,8 @@ object RemovalPuzzle {
             Challenge(kind, "$a × $b + $c", (a * b + c).toString())
         }
         PuzzleKind.SENTENCE -> {
-            val s = SENTENCES[random.nextInt(SENTENCES.size)]
+            val all = SENTENCES
+            val s = all[random.nextInt(all.size)]
             Challenge(kind, s, s)
         }
     }

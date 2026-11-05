@@ -43,6 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
 import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.FocusSessionEntity
 import com.earnd.app.data.entity.FocusState
@@ -151,7 +153,7 @@ private fun FocusScreen(
         Modifier.fillMaxSize().background(p.bg).safeDrawingPadding().padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(if (done) "Done" else if (s.stopwatch) "Practising" else "Focusing", style = MaterialTheme.typography.labelLarge, color = p.secondary)
+        Text(if (done) stringResource(R.string.focus_done) else if (s.stopwatch) stringResource(R.string.focus_practising) else stringResource(R.string.focus_focusing), style = MaterialTheme.typography.labelLarge, color = p.secondary)
         Text(
             name, style = MaterialTheme.typography.titleLarge, color = p.text, textAlign = TextAlign.Center,
             maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp),
@@ -171,7 +173,7 @@ private fun FocusScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     when {
-                        done -> "$total min"
+                        done -> stringResource(R.string.focus_minutes, total)
                         s.stopwatch -> FocusMath.clock(FocusMath.elapsedMs(s, now))
                         else -> FocusMath.clock(FocusMath.remainingMs(s, now))
                     },
@@ -180,17 +182,17 @@ private fun FocusScreen(
                 Num(
                     when {
                         done && s.stopwatch -> when {
-                            result == null -> "finished"
-                            result.earned == null -> "too short · no check-in"
-                            result.bonus > 0 -> "checked in · +${result.earned} +${result.bonus} comeback"
-                            else -> "checked in · +${result.earned} min"
+                            result == null -> stringResource(R.string.focus_result_finished)
+                            result.earned == null -> stringResource(R.string.focus_result_too_short)
+                            result.bonus > 0 -> stringResource(R.string.focus_result_bonus, result.earned, result.bonus)
+                            else -> stringResource(R.string.focus_result_earned, result.earned)
                         }
-                        done -> "checked in"
+                        done -> stringResource(R.string.focus_result_checked_in)
                         s.stopwatch -> habit?.let { h ->
                             val r = com.earnd.app.domain.TimedHabit.stopwatchReward(h, FocusMath.elapsedMs(s, now))
-                            if (r == null) "min $minSession min to count" else "+$r min so far"
+                            if (r == null) stringResource(R.string.focus_min_to_count, minSession) else stringResource(R.string.focus_so_far, r)
                         } ?: ""
-                        else -> if (reward != null) "+$reward min when done" else "of $total min"
+                        else -> if (reward != null) stringResource(R.string.focus_when_done, reward) else stringResource(R.string.focus_of_total, total)
                     },
                     Modifier.padding(top = 4.dp),
                 )
@@ -205,24 +207,24 @@ private fun FocusScreen(
         Spacer(Modifier.weight(1f))
         if (!done) {
             TextButton(onClick = { showInfo = !showInfo }, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text("What still works?", color = p.secondary)
+                Text(stringResource(R.string.focus_still_works), color = p.secondary)
             }
             if (showInfo) {
                 Text(
-                    "Other apps wait until the timer ends. Phone calls, SMS and maps still work; internet calls (e.g. WhatsApp) only if that app is always-open.",
+                    stringResource(R.string.focus_still_works_body),
                     style = MaterialTheme.typography.bodySmall, color = p.muted, textAlign = TextAlign.Center,
                 )
             }
             TextButton(onClick = { onKeepOn(!keepOn) }) {
-                Text(if (keepOn) "Screen stays on" else "Keep screen on", color = if (keepOn) p.amber else p.secondary)
+                Text(if (keepOn) stringResource(R.string.focus_screen_stays_on) else stringResource(R.string.focus_keep_screen_on), color = if (keepOn) p.amber else p.secondary)
             }
             if (s.stopwatch) {
                 com.earnd.app.ui.theme.Button(
                     onClick = { if (FocusMath.elapsedMs(s, now) / 60_000L < minSession) askFinish = true else onFinish() },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) { Text("Finish") }
+                ) { Text(stringResource(R.string.focus_finish)) }
             }
-            TextButton(onClick = { onAskCancel(true) }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel", color = p.secondary) }
+            TextButton(onClick = { onAskCancel(true) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.focus_cancel), color = p.secondary) }
         }
         Spacer(Modifier.height(8.dp))
     }
@@ -230,28 +232,28 @@ private fun FocusScreen(
     if (askFinish && !done) {
         AlertDialog(
             onDismissRequest = { askFinish = false },
-            title = { Text("Finish before $minSession min?") },
-            text = { Text("Sessions shorter than $minSession min earn nothing and don't check in.") },
-            confirmButton = { TextButton(onClick = { askFinish = false; onFinish() }) { Text("Finish anyway") } },
-            dismissButton = { TextButton(onClick = { askFinish = false }) { Text("Keep going") } },
+            title = { Text(stringResource(R.string.focus_finish_early_title, minSession)) },
+            text = { Text(stringResource(R.string.focus_finish_early_body, minSession)) },
+            confirmButton = { TextButton(onClick = { askFinish = false; onFinish() }) { Text(stringResource(R.string.focus_finish_anyway)) } },
+            dismissButton = { TextButton(onClick = { askFinish = false }) { Text(stringResource(R.string.focus_keep_going)) } },
         )
     }
 
     if (askCancel && !done && s.stopwatch) {
         AlertDialog(
             onDismissRequest = { onAskCancel(false) },
-            title = { Text("Stop this session?") },
-            text = { Text("Nothing is credited. Use Finish to keep what you practised.") },
-            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text("Stop", color = p.text) } },
-            dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text("Keep going") } },
+            title = { Text(stringResource(R.string.focus_stop_title)) },
+            text = { Text(stringResource(R.string.focus_stop_stopwatch_body)) },
+            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text(stringResource(R.string.focus_stop), color = p.text) } },
+            dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text(stringResource(R.string.focus_keep_going)) } },
         )
     } else if (askCancel && !done) {
         AlertDialog(
             onDismissRequest = { onAskCancel(false) },
-            title = { Text("Stop this session?") },
-            text = { Text("Progress is lost.") },
-            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text("Stop", color = p.text) } },
-            dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text("Keep going", color = p.amber) } },
+            title = { Text(stringResource(R.string.focus_stop_title)) },
+            text = { Text(stringResource(R.string.focus_stop_body)) },
+            confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text(stringResource(R.string.focus_stop), color = p.text) } },
+            dismissButton = { TextButton(onClick = { onAskCancel(false) }) { Text(stringResource(R.string.focus_keep_going), color = p.amber) } },
         )
     }
 }

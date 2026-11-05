@@ -26,6 +26,8 @@ import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.Num
 import com.earnd.app.ui.theme.NumberStyle
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
 
 /**
  * Returns a gate: `gate { action() }` runs the action at once when no puzzle is set, otherwise
@@ -59,11 +61,11 @@ private fun PuzzleDialog(c: RemovalPuzzle.Challenge, onSolved: () -> Unit, onCan
     var wrong by remember(c) { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Slow down first") },
+        title = { Text(stringResource(R.string.home_puzzle_title)) },
         text = {
             Column {
                 Text(
-                    if (c.kind == PuzzleKind.ARITHMETIC) "Solve this to continue." else "Type this sentence exactly to continue.",
+                    stringResource(if (c.kind == PuzzleKind.ARITHMETIC) R.string.home_puzzle_solve else R.string.home_puzzle_type),
                     style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary,
                 )
                 if (c.kind == PuzzleKind.ARITHMETIC) {
@@ -76,13 +78,13 @@ private fun PuzzleDialog(c: RemovalPuzzle.Challenge, onSolved: () -> Unit, onCan
                     input, { input = it; wrong = false }, modifier = Modifier.fillMaxWidth(),
                     singleLine = c.kind == PuzzleKind.ARITHMETIC, isError = wrong,
                     keyboardOptions = if (c.kind == PuzzleKind.ARITHMETIC) KeyboardOptions(keyboardType = KeyboardType.Number) else KeyboardOptions.Default,
-                    supportingText = if (wrong) ({ Text("Not quite. Try again.") }) else null,
+                    supportingText = if (wrong) ({ Text(stringResource(R.string.home_puzzle_wrong)) }) else null,
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { if (RemovalPuzzle.check(c, input)) onSolved() else wrong = true }) { Text("Continue") }
+            TextButton(onClick = { if (RemovalPuzzle.check(c, input)) onSolved() else wrong = true }) { Text(stringResource(R.string.home_puzzle_continue)) }
         },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Keep it") } },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.home_puzzle_keep)) } },
     )
 }

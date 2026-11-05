@@ -1,5 +1,7 @@
 package com.earnd.app.backup
 
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 import com.earnd.app.remote.Json
 
 /**
@@ -33,22 +35,22 @@ object BackupCodec {
     /** Parses and checks the envelope; throws [BackupFormatException] on anything unexpected. */
     fun decode(text: String): BackupData {
         val root = try { JsonParser(text).parseDocument() } catch (e: IllegalArgumentException) {
-            throw BackupFormatException("Not a valid JSON file: ${e.message}")
+            throw BackupFormatException(Str.get(R.string.backup_err_not_json, e.message ?: ""))
         }
-        if (root !is Map<*, *>) throw BackupFormatException("Not an Earnd backup")
-        if (root["format"] != FORMAT) throw BackupFormatException("Not an Earnd backup")
-        val fv = (root["formatVersion"] as? Long)?.toInt() ?: throw BackupFormatException("Missing format version")
-        if (fv > FORMAT_VERSION) throw BackupFormatException("Backup is from a newer version of Earnd")
-        val schema = (root["schemaVersion"] as? Long)?.toInt() ?: throw BackupFormatException("Missing schema version")
+        if (root !is Map<*, *>) throw BackupFormatException(Str.get(R.string.backup_err_not_backup))
+        if (root["format"] != FORMAT) throw BackupFormatException(Str.get(R.string.backup_err_not_backup))
+        val fv = (root["formatVersion"] as? Long)?.toInt() ?: throw BackupFormatException(Str.get(R.string.backup_err_no_format_version))
+        if (fv > FORMAT_VERSION) throw BackupFormatException(Str.get(R.string.backup_err_newer))
+        val schema = (root["schemaVersion"] as? Long)?.toInt() ?: throw BackupFormatException(Str.get(R.string.backup_err_no_schema_version))
         val at = root["exportedAt"] as? Long ?: 0L
-        val tablesRaw = root["tables"] as? Map<*, *> ?: throw BackupFormatException("Missing tables")
+        val tablesRaw = root["tables"] as? Map<*, *> ?: throw BackupFormatException(Str.get(R.string.backup_err_no_tables))
         val tables = tablesRaw.entries.associate { (k, v) ->
-            val rows = (v as? List<*>) ?: throw BackupFormatException("Table $k is not a list")
+            val rows = (v as? List<*>) ?: throw BackupFormatException(Str.get(R.string.backup_err_table_not_list, k.toString()))
             k.toString() to rows.map { r ->
-                val m = r as? Map<*, *> ?: throw BackupFormatException("Row in $k is not an object")
+                val m = r as? Map<*, *> ?: throw BackupFormatException(Str.get(R.string.backup_err_row_not_object, k.toString()))
                 m.entries.associate { (c, value) ->
                     if (value is Map<*, *> || value is List<*> || value is Boolean) {
-                        throw BackupFormatException("Unsupported value in $k.$c")
+                        throw BackupFormatException(Str.get(R.string.backup_err_unsupported_value, k.toString(), c.toString()))
                     }
                     c.toString() to value
                 }
@@ -62,13 +64,13 @@ object BackupCodec {
      * Returns a user-facing problem, or null when it can be imported.
      */
     fun validate(data: BackupData, currentSchema: Int, columns: Map<String, Set<String>>): String? {
-        if (data.schemaVersion > currentSchema) return "Backup is from a newer version of Earnd"
-        if (data.schemaVersion < 1) return "Unknown backup schema"
+        if (data.schemaVersion > currentSchema) return Str.get(R.string.backup_err_newer)
+        if (data.schemaVersion < 1) return Str.get(R.string.backup_err_unknown_schema)
         for ((table, rows) in data.tables) {
-            val known = columns[table] ?: return "Unknown table \"$table\""
+            val known = columns[table] ?: return Str.get(R.string.backup_err_unknown_table, table)
             rows.forEach { row ->
                 val extra = row.keys - known
-                if (extra.isNotEmpty()) return "Unknown column \"${extra.first()}\" in $table"
+                if (extra.isNotEmpty()) return Str.get(R.string.backup_err_unknown_column, extra.first(), table)
             }
         }
         return null

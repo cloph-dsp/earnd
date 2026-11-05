@@ -81,8 +81,8 @@ class AlarmActions(private val context: Context) {
     }
 
     /** Snooze from the ringing screen only. Returns false when no snoozes are left. */
-    suspend fun snooze(kind: OwnerKind, id: Long): Boolean {
-        val at = nag.snooze(kind, id, clock.now()) ?: return false
+    suspend fun snooze(kind: OwnerKind, id: Long, minutes: Int = NagSchedule.SNOOZE_MIN): Boolean {
+        val at = nag.snooze(kind, id, clock.now(), minutes) ?: return false
         Ringing.dismiss(context, kind, id)
         AlarmsModule.planner.rearmAll()
         return at > 0

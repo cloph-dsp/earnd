@@ -1,5 +1,8 @@
 package com.earnd.app.ui.tasks
 
+import com.earnd.app.i18n.Str
+import com.earnd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -59,13 +62,15 @@ import com.earnd.app.ui.common.launchUi
 
 private val OPEN_BUCKETS = listOf(TaskBucket.OVERDUE, TaskBucket.TODAY, TaskBucket.UPCOMING, TaskBucket.NO_DATE)
 
-fun bucketLabel(b: TaskBucket) = when (b) {
-    TaskBucket.OVERDUE -> "Overdue"
-    TaskBucket.TODAY -> "Today"
-    TaskBucket.UPCOMING -> "Upcoming"
-    TaskBucket.NO_DATE -> "No date"
-    TaskBucket.COMPLETED -> "Completed"
+private fun bucketLabelRes(b: TaskBucket) = when (b) {
+    TaskBucket.OVERDUE -> R.string.tasks_bucket_overdue
+    TaskBucket.TODAY -> R.string.tasks_bucket_today
+    TaskBucket.UPCOMING -> R.string.tasks_bucket_upcoming
+    TaskBucket.NO_DATE -> R.string.tasks_bucket_no_date
+    TaskBucket.COMPLETED -> R.string.tasks_bucket_completed
 }
+
+fun bucketLabel(b: TaskBucket): String = Str.get(bucketLabelRes(b))
 
 @Composable
 fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
@@ -75,21 +80,21 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
     var showCompleted by rememberSaveable { mutableStateOf(false) }
 
     // Same frame as the Habits tab: 22sp title row, quiet add button bottom right, flat rows.
-    Scaffold(floatingActionButton = { AddFab(onClick = onNewTask, description = "New task with details") }) { pad ->
+    Scaffold(floatingActionButton = { AddFab(onClick = onNewTask, description = stringResource(R.string.tasks_new_with_details)) }) { pad ->
     LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
         item {
             Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Tasks", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.tasks_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             }
         }
         if (lists.values.all { it.isEmpty() }) {
-            item { Text("Nothing open.", color = Earnd.palette.secondary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 20.dp)) }
+            item { Text(stringResource(R.string.tasks_nothing_open), color = Earnd.palette.secondary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 20.dp)) }
         }
         OPEN_BUCKETS.forEach { b -> taskSection(b, lists[b].orEmpty(), onOpenTask) }
         if (completed.isNotEmpty()) {
             item {
                 TextButton(onClick = { showCompleted = !showCompleted }) {
-                    Text((if (showCompleted) "Hide" else "Show") + " completed (${completed.size})")
+                    Text(stringResource(if (showCompleted) R.string.tasks_hide_completed else R.string.tasks_show_completed, completed.size))
                 }
             }
             if (showCompleted) items(completed, key = { "c${it.id}" }) { t -> TaskRow(t, onOpenTask) }
@@ -101,7 +106,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
 
 private fun LazyListScope.taskSection(b: TaskBucket, tasks: List<TaskEntity>, onOpen: (Long) -> Unit) {
     if (tasks.isEmpty()) return
-    item(key = "h$b") { SectionTitle(bucketLabel(b)) }
+    item(key = "h$b") { SectionTitle(stringResource(bucketLabelRes(b))) }
     items(tasks, key = { it.id }) { t -> TaskRow(t, onOpen) }
 }
 
@@ -136,7 +141,7 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
             }
             if (meta.isNotEmpty() || t.repeats) Row(verticalAlignment = Alignment.CenterVertically) {
                 if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
-                if (t.repeats) Icon(Icons.Outlined.Repeat, "Repeats", tint = Earnd.palette.muted, modifier = Modifier.padding(start = 8.dp).size(14.dp))
+                if (t.repeats) Icon(Icons.Outlined.Repeat, stringResource(R.string.tasks_repeats), tint = Earnd.palette.muted, modifier = Modifier.padding(start = 8.dp).size(14.dp))
             }
         }
         t.rewardMinutes?.takeIf { it > 0 }?.let {

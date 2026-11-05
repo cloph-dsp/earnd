@@ -1,5 +1,7 @@
 package com.earnd.app.ui.stats
 
+import com.earnd.app.R
+import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
@@ -58,19 +60,19 @@ fun ScreenTimeSection() {
         }
     }
 
-    SectionTitle("Screen time today")
+    SectionTitle(stringResource(R.string.stats_screen_time_today))
     if (!granted) {
         Text(
-            "Allow usage access to see which apps took your time today. It is read on this phone only.",
+            stringResource(R.string.stats_usage_access_explain),
             style = MaterialTheme.typography.bodyMedium,
         )
         OutlinedButton(onClick = {
             runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-        }, modifier = Modifier.padding(top = 8.dp)) { Text("Allow usage access") }
+        }, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.stats_allow_usage_access)) }
         return
     }
     val s = summary ?: return
-    Text("${formatMinutes((s.totalMs / 60_000).toInt())} on screen so far.", style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.stats_on_screen_so_far, formatMinutes((s.totalMs / 60_000).toInt())), style = MaterialTheme.typography.bodyMedium)
     val top = s.perApp.take(TOP_APPS)
     val max = (top.firstOrNull()?.second ?: 1L).coerceAtLeast(1L)
     val p = com.earnd.app.ui.theme.Earnd.palette
@@ -86,7 +88,7 @@ fun ScreenTimeSection() {
             )
         }
     }
-    Text("By hour", style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+    Text(stringResource(R.string.stats_by_hour), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
     HourBars(s.perHour)
 }
 

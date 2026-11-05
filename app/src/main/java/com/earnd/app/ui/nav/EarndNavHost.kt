@@ -1,6 +1,9 @@
 package com.earnd.app.ui.nav
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Checklist
@@ -44,14 +47,14 @@ import com.earnd.app.ui.stats.StatsScreen
 import com.earnd.app.ui.tasks.TaskEditScreen
 import com.earnd.app.ui.tasks.TasksScreen
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab(Routes.TODAY, "Today", Icons.Outlined.WbSunny),
-    Tab(Routes.HABITS, "Habits", Icons.Outlined.Repeat),
-    Tab(Routes.TASKS, "Tasks", Icons.Outlined.Checklist),
-    Tab(Routes.STATS, "Stats", Icons.Outlined.BarChart),
-    Tab(Routes.SETTINGS, "Settings", Icons.Outlined.Settings),
+    Tab(Routes.TODAY, R.string.home_tab_today, Icons.Outlined.WbSunny),
+    Tab(Routes.HABITS, R.string.home_tab_habits, Icons.Outlined.Repeat),
+    Tab(Routes.TASKS, R.string.home_tab_tasks, Icons.Outlined.Checklist),
+    Tab(Routes.STATS, R.string.home_tab_stats, Icons.Outlined.BarChart),
+    Tab(Routes.SETTINGS, R.string.home_tab_settings, Icons.Outlined.Settings),
 )
 
 @Composable
@@ -75,7 +78,7 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                                 }
                             },
                             icon = { Icon(t.icon, contentDescription = null) },
-                            label = { Text(t.label) },
+                            label = { Text(stringResource(t.label)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Earnd.palette.amber, selectedTextColor = Earnd.palette.amber,
                                 indicatorColor = androidx.compose.ui.graphics.Color.Transparent,

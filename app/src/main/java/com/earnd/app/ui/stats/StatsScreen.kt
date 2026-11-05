@@ -1,5 +1,7 @@
 package com.earnd.app.ui.stats
 
+import com.earnd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,20 +78,20 @@ fun StatsScreen() {
     val spent = spentByDay.values.sum()
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-        Text("This week", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp))
+        Text(stringResource(R.string.stats_this_week), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp))
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Figure(formatMinutes(earned), "earned", p.amber, Modifier.weight(1f))
-            Figure(formatMinutes(spent), "spent", p.text, Modifier.weight(1f))
-            Figure("${checkIns.values.sum()}", "check-ins", p.text, Modifier.weight(0.8f))
-            Figure("${tasksByDay.values.sum()}", "tasks", p.text, Modifier.weight(0.6f))
+            Figure(formatMinutes(earned), stringResource(R.string.stats_earned), p.amber, Modifier.weight(1f))
+            Figure(formatMinutes(spent), stringResource(R.string.stats_spent), p.text, Modifier.weight(1f))
+            Figure("${checkIns.values.sum()}", stringResource(R.string.stats_check_ins), p.text, Modifier.weight(0.8f))
+            Figure("${tasksByDay.values.sum()}", stringResource(R.string.stats_tasks), p.text, Modifier.weight(0.6f))
         }
 
-        SectionTitle("Earned and spent")
+        SectionTitle(stringResource(R.string.stats_section_earned_spent))
         Legend()
         PairedBars(days, earnedByDay, spentByDay, today)
 
-        SectionTitle("Done per day")
-        DayGrid(days, today, listOf("Check-ins" to checkIns, "Tasks" to tasksByDay))
+        SectionTitle(stringResource(R.string.stats_section_done_per_day))
+        DayGrid(days, today, listOf(stringResource(R.string.stats_row_check_ins) to checkIns, stringResource(R.string.stats_row_tasks) to tasksByDay))
 
         HorizontalDivider(Modifier.padding(top = 20.dp), color = p.divider)
         ScreenTimeSection()
@@ -115,10 +117,10 @@ private fun Legend() {
     val p = Earnd.palette
     Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(10.dp).height(10.dp).background(p.amber))
-        Text(" earned", style = MaterialTheme.typography.labelSmall, color = p.secondary)
+        Text(stringResource(R.string.stats_earned), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(start = 4.dp))
         Spacer(Modifier.width(14.dp))
         Box(Modifier.width(10.dp).height(10.dp).background(p.muted))
-        Text(" spent", style = MaterialTheme.typography.labelSmall, color = p.secondary)
+        Text(stringResource(R.string.stats_spent), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(start = 4.dp))
     }
 }
 
@@ -131,8 +133,9 @@ private fun PairedBars(days: List<LocalDate>, earned: Map<Long, Int>, spent: Map
             val e = earned[d.toEpochDay()] ?: 0
             val s = spent[d.toEpochDay()] ?: 0
             val isToday = d == today
+            val desc = stringResource(R.string.stats_day_desc, dayLabel(d), e, s)
             Column(
-                Modifier.weight(1f).semantics { contentDescription = "${dayLabel(d)}: earned $e min, spent $s min" },
+                Modifier.weight(1f).semantics { contentDescription = desc },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Num("$e", color = if (e > 0) p.amber else p.muted, style = NumberStyle.copy(fontSize = 12.sp))

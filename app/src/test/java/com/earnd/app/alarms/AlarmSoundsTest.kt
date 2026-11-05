@@ -1,12 +1,16 @@
 package com.earnd.app.alarms
 
+import com.earnd.app.i18n.TestStr
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Before
 import org.junit.Test
 
 class AlarmSoundsTest {
+    @Before fun strings() = TestStr.install()
+
     private val opts = listOf(
         SoundOption("system:Argon", "Argon", "content://media/internal/audio/media/7", "alarm"),
         SoundOption("custom:gong.mp3", "gong.mp3", "file:///sdcard/Android/media/com.earnd.app/sounds/gong.mp3", "custom"),

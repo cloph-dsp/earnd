@@ -1,5 +1,7 @@
 package com.earnd.app.ui.tasks
 
+import com.earnd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,7 +76,7 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
     val subtasks by remember(t.id) { if (t.id > 0) sl.taskService.observeSubtasks(t.id) else flowOf(emptyList()) }
         .collectAsState(initial = emptyList())
 
-    EditScaffold(if (isNew) "New task" else if (isSub) "Subtask" else "Task", onBack = onDone, actions = {
+    EditScaffold(stringResource(if (isNew) R.string.tasks_edit_new else if (isSub) R.string.tasks_edit_subtask else R.string.tasks_edit_task), onBack = onDone, actions = {
         TextButton(enabled = t.title.isNotBlank(), onClick = {
             launchUi {
                 val id = sl.taskService.save(t.copy(title = t.title.trim()))
@@ -84,60 +86,64 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
                 AlarmConfigs.apply(OwnerKind.TASK, id, alarm)
                 onDone()
             }
-        }) { Text("Save") }
+        }) { Text(stringResource(R.string.tasks_save)) }
     }) {
-        OutlinedTextField(t.title, { set(t.copy(title = it)) }, label = { Text("Title") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(t.notes, { set(t.copy(notes = it)) }, label = { Text("Notes") }, minLines = 2, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        OutlinedTextField(t.title, { set(t.copy(title = it)) }, label = { Text(stringResource(R.string.tasks_field_title)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(t.notes, { set(t.copy(notes = it)) }, label = { Text(stringResource(R.string.tasks_field_notes)) }, minLines = 2, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
 
         if (!isSub) {
-            SectionTitle("Due")
+            SectionTitle(stringResource(R.string.tasks_section_due))
             DueEditor(t, set)
 
-            SectionTitle("Priority")
-            ChoiceChips(Priority.values().toList(), t.priority, {
-                when (it) { Priority.NONE -> "None"; Priority.LOW -> "Low"; Priority.MEDIUM -> "Medium"; Priority.HIGH -> "High" }
-            }) { set(t.copy(priority = it)) }
+            SectionTitle(stringResource(R.string.tasks_section_priority))
+            val priorityLabels = mapOf(
+                Priority.NONE to stringResource(R.string.tasks_priority_none),
+                Priority.LOW to stringResource(R.string.tasks_priority_low),
+                Priority.MEDIUM to stringResource(R.string.tasks_priority_medium),
+                Priority.HIGH to stringResource(R.string.tasks_priority_high),
+            )
+            ChoiceChips(Priority.values().toList(), t.priority, { priorityLabels.getValue(it) }) { set(t.copy(priority = it)) }
 
-            SectionTitle("Repeat")
+            SectionTitle(stringResource(R.string.tasks_section_repeat))
             RepeatEditor(t, set)
 
-            SectionTitle("Reward")
-            SwitchRow("Earn minutes for this task", t.rewardMinutes != null, { on ->
+            SectionTitle(stringResource(R.string.tasks_section_reward))
+            SwitchRow(stringResource(R.string.tasks_reward_switch), t.rewardMinutes != null, { on ->
                 set(t.copy(rewardMinutes = if (on) (taskDefaultReward ?: 5) else null))
-            }, hint = "Tasks never lock anything on their own.")
-            t.rewardMinutes?.let { r -> NumberField("Minutes earned", r, { set(t.copy(rewardMinutes = (it ?: 0).coerceIn(0, 600))) }) }
+            }, hint = stringResource(R.string.tasks_reward_hint))
+            t.rewardMinutes?.let { r -> NumberField(stringResource(R.string.tasks_reward_minutes), r, { set(t.copy(rewardMinutes = (it ?: 0).coerceIn(0, 600))) }) }
 
-            SectionTitle("Subtasks")
+            SectionTitle(stringResource(R.string.tasks_section_subtasks))
             subtasks.forEach { s ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(s.completedAt != null, { c -> launchUi { if (c) sl.taskService.complete(s.id) else sl.taskService.uncomplete(s.id) } })
                     TextButton(onClick = { onOpenTask(s.id) }, modifier = Modifier.weight(1f)) { Text(s.title, modifier = Modifier.fillMaxWidth()) }
-                    IconButton(onClick = { launchUi { sl.taskService.delete(s.id) } }) { Icon(Icons.Outlined.Close, "Remove") }
+                    IconButton(onClick = { launchUi { sl.taskService.delete(s.id) } }) { Icon(Icons.Outlined.Close, stringResource(R.string.tasks_remove)) }
                 }
             }
             newSubtasks.forEachIndexed { i, s ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(s, { newSubtasks[i] = it }, singleLine = true, placeholder = { Text("Subtask") }, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { newSubtasks.removeAt(i) }) { Icon(Icons.Outlined.Close, "Remove") }
+                    OutlinedTextField(s, { newSubtasks[i] = it }, singleLine = true, placeholder = { Text(stringResource(R.string.tasks_edit_subtask)) }, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { newSubtasks.removeAt(i) }) { Icon(Icons.Outlined.Close, stringResource(R.string.tasks_remove)) }
                 }
             }
-            TextButton(onClick = { newSubtasks.add("") }) { Icon(Icons.Outlined.Add, null); Text("Add subtask") }
+            TextButton(onClick = { newSubtasks.add("") }) { Icon(Icons.Outlined.Add, null); Text(stringResource(R.string.tasks_add_subtask)) }
 
-            SectionTitle("Alarm")
-            SwitchRow("Custom alarm for this task", alarm != null, { on ->
+            SectionTitle(stringResource(R.string.tasks_section_alarm))
+            SwitchRow(stringResource(R.string.tasks_alarm_switch), alarm != null, { on ->
                 if (!on) alarm = null else launchUi { alarm = AlarmConfigs.defaults(OwnerKind.TASK).copy(ownerId = t.id) }
-            }, hint = if (alarm == null) "Uses your default alarm settings." else null)
+            }, hint = if (alarm == null) stringResource(R.string.tasks_alarm_default_hint) else null)
             alarm?.let { a -> AlarmConfigEditor(a) { alarm = it } }
             if (t.dueEpochDay == null && alarm != null) {
-                Text("Alarms need a due date.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                Text(stringResource(R.string.tasks_alarm_needs_date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
             }
         }
 
         if (!isNew) {
             Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { confirmDelete = true }) { Text("Delete") }
+                Button(onClick = { confirmDelete = true }) { Text(stringResource(R.string.tasks_delete)) }
                 if (t.repeats && !isSub && t.completedAt == null) {
-                    Button(onClick = { launchUi { sl.taskService.skip(t.id); onDone() } }) { Text("Skip this one") }
+                    Button(onClick = { launchUi { sl.taskService.skip(t.id); onDone() } }) { Text(stringResource(R.string.tasks_skip_this_one)) }
                 }
             }
         }
@@ -145,15 +151,15 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete this task?") },
-            text = { Text(if (isSub) "This removes the subtask." else "Subtasks are removed too.") },
+            title = { Text(stringResource(R.string.tasks_delete_title)) },
+            text = { Text(stringResource(if (isSub) R.string.tasks_delete_body_sub else R.string.tasks_delete_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     launchUi { AlarmConfigs.clear(OwnerKind.TASK, t.id); sl.taskService.delete(t.id); onDone() }
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.tasks_delete)) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Keep") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.tasks_keep)) } },
         )
     }
 }
@@ -162,9 +168,9 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
 private fun DueEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
     val today = remember { ServiceLocator.clock.today().toEpochDay() }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(t.dueEpochDay == null, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = null, dueMinuteOfDay = null)) }, { Text("No date") })
-        FilterChip(t.dueEpochDay == today, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today)) }, { Text("Today") })
-        FilterChip(t.dueEpochDay == today + 1, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today + 1)) }, { Text("Tomorrow") })
+        FilterChip(t.dueEpochDay == null, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = null, dueMinuteOfDay = null)) }, { Text(stringResource(R.string.tasks_due_no_date)) })
+        FilterChip(t.dueEpochDay == today, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today)) }, { Text(stringResource(R.string.tasks_due_today)) })
+        FilterChip(t.dueEpochDay == today + 1, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today + 1)) }, { Text(stringResource(R.string.tasks_due_tomorrow)) })
     }
     if (t.dueEpochDay != null) {
         var text by remember(t.dueEpochDay) { mutableStateOf(formatDate(t.dueEpochDay)) }
@@ -172,10 +178,10 @@ private fun DueEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
             OutlinedTextField(
                 value = text,
                 onValueChange = { s -> text = s; parseDate(s)?.let { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = it)) } },
-                label = { Text("Date (${dateHint()})") }, singleLine = true,
+                label = { Text(stringResource(R.string.tasks_due_date_label, dateHint())) }, singleLine = true,
                 isError = parseDate(text) == null, modifier = Modifier.weight(1f),
             )
-            TimeField("Time (optional)", t.dueMinuteOfDay, { set(t.copy(dueMinuteOfDay = it)) }, Modifier.weight(1f))
+            TimeField(stringResource(R.string.tasks_due_time_label), t.dueMinuteOfDay, { set(t.copy(dueMinuteOfDay = it)) }, Modifier.weight(1f))
         }
     }
 }
@@ -194,6 +200,6 @@ private fun RepeatEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
         ))
     }
     if (t.repeats) {
-        Text("If a day is missed, it moves on to the next one by itself.", style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.tasks_repeat_missed_hint), style = MaterialTheme.typography.bodySmall)
     }
 }

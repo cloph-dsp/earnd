@@ -23,7 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.earnd.app.R
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.NagMode
@@ -31,6 +33,7 @@ import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.ui.common.ChoiceChips
 import androidx.compose.runtime.collectAsState
 import com.earnd.app.domain.today
+import com.earnd.app.i18n.Str
 import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
@@ -47,17 +50,21 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
     if (pickSound) SoundPickerDialog(cfg.soundUri, { onChange(cfg.copy(soundUri = it)); pickSound = false }, { pickSound = false })
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (cfg.ownerKind == OwnerKind.HABIT) {
-            TimeField("Daily reminder at", cfg.habitReminderMinuteOfDay, { onChange(cfg.copy(habitReminderMinuteOfDay = it)) })
+            TimeField(stringResource(R.string.alarmsui_daily_reminder_at), cfg.habitReminderMinuteOfDay, { onChange(cfg.copy(habitReminderMinuteOfDay = it)) })
             WeekendShiftHint(cfg.habitReminderMinuteOfDay)
         } else {
-            Text("Reminders", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.alarmsui_reminders), style = MaterialTheme.typography.labelLarge)
             ReminderChips(cfg, onChange)
         }
-        Text("Style", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.alarmsui_style), style = MaterialTheme.typography.labelLarge)
         Row(Modifier.fillMaxWidth()) {
             AlarmStyle.values().forEach { st ->
                 val on = cfg.style == st
-                val label = when (st) { AlarmStyle.SILENT -> "Silent"; AlarmStyle.NOTIFICATION -> "Notification"; AlarmStyle.FULL_SCREEN -> "Alarm" }
+                val label = stringResource(when (st) {
+                    AlarmStyle.SILENT -> R.string.alarmsui_style_silent
+                    AlarmStyle.NOTIFICATION -> R.string.alarmsui_style_notification
+                    AlarmStyle.FULL_SCREEN -> R.string.alarmsui_style_alarm
+                })
                 Box(
                     Modifier.weight(1f).heightIn(min = 48.dp)
                         .background(if (on) com.earnd.app.ui.theme.Earnd.palette.amber else androidx.compose.ui.graphics.Color.Transparent)
@@ -72,35 +79,35 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
         }
         var advanced by remember { mutableStateOf(false) }
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { advanced = !advanced }, verticalAlignment = Alignment.CenterVertically) {
-            Text("Advanced", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Text(if (advanced) "Hide" else "Show", style = MaterialTheme.typography.labelLarge, color = com.earnd.app.ui.theme.Earnd.palette.amber)
+            Text(stringResource(R.string.alarmsui_advanced), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(stringResource(if (advanced) R.string.alarmsui_hide else R.string.alarmsui_show), style = MaterialTheme.typography.labelLarge, color = com.earnd.app.ui.theme.Earnd.palette.amber)
         }
         AnimatedVisibility(advanced) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("If I don't respond", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.alarmsui_if_no_response), style = MaterialTheme.typography.labelLarge)
         ChoiceChips(NagMode.values().toList(), cfg.nagMode, ::nagLabel) { onChange(cfg.copy(nagMode = it)) }
         if (cfg.nagMode == NagMode.FIXED) {
-            NumberField("Every (minutes)", cfg.nagEveryMin, { onChange(cfg.copy(nagEveryMin = (it ?: 1).coerceAtLeast(1))) })
+            NumberField(stringResource(R.string.alarmsui_nag_every), cfg.nagEveryMin, { onChange(cfg.copy(nagEveryMin = (it ?: 1).coerceAtLeast(1))) })
         }
         if (cfg.nagMode != NagMode.OFF) {
-            NumberField("Stop after this many (blank = keep going)", cfg.nagMaxCount, { onChange(cfg.copy(nagMaxCount = it)) })
+            NumberField(stringResource(R.string.alarmsui_nag_max), cfg.nagMaxCount, { onChange(cfg.copy(nagMaxCount = it)) })
         }
-        SwitchRow("Vibrate", cfg.vibrate, { onChange(cfg.copy(vibrate = it)) })
+        SwitchRow(stringResource(R.string.alarmsui_vibrate), cfg.vibrate, { onChange(cfg.copy(vibrate = it)) })
         Row {
             Text(
-                "Sound: " + com.earnd.app.alarms.AlarmSounds.nameOf(cfg.soundUri, soundOptions),
+                stringResource(R.string.alarmsui_sound, com.earnd.app.alarms.AlarmSounds.nameOf(cfg.soundUri, soundOptions)),
                 modifier = Modifier.weight(1f).align(androidx.compose.ui.Alignment.CenterVertically),
             )
-            TextButton(onClick = { pickSound = true }) { Text("Choose") }
+            TextButton(onClick = { pickSound = true }) { Text(stringResource(R.string.alarmsui_choose)) }
         }
-        Text("Ring for", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.alarmsui_ring_for), style = MaterialTheme.typography.labelLarge)
         RingForPicker(cfg.ringSec, withDefault = true) { onChange(cfg.copy(ringSec = it)) }
-        Text("Volume", style = MaterialTheme.typography.labelLarge)
-        ChoiceChips(listOf<Int?>(null, 25, 50, 75, 100), cfg.volumePct, { if (it == null) "Default" else "$it%" }) {
+        Text(stringResource(R.string.alarmsui_volume), style = MaterialTheme.typography.labelLarge)
+        ChoiceChips(listOf<Int?>(null, 25, 50, 75, 100), cfg.volumePct, { if (it == null) Str.get(R.string.alarmsui_default) else Str.get(R.string.alarmsui_percent, it) }) {
             onChange(cfg.copy(volumePct = it))
         }
         if (cfg.style == AlarmStyle.FULL_SCREEN) {
-            NumberField("Snoozes allowed", cfg.snoozeMaxCount, { onChange(cfg.copy(snoozeMaxCount = (it ?: 0).coerceIn(0, 10))) })
+            NumberField(stringResource(R.string.alarmsui_snoozes_allowed), cfg.snoozeMaxCount, { onChange(cfg.copy(snoozeMaxCount = (it ?: 0).coerceIn(0, 10))) })
         }
             }
         }
@@ -109,15 +116,15 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
 
 
 fun styleLabel(s: AlarmStyle) = when (s) {
-    AlarmStyle.SILENT -> "Silent"
-    AlarmStyle.NOTIFICATION -> "Notification"
-    AlarmStyle.FULL_SCREEN -> "Full-screen alarm"
+    AlarmStyle.SILENT -> Str.get(R.string.alarmsui_style_silent)
+    AlarmStyle.NOTIFICATION -> Str.get(R.string.alarmsui_style_notification)
+    AlarmStyle.FULL_SCREEN -> Str.get(R.string.alarmsui_style_full_screen)
 }
 
 fun nagLabel(m: NagMode) = when (m) {
-    NagMode.OFF -> "Leave it"
-    NagMode.PROGRESSIVE -> "Remind, spacing out"
-    NagMode.FIXED -> "Remind every…"
+    NagMode.OFF -> Str.get(R.string.alarmsui_nag_off)
+    NagMode.PROGRESSIVE -> Str.get(R.string.alarmsui_nag_progressive)
+    NagMode.FIXED -> Str.get(R.string.alarmsui_nag_fixed)
 }
 
 /** On Saturday/Sunday with a later weekend start, shows the time the reminder actually rings today. */
@@ -131,7 +138,7 @@ private fun WeekendShiftHint(minute: Int?) {
     val shifted = com.earnd.app.alarms.DayStart.habitMinute(cur, today, m)
     if (shifted == m) return
     Text(
-        "Today (weekend) it rings at ${com.earnd.app.ui.common.formatMinuteOfDay(shifted)}.",
+        stringResource(R.string.alarmsui_weekend_shift, com.earnd.app.ui.common.formatMinuteOfDay(shifted)),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
@@ -139,9 +146,9 @@ private fun WeekendShiftHint(minute: Int?) {
 private val RING_PRESETS = listOf(2, 5, 10, 30, 60, 120, 300)
 
 fun ringLabel(sec: Int?): String = when {
-    sec == null -> "Default"
-    sec >= 60 && sec % 60 == 0 -> "${sec / 60} min"
-    else -> "$sec s"
+    sec == null -> Str.get(R.string.alarmsui_default)
+    sec >= 60 && sec % 60 == 0 -> Str.get(R.string.alarmsui_ring_minutes, sec / 60)
+    else -> Str.get(R.string.alarmsui_ring_seconds, sec)
 }
 
 /** Preset chips plus a custom seconds field (1-600). [withDefault] adds a "Default" chip (null). */
@@ -150,6 +157,6 @@ fun RingForPicker(sec: Int?, withDefault: Boolean, onChange: (Int?) -> Unit) {
     val options = (if (withDefault) listOf<Int?>(null) else emptyList()) + RING_PRESETS
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         ChoiceChips(options, sec, ::ringLabel, onChange)
-        NumberField("Custom (seconds, 1-600)", sec, { onChange(it?.coerceIn(1, 600)) })
+        NumberField(stringResource(R.string.alarmsui_ring_custom), sec, { onChange(it?.coerceIn(1, 600)) })
     }
 }

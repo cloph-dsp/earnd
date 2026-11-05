@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import com.earnd.app.R
 import com.earnd.app.alarms.AlarmPermissions
 import com.earnd.app.data.SettingsRepository
 import com.earnd.app.data.dao.FocusDao
@@ -92,7 +93,7 @@ class FocusManager(
         val h = habitDao.get(s.habitId)
         val r = if (h != null && !h.archived) runCatching { habits.checkInWithBonus(h.id, rewardOverride = s.rewardMinutes) }.getOrNull() else null
         FocusChime.play(context)
-        FocusNotifier.showDone(context, h?.name ?: "Focus", (s.durationMs / 60_000L).toInt(), r?.checkIn?.minutesEarned, r?.bonus ?: 0)
+        FocusNotifier.showDone(context, h?.name ?: context.getString(R.string.focus_fallback_name), (s.durationMs / 60_000L).toInt(), r?.checkIn?.minutesEarned, r?.bonus ?: 0)
         bus.emit(ChangeKind.FOCUS)
         return true
     }
@@ -117,7 +118,7 @@ class FocusManager(
         if (completeIfDue()) return
         val s = running() ?: return
         if (!s.stopwatch) armAlarm(FocusMath.endAt(s))
-        val name = habitDao.get(s.habitId)?.name ?: "Focus"
+        val name = habitDao.get(s.habitId)?.name ?: context.getString(R.string.focus_fallback_name)
         FocusNotifier.showOngoing(context, s, name)
     }
 

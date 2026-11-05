@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tasks list -->
+    <string name="tasks_title">Tarefas</string>
+    <string name="tasks_new_with_details">Nova tarefa com detalhes</string>
+    <string name="tasks_nothing_open">Nada em aberto.</string>
+    <string name="tasks_hide_completed">Ocultar concluídas (%1$d)</string>
+    <string name="tasks_show_completed">Mostrar concluídas (%1$d)</string>
+    <string name="tasks_repeats">Repete</string>
+    <string name="tasks_bucket_overdue">Em atraso</string>
+    <string name="tasks_bucket_today">Hoje</string>
+    <string name="tasks_bucket_upcoming">Próximas</string>
+    <string name="tasks_bucket_no_date">Sem data</string>
+    <string name="tasks_bucket_completed">Concluídas</string>
+
+    <!-- Task editor -->
+    <string name="tasks_edit_new">Nova tarefa</string>
+    <string name="tasks_edit_subtask">Subtarefa</string>
+    <string name="tasks_edit_task">Tarefa</string>
+    <string name="tasks_save">Guardar</string>
+    <string name="tasks_field_title">Título</string>
+    <string name="tasks_field_notes">Notas</string>
+    <string name="tasks_section_due">Prazo</string>
+    <string name="tasks_section_priority">Prioridade</string>
+    <string name="tasks_priority_none">Nenhuma</string>
+    <string name="tasks_priority_low">Baixa</string>
+    <string name="tasks_priority_medium">Média</string>
+    <string name="tasks_priority_high">Alta</string>
+    <string name="tasks_section_repeat">Repetição</string>
+    <string name="tasks_section_reward">Recompensa</string>
+    <string name="tasks_reward_switch">Ganhar minutos com esta tarefa</string>
+    <string name="tasks_reward_hint">As tarefas nunca bloqueiam nada por si.</string>
+    <string name="tasks_reward_minutes">Minutos ganhos</string>
+    <string name="tasks_section_subtasks">Subtarefas</string>
+    <string name="tasks_remove">Remover</string>
+    <string name="tasks_add_subtask">Adicionar subtarefa</string>
+    <string name="tasks_section_alarm">Alarme</string>
+    <string name="tasks_alarm_switch">Alarme personalizado para esta tarefa</string>
+    <string name="tasks_alarm_default_hint">São usadas as definições de alarme predefinidas.</string>
+    <string name="tasks_alarm_needs_date">Os alarmes requerem um prazo.</string>
+    <string name="tasks_delete">Eliminar</string>
+    <string name="tasks_skip_this_one">Saltar esta</string>
+    <string name="tasks_delete_title">Eliminar esta tarefa?</string>
+    <string name="tasks_delete_body_sub">A subtarefa é removida.</string>
+    <string name="tasks_delete_body">As subtarefas também são removidas.</string>
+    <string name="tasks_keep">Manter</string>
+    <string name="tasks_due_no_date">Sem data</string>
+    <string name="tasks_due_today">Hoje</string>
+    <string name="tasks_due_tomorrow">Amanhã</string>
+    <string name="tasks_due_date_label">Data (%1$s)</string>
+    <string name="tasks_due_time_label">Hora (opcional)</string>
+    <string name="tasks_repeat_missed_hint">Se um dia falhar, passa automaticamente para o seguinte.</string>
+
+    <!-- Stats -->
+    <string name="stats_this_week">Esta semana</string>
+    <string name="stats_earned">ganho</string>
+    <string name="stats_spent">gasto</string>
+    <string name="stats_check_ins">registos</string>
+    <string name="stats_tasks">tarefas</string>
+    <string name="stats_section_earned_spent">Ganho e gasto</string>
+    <string name="stats_section_done_per_day">Feito por dia</string>
+    <string name="stats_row_check_ins">Registos</string>
+    <string name="stats_row_tasks">Tarefas</string>
+    <string name="stats_day_desc">%1$s: ganho %2$d min, gasto %3$d min</string>
+    <string name="stats_screen_time_today">Tempo de ecrã hoje</string>
+    <string name="stats_usage_access_explain">É necessário permitir o acesso ao uso para ver que apps ocuparam o tempo hoje. Os dados são lidos apenas neste telemóvel.</string>
+    <string name="stats_allow_usage_access">Permitir acesso ao uso</string>
+    <string name="stats_on_screen_so_far">%1$s em ecrã até agora.</string>
+    <string name="stats_by_hour">Por hora</string>
+
+    <!-- Apps and sites -->
+    <string name="apps_title">Apps e sites</string>
+    <string name="apps_back">Voltar</string>
+    <string name="apps_tab_leisure">Apps de lazer</string>
+    <string name="apps_tab_websites">Sites</string>
+    <string name="apps_tab_always_open">Sempre abertas</string>
+    <string name="apps_header_leisure">As apps de lazer ficam abertas enquanto houver minutos. A percentagem indica quanto do tempo de ecrã é contabilizado.</string>
+    <string name="apps_header_always_open">Chamadas, mensagens, mapas, definições e esta app ficam sempre abertas. Outras podem ser adicionadas aqui.</string>
+    <string name="apps_leisure_tag">Lazer</string>
+    <string name="apps_hard_mode_effect">Modo rígido: a alteração entra em vigor às %1$s.</string>
+    <string name="apps_counts_pct">Conta %1$d%% do tempo</string>
+    <string name="apps_counts_pct_default">Conta %1$d%% do tempo (predefinido)</string>
+    <string name="apps_pending_title">A aguardar o período de espera do modo rígido</string>
+    <string name="apps_pending_item">%1$s às %2$s</string>
+    <string name="apps_cancel">Cancelar</string>
+    <string name="apps_search_placeholder">Pesquisar apps</string>
+    <string name="apps_clear_search">Limpar pesquisa</string>
+    <string name="apps_no_match">Nenhuma app corresponde.</string>
+    <string name="apps_usage_today">%1$s hoje</string>
+    <string name="apps_sites_explain">Os sites aqui listados são bloqueados nos navegadores, incluindo os subdomínios.</string>
+    <string name="apps_add_site">Adicionar site</string>
+    <string name="apps_no_sites">Ainda sem sites.</string>
+    <string name="apps_remove_site">Remover %1$s</string>
+</resources>

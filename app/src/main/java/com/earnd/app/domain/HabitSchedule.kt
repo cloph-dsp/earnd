@@ -1,7 +1,9 @@
 package com.earnd.app.domain
 
+import com.earnd.app.R
 import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.ScheduleKind
+import com.earnd.app.i18n.Str
 import java.time.LocalDate
 
 /** Pure schedule and streak rules for habits. */
@@ -29,11 +31,12 @@ object HabitSchedule {
 
     /** Human-readable schedule, e.g. "Every 2 weeks on Mon, Thu" or "3 times a week". */
     fun summary(h: HabitEntity): String = when (h.scheduleKind) {
-        ScheduleKind.DAILY -> "Every day"
+        ScheduleKind.DAILY -> Str.get(R.string.rrule_every_day)
         ScheduleKind.WEEKDAYS -> RRule.weekly(RRule.maskToDays(h.weekdayMask)).summary()
-        ScheduleKind.EVERY_N_DAYS -> if (h.everyNDays <= 1) "Every day" else "Every ${h.everyNDays} days"
-        ScheduleKind.RULE -> RRule.parseOrNull(h.scheduleRule)?.summary(start = LocalDate.ofEpochDay(anchorOf(h))) ?: "Every day"
-        ScheduleKind.TIMES_PER_WEEK -> "${h.timesPerWeek.coerceAtLeast(1)} times a week"
+        ScheduleKind.EVERY_N_DAYS ->
+            if (h.everyNDays <= 1) Str.get(R.string.rrule_every_day) else Str.get(R.string.rrule_every_days, h.everyNDays)
+        ScheduleKind.RULE -> RRule.parseOrNull(h.scheduleRule)?.summary(start = LocalDate.ofEpochDay(anchorOf(h))) ?: Str.get(R.string.rrule_every_day)
+        ScheduleKind.TIMES_PER_WEEK -> Str.plural(R.plurals.rrule_times_a_week, h.timesPerWeek.coerceAtLeast(1))
     }
 
     /** Monday of [day]'s week. */

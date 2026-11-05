@@ -3,14 +3,18 @@ package com.earnd.app.domain
 import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.data.entity.TaskEntity
+import com.earnd.app.i18n.TestStr
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
 
 class RRuleTest {
+    @Before fun english() = TestStr.install()
+
     private fun d(y: Int, m: Int, day: Int) = LocalDate.of(y, m, day)
     private fun r(s: String) = RRule.parse(s)
     private fun first(rule: String, start: LocalDate, n: Int) = r(rule).occurrences(start).take(n).toList()

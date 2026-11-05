@@ -23,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.earnd.app.R
 import com.earnd.app.alarms.AlarmSounds
 import com.earnd.app.alarms.SoundOption
 import kotlinx.coroutines.Dispatchers
@@ -56,18 +58,31 @@ fun SoundPickerDialog(current: String?, onPick: (String?) -> Unit, onDismiss: ()
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Alarm sound") },
+        title = { Text(stringResource(R.string.alarmsui_sound_title)) },
         text = {
             LazyColumn(Modifier.heightIn(max = 420.dp)) {
-                item { SoundRow("Default", current == null, playing == "", null, { onPick(null) }) { stop() } }
+                item { SoundRow(stringResource(R.string.alarmsui_sound_default), current == null, playing == "", null, { onPick(null) }) { stop() } }
                 items(options) { o ->
-                    SoundRow(o.title + if (o.type == "custom") "  (custom)" else "  (${o.type})", current == o.uri,
+                    SoundRow(soundLabel(o), current == o.uri,
                         playing == o.uri, o.uri, { onPick(o.uri) }) { preview(o.uri) }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.alarmsui_sound_close)) } },
     )
+}
+
+/** "Title  (custom)" or "Title  (alarm)" with the type name in the current language. */
+@Composable
+private fun soundLabel(o: SoundOption): String {
+    if (o.type == "custom") return stringResource(R.string.alarmsui_sound_custom, o.title)
+    val type = when (o.type) {
+        "alarm" -> stringResource(R.string.alarmsui_type_alarm)
+        "notification" -> stringResource(R.string.alarmsui_type_notification)
+        "ringtone" -> stringResource(R.string.alarmsui_type_ringtone)
+        else -> o.type
+    }
+    return stringResource(R.string.alarmsui_sound_typed, o.title, type)
 }
 
 @Composable
@@ -76,6 +91,6 @@ private fun SoundRow(label: String, selected: Boolean, playing: Boolean, uri: St
         TextButton(onClick = onPick, modifier = Modifier.weight(1f)) {
             Text((if (selected) "✓ " else "") + label, modifier = Modifier.fillMaxWidth())
         }
-        if (uri != null) TextButton(onClick = onPreview) { Text(if (playing) "Stop" else "Play") }
+        if (uri != null) TextButton(onClick = onPreview) { Text(stringResource(if (playing) R.string.alarmsui_sound_stop else R.string.alarmsui_sound_play)) }
     }
 }

@@ -18,8 +18,8 @@ object FocusNotifier {
 
     private fun ensure(context: Context) {
         context.getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(
-            NotificationChannel(CH_ONGOING, "Focus timer", NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) },
-            NotificationChannel(CH_DONE, "Focus finished", NotificationManager.IMPORTANCE_HIGH),
+            NotificationChannel(CH_ONGOING, context.getString(R.string.focus_channel_timer), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) },
+            NotificationChannel(CH_DONE, context.getString(R.string.focus_channel_done), NotificationManager.IMPORTANCE_HIGH),
         ))
     }
 
@@ -34,9 +34,9 @@ object FocusNotifier {
         val n = Notification.Builder(context, CH_ONGOING)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
-            .setContentTitle(if (s.stopwatch) "Practising: $habitName" else "Focusing: $habitName")
-            .setContentText(if (s.stopwatch) "Open the timer and tap Finish to check in."
-                else "${(s.durationMs / 60_000L)} min. Leaving early loses the progress.")
+            .setContentTitle(context.getString(if (s.stopwatch) R.string.focus_notif_practising else R.string.focus_notif_focusing, habitName))
+            .setContentText(if (s.stopwatch) context.getString(R.string.focus_notif_stopwatch_text)
+                else context.getString(R.string.focus_notif_countdown_text, s.durationMs / 60_000L))
             .setWhen(if (s.stopwatch) s.startedAt else FocusMath.endAt(s))
             .setShowWhen(true)
             .setUsesChronometer(true)
@@ -45,7 +45,7 @@ object FocusNotifier {
             .setOnlyAlertOnce(true)
             .setCategory(Notification.CATEGORY_PROGRESS)
             .setContentIntent(open(context, askCancel = false))
-            .addAction(Notification.Action.Builder(null, "Cancel", open(context, askCancel = true)).build())
+            .addAction(Notification.Action.Builder(null, context.getString(R.string.focus_cancel), open(context, askCancel = true)).build())
             .build()
         runCatching { context.getSystemService(NotificationManager::class.java).notify(ID_ONGOING, n) }
     }
@@ -60,11 +60,11 @@ object FocusNotifier {
         val n = Notification.Builder(context, CH_DONE)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
-            .setContentTitle("$habitName: $minutes min done")
+            .setContentTitle(context.getString(R.string.focus_done_title, habitName, minutes))
             .setContentText(when {
-                earned == null -> "Checked in."
-                bonus > 0 -> "Checked in. +$earned min, +$bonus comeback bonus."
-                else -> "Checked in. +$earned min."
+                earned == null -> context.getString(R.string.focus_done_checked)
+                bonus > 0 -> context.getString(R.string.focus_done_checked_bonus, earned, bonus)
+                else -> context.getString(R.string.focus_done_checked_min, earned)
             })
             .setAutoCancel(true)
             .setContentIntent(PendingIntent.getActivity(context, 2,

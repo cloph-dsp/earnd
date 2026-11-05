@@ -231,18 +231,19 @@ private fun GateHeader(target: String, gate: GateInfo, balance: Int) {
         Text(stringResource(R.string.blocking_have_headline, balance), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(8.dp))
         Num(
-            if (gate.realMinutes == null) stringResource(R.string.blocking_gate_free)
+            if (gate.realMinutes == null) stringResource(R.string.blocking_gate_free, 0)
             else stringResource(R.string.blocking_gate_rate_line, rateLabel(gate.ratePct), gate.realMinutes),
             color = p.secondary,
         )
     }
 }
 
+@Composable
 private fun rateLabel(pct: Int): String = when (pct) {
-    50 -> "½ rate"
-    100 -> "1× rate"
-    200 -> "2× rate"
-    else -> "$pct% rate"
+    50 -> stringResource(R.string.blocking_rate_half)
+    100 -> stringResource(R.string.blocking_rate_1x)
+    200 -> stringResource(R.string.blocking_rate_2x)
+    else -> stringResource(R.string.blocking_rate_pct, pct)
 }
 
 @Composable

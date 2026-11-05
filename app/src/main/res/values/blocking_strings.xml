@@ -32,7 +32,7 @@
     <string name="blocking_gate_left">%1$d min left · counts at %2$d%% while open</string>
     <string name="blocking_gate_badge_app">%1$s · counting</string>
     <string name="blocking_gate_line">%1$s · %2$d min balance ≈ %3$d min</string>
-    <string name="blocking_gate_free">Counts at 0%: free while open</string>
+    <string name="blocking_gate_free">Counts at %1$d%%: free while open</string>
     <string name="blocking_gate_open">Open and start counting</string>
     <string name="blocking_gate_pass">Or use a fixed pass</string>
     <string name="blocking_need_headline">%1$d min to open %2$s</string>
@@ -45,4 +45,8 @@
     <string name="blocking_complete_primary">Done: %1$s (+%2$d min)</string>
     <string name="blocking_gate_rate_line">%1$s · about %2$d min of use</string>
     <string name="blocking_gate_badge_confirm">%1$s · counting</string>
+    <string name="blocking_rate_half">½ rate</string>
+    <string name="blocking_rate_1x">1× rate</string>
+    <string name="blocking_rate_2x">2× rate</string>
+    <string name="blocking_rate_pct">%1$d%% rate</string>
 </resources>

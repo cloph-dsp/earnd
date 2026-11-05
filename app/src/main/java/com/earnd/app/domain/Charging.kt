@@ -1,5 +1,7 @@
 package com.earnd.app.domain
 
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -20,7 +22,7 @@ object Charging {
     /** True when going from [old] to [new] makes the app cheaper to use (a lower rate). */
     fun loosens(old: Int?, new: Int?): Boolean = strictness(new) < strictness(old)
 
-    fun label(pct: Int?): String = "Metered ${effective(pct)}%"
+    fun label(pct: Int?): String = Str.get(R.string.habits_charging_metered, effective(pct))
 
     /** "TIDAL · 50%" */
     fun note(name: String, pct: Int): String = "$name · $pct%"

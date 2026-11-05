@@ -75,6 +75,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 
 private val SEGMENT_ORDER = listOf(DaySegment.MORNING, DaySegment.AFTERNOON, DaySegment.EVENING, DaySegment.NONE)
 
@@ -134,7 +137,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            com.earnd.app.ui.theme.AddFab(onClick = onAddHabit, description = "Add habit")
+            com.earnd.app.ui.theme.AddFab(onClick = onAddHabit, description = stringResource(R.string.home_add_habit))
         },
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
@@ -161,7 +164,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                             val r = sl.timeBank.startBedtimeGrace()
                             if (r is SpendResult.Refused) snackbar.showSnackbar(refuseText(r.reason))
                         }
-                    }) { Text("Bedtime. Take ${settings.bedtimeGraceMin} minutes to wrap up") }
+                    }) { Text(stringResource(R.string.home_bedtime_grace, settings.bedtimeGraceMin)) }
                 }
             }
             if (habits.isNotEmpty()) {
@@ -169,13 +172,13 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     val done = habits.count(doneOf)
                     Column(Modifier.padding(top = 28.dp)) {
                         com.earnd.app.ui.theme.SegmentBar(done, habits.size)
-                        Num("$done of ${habits.size} habits", Modifier.padding(top = 8.dp))
+                        Num(stringResource(R.string.home_progress, done, habits.size), Modifier.padding(top = 8.dp))
                     }
                 }
             } else if (loadedHabits != null) {
                 item {
                     Text(
-                        "Nothing scheduled today, so nothing is locked. Add a habit when you're ready.",
+                        stringResource(R.string.home_nothing_scheduled),
                         style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary,
                         modifier = Modifier.padding(vertical = 20.dp),
                     )
@@ -196,7 +199,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                 item(key = "next") {
                     val p = Earnd.palette
                     Column(Modifier.padding(top = 8.dp)) {
-                        SectionTitle("Next")
+                        SectionTitle(stringResource(R.string.home_next))
                         if (nextHabit != null) {
                             val h = nextHabit.habit
                             val reward = HabitRules.rewardMinutes(h, settings)
@@ -207,16 +210,16 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                                         Text(h.name, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.headlineSmall, color = p.text)
                                     }
                                     Row {
-                                        if (reward > 0) Num("+$reward min", color = p.amber)
-                                        if (nagCount > 0) Num((if (reward > 0) " · " else "") + "ignored ${nagCount}×", color = p.red)
+                                        if (reward > 0) Num(stringResource(R.string.home_reward_min, reward), color = p.amber)
+                                        if (nagCount > 0) Num((if (reward > 0) " · " else "") + stringResource(R.string.home_ignored, nagCount), color = p.red)
                                     }
                                 }
                                 Spacer(Modifier.width(12.dp))
                                 val label = when {
                                     com.earnd.app.domain.TimedHabit.isTimed(h) -> com.earnd.app.focus.startLabel(h, settings)
-                                    HabitRules.needsPhoto(h, settings) -> "Photo"
-                                    h.targetQuantity != null -> "Add"
-                                    else -> "Check in"
+                                    HabitRules.needsPhoto(h, settings) -> stringResource(R.string.home_action_photo)
+                                    h.targetQuantity != null -> stringResource(R.string.home_action_add)
+                                    else -> stringResource(R.string.home_action_check_in)
                                 }
                                 com.earnd.app.ui.theme.Button(onClick = { doCheck(nextHabit) }, Modifier.heightIn(min = 52.dp)) { Text(label) }
                             }
@@ -224,10 +227,10 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                             Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f).clickable { onOpenTask(nextTask.id) }.padding(vertical = 8.dp)) {
                                     Text(nextTask.title, style = MaterialTheme.typography.headlineSmall, color = p.text)
-                                    Num("Task", color = p.secondary)
+                                    Num(stringResource(R.string.home_task), color = p.secondary)
                                 }
                                 Spacer(Modifier.width(12.dp))
-                                com.earnd.app.ui.theme.Button(onClick = { launchUi { sl.taskService.complete(nextTask.id) } }, Modifier.heightIn(min = 52.dp)) { Text("Done") }
+                                com.earnd.app.ui.theme.Button(onClick = { launchUi { sl.taskService.complete(nextTask.id) } }, Modifier.heightIn(min = 52.dp)) { Text(stringResource(R.string.common_done)) }
                             }
                         }
                     }
@@ -244,7 +247,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 SectionTitle(HabitLook.segmentLabel(seg), Modifier.weight(1f))
                                 if (seg == currentSeg) {
-                                    Text("Now", style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber,
+                                    Text(stringResource(R.string.home_now), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber,
                                         modifier = Modifier.padding(top = 28.dp, end = 8.dp))
                                 }
                                 Num("$done/${all.size}", Modifier.padding(top = 28.dp))
@@ -254,20 +257,20 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     }
                 }
             } else if (restHabits.isNotEmpty()) {
-                item(key = "do-now") { SectionTitle("Later today") }
+                item(key = "do-now") { SectionTitle(stringResource(R.string.home_later_today)) }
                 items(restHabits, key = { it.habit.id }) { habitRow(it) }
             }
             if (restTasks.isNotEmpty()) {
-                item(key = "tasks-today") { SectionTitle("Tasks today") }
+                item(key = "tasks-today") { SectionTitle(stringResource(R.string.home_tasks_today)) }
                 items(restTasks, key = { "t${it.id}" }) { t -> TaskRow(t, onOpenTask) }
             }
             if (doneCount > 0) {
                 item(key = "done-toggle") {
                     Column {
                         com.earnd.app.ui.theme.ListRow(onClick = { doneOpen = !doneOpen }, Modifier.padding(top = 12.dp)) {
-                            Text("Done ($doneCount)", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, color = Earnd.palette.secondary)
+                            Text(stringResource(R.string.home_done_count, doneCount), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, color = Earnd.palette.secondary)
                             Icon(if (doneOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                                if (doneOpen) "Collapse done" else "Expand done", tint = Earnd.palette.muted)
+                                stringResource(if (doneOpen) R.string.home_collapse_done else R.string.home_expand_done), tint = Earnd.palette.muted)
                         }
                         RowDivider()
                     }
@@ -293,27 +296,28 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
 private fun AmountDialog(h: HabitEntity, onDismiss: () -> Unit, onAdd: (Double) -> Unit) {
     var text by remember { mutableStateOf("") }
     val amount = HabitRules.parseAmount(text)
+    val unit = h.unit ?: stringResource(R.string.home_amount_default_unit)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(h.name) },
         text = {
             OutlinedTextField(
                 text, { text = it.take(10) },
-                label = { Text("How much? (${h.unit ?: "amount"})") }, singleLine = true,
+                label = { Text(stringResource(R.string.home_amount_prompt, unit)) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
         },
-        confirmButton = { TextButton(enabled = amount != null, onClick = { amount?.let(onAdd) }) { Text("Add") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(enabled = amount != null, onClick = { amount?.let(onAdd) }) { Text(stringResource(R.string.common_add)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
 }
 
 fun refuseText(reason: String): String = when (reason) {
-    com.earnd.app.domain.RefuseReason.HARD_MODE -> "Hard mode is on, so minutes can't be spent by hand."
-    com.earnd.app.domain.RefuseReason.NOT_ENOUGH -> "Not quite enough minutes saved yet."
-    com.earnd.app.domain.RefuseReason.GRACE_USED -> "Tonight's grace has already been used."
-    com.earnd.app.domain.RefuseReason.NOT_BEDTIME -> "It isn't bedtime right now."
-    else -> "That didn't work. Try a different amount."
+    com.earnd.app.domain.RefuseReason.HARD_MODE -> Str.get(R.string.home_refuse_hard_mode)
+    com.earnd.app.domain.RefuseReason.NOT_ENOUGH -> Str.get(R.string.home_refuse_not_enough)
+    com.earnd.app.domain.RefuseReason.GRACE_USED -> Str.get(R.string.home_refuse_grace_used)
+    com.earnd.app.domain.RefuseReason.NOT_BEDTIME -> Str.get(R.string.home_refuse_not_bedtime)
+    else -> Str.get(R.string.home_refuse_other)
 }
 
 @Composable
@@ -340,9 +344,12 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
                     textDecoration = if (complete) TextDecoration.LineThrough else null,
                 )
             }
+            val comebackText = if (!complete && hd.comebackMissed > 0) {
+                stringResource(R.string.home_comeback_label, com.earnd.app.domain.Comeback.label(hd.comebackMissed))
+            } else null
             val parts = buildList {
                 if (hd.required > 1 || hd.done > hd.required) add("${hd.done}/${hd.required}" + if (complete) " ✓" else "")
-                if (!complete && hd.comebackMissed > 0) add(com.earnd.app.domain.Comeback.label(hd.comebackMissed) + " comeback")
+                if (comebackText != null) add(comebackText)
                 if (h.targetQuantity != null) {
                     add("${fmtQty(HabitRules.quantityDone(todays))}/${fmtQty(h.targetQuantity)} ${h.unit.orEmpty()}".trim())
                 }
@@ -351,18 +358,18 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             if (focusing != null) Num(focusing, color = p.amber)
             else Row {
                 if (parts.isNotEmpty()) Num(parts.joinToString("  "), color = if (complete) p.done else p.secondary)
-                if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) " · " else "") + "ignored ${ignored}×", color = p.red)
+                if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) " · " else "") + stringResource(R.string.home_ignored, ignored), color = p.red)
             }
         }
         val rewardMin = HabitRules.rewardMinutes(h, settings)
         if (rewardMin > 0) Num("+$rewardMin", Modifier.padding(horizontal = 8.dp), color = if (complete) p.done else p.amber)
         when {
             complete && !com.earnd.app.domain.HabitProgress.isQuantity(h) ->
-                IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, "Check in again", tint = p.amber) }
+                IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.amber) }
             complete -> Unit
             com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onCheck) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.amber) }
-            HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, "Photo needed", tint = p.muted, modifier = Modifier.size(16.dp))
-            h.targetQuantity != null -> Icon(Icons.Outlined.Add, "Add amount", tint = p.muted, modifier = Modifier.size(16.dp))
+            HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, stringResource(R.string.home_photo_needed), tint = p.muted, modifier = Modifier.size(16.dp))
+            h.targetQuantity != null -> Icon(Icons.Outlined.Add, stringResource(R.string.home_add_amount), tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Unit
         }
     }

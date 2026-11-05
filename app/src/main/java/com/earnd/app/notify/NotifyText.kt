@@ -1,5 +1,8 @@
 package com.earnd.app.notify
 
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
+
 /** One scheduled habit for today as seen by the nudge and the report. */
 data class HabitLine(val name: String, val done: Int, val target: Int) {
     val complete get() = done >= target
@@ -9,25 +12,27 @@ data class NotifyMessage(val title: String, val body: String)
 
 /** Pure text builders, kept free of Android so they can be unit-tested. */
 object NotifyText {
-    /** Small rotating set of short original lines; picked by day so it changes daily. */
-    val MORNING_LINES = listOf(
-        "Small steps first, screen time after.",
-        "Start with the easiest one.",
-        "Today's minutes are waiting to be earned.",
-        "One check-in and you're on your way.",
-        "Do it now, enjoy it later.",
-        "A fresh day, a fresh bank.",
-        "Future you says thanks in advance.",
+    private val MORNING_LINE_IDS = intArrayOf(
+        R.string.notify_morning_line_1,
+        R.string.notify_morning_line_2,
+        R.string.notify_morning_line_3,
+        R.string.notify_morning_line_4,
+        R.string.notify_morning_line_5,
+        R.string.notify_morning_line_6,
+        R.string.notify_morning_line_7,
     )
 
+    /** Small rotating set of short original lines; picked by day so it changes daily. */
+    val MORNING_LINES: List<String> get() = MORNING_LINE_IDS.map { Str.get(it) }
+
     fun morningLine(epochDay: Long): String =
-        MORNING_LINES[Math.floorMod(epochDay, MORNING_LINES.size.toLong()).toInt()]
+        Str.get(MORNING_LINE_IDS[Math.floorMod(epochDay, MORNING_LINE_IDS.size.toLong()).toInt()])
 
     /** Null when there is nothing to nudge about. */
     fun morning(epochDay: Long, habits: List<HabitLine>): NotifyMessage? {
         val open = habits.filterNot { it.complete }
         if (open.isEmpty()) return null
-        val title = if (open.size == 1) "1 habit today" else "${open.size} habits today"
+        val title = Str.plural(R.plurals.notify_habits_today, open.size)
         return NotifyMessage(title, morningLine(epochDay) + "\n" + listNames(open))
     }
 
@@ -37,21 +42,21 @@ object NotifyText {
         val done = habits.filter { it.complete }
         val missed = habits.filterNot { it.complete }
         val title = when {
-            habits.isEmpty() -> "Today's report"
-            missed.isEmpty() -> "All done today: ${done.size}/${habits.size}"
-            else -> "Today: ${done.size}/${habits.size} habits done"
+            habits.isEmpty() -> Str.get(R.string.notify_report_title_empty)
+            missed.isEmpty() -> Str.get(R.string.notify_report_title_all, done.size, habits.size)
+            else -> Str.get(R.string.notify_report_title_partial, done.size, habits.size)
         }
         val lines = buildList {
-            if (done.isNotEmpty()) add("Done: " + listNames(done))
-            if (missed.isNotEmpty()) add("Missed: " + listNames(missed))
-            add("Leisure used: ${minutes(leisureMinutesUsed)} · earned: ${minutes(earnedMinutes)}")
+            if (done.isNotEmpty()) add(Str.get(R.string.notify_report_done, listNames(done)))
+            if (missed.isNotEmpty()) add(Str.get(R.string.notify_report_missed, listNames(missed)))
+            add(Str.get(R.string.notify_report_leisure, minutes(leisureMinutesUsed), minutes(earnedMinutes)))
         }
         return NotifyMessage(title, lines.joinToString("\n"))
     }
 
     fun minutes(m: Int): String {
         val v = m.coerceAtLeast(0)
-        return if (v >= 60) "${v / 60} h ${v % 60} min" else "$v min"
+        return if (v >= 60) Str.get(R.string.notify_hours_minutes, v / 60, v % 60) else Str.get(R.string.notify_minutes, v)
     }
 
     private fun listNames(l: List<HabitLine>, max: Int = 5): String {

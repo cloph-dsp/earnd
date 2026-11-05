@@ -1,5 +1,7 @@
 package com.earnd.app.ui.apps
 
+import com.earnd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,7 +71,7 @@ import com.earnd.app.ui.theme.Num
 import com.earnd.app.ui.theme.RowDivider
 import kotlinx.coroutines.launch
 
-private val TABS = listOf("Leisure apps", "Websites", "Always open")
+private val TABS = listOf(R.string.apps_tab_leisure, R.string.apps_tab_websites, R.string.apps_tab_always_open)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,27 +99,27 @@ fun AppsScreen(onBack: () -> Unit) {
     val announce: (Long) -> Unit = { at ->
         reload++
         if (at > sl.clock.now()) scope.launch {
-            snackbar.showSnackbar("Hard mode: this takes effect at ${formatMinuteOfDay(sl.clock.minuteOfDay(at))}.")
+            snackbar.showSnackbar(context.getString(R.string.apps_hard_mode_effect, formatMinuteOfDay(sl.clock.minuteOfDay(at))))
         }
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(title = { Text("Apps and sites") }, navigationIcon = {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
+            TopAppBar(title = { Text(stringResource(R.string.apps_title)) }, navigationIcon = {
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.apps_back)) }
             })
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             TabRow(selectedTabIndex = tab, divider = { RowDivider() }) {
-                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, selectedContentColor = Earnd.palette.amber, unselectedContentColor = Earnd.palette.secondary, text = { Text(t, maxLines = 1) }) }
+                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, selectedContentColor = Earnd.palette.amber, unselectedContentColor = Earnd.palette.secondary, text = { Text(stringResource(t), maxLines = 1) }) }
             }
             if (pending.isNotEmpty()) PendingList(pending) { key -> launchUi { PendingRuleChanges.cancel(key); reload++ } }
             when (tab) {
-                0 -> AppList(apps, rules, usage, header = "Leisure apps open while you have minutes. The percentage is how much of their screen time is charged.") { app, isLeisure, isEssential ->
+                0 -> AppList(apps, rules, usage, header = stringResource(R.string.apps_header_leisure)) { app, isLeisure, isEssential ->
                     if (isEssential) {
-                        Text("Always open", style = MaterialTheme.typography.labelSmall, color = Earnd.palette.muted)
+                        Text(stringResource(R.string.apps_tab_always_open), style = MaterialTheme.typography.labelSmall, color = Earnd.palette.muted)
                     } else {
                         if (isLeisure) {
                             val cur = rules.firstOrNull { it.key == app.pkg && !it.isWebsite }?.meterPct
@@ -137,14 +139,14 @@ fun AppsScreen(onBack: () -> Unit) {
                 1 -> WebsiteList(rules.filter { it.isWebsite }, onAdd = { host ->
                     launchUi { PendingRuleChanges.addLeisure(host, host, true); reload++ }
                 }, onRemove = { r -> gate { launchUi { announce(PendingRuleChanges.removeLeisure(r.key, r.label, true)) } } })
-                else -> AppList(apps, rules, usage, header = "Calls, messages, maps, settings and this app are always open. Add others here.") { app, isLeisure, isEssential ->
+                else -> AppList(apps, rules, usage, header = stringResource(R.string.apps_header_always_open)) { app, isLeisure, isEssential ->
                     val userAllowed = rules.any { it.key == app.pkg && it.rule == AppRule.ALLOWED }
                     val builtIn = isEssential && !userAllowed
                     Checkbox(isEssential, enabled = !builtIn, onCheckedChange = { on ->
                         if (on) gate { launchUi { announce(PendingRuleChanges.allow(app.pkg, app.label)) } }
                         else launchUi { PendingRuleChanges.disallow(app.pkg); reload++ }
                     })
-                    if (isLeisure && !isEssential) Text("Leisure", style = MaterialTheme.typography.labelSmall, color = Earnd.palette.amber)
+                    if (isLeisure && !isEssential) Text(stringResource(R.string.apps_leisure_tag), style = MaterialTheme.typography.labelSmall, color = Earnd.palette.amber)
                 }
             }
         }
@@ -164,7 +166,7 @@ private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             Charging.RATES.forEach { r ->
                 DropdownMenuItem(
-                    text = { Text("Counts $r% of time" + if (r == Charging.DEFAULT_RATE) " (default)" else "") },
+                    text = { Text(stringResource(if (r == Charging.DEFAULT_RATE) R.string.apps_counts_pct_default else R.string.apps_counts_pct, r)) },
                     onClick = { open = false; onPick(r) },
                 )
             }
@@ -175,14 +177,14 @@ private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
 @Composable
 private fun PendingList(pending: List<PendingRuleChanges.Pending>, onCancel: (String) -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text("Waiting for the hard-mode cooldown", style = MaterialTheme.typography.titleSmall, color = com.earnd.app.ui.theme.Earnd.palette.secondary)
+        Text(stringResource(R.string.apps_pending_title), style = MaterialTheme.typography.titleSmall, color = com.earnd.app.ui.theme.Earnd.palette.secondary)
         pending.forEach { p ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${p.label} at ${formatMinuteOfDay(ServiceLocator.clock.minuteOfDay(p.appliesAt))}",
+                    stringResource(R.string.apps_pending_item, p.label, formatMinuteOfDay(ServiceLocator.clock.minuteOfDay(p.appliesAt))),
                     modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
                 )
-                TextButton(onClick = { onCancel(p.key) }) { Text("Cancel") }
+                TextButton(onClick = { onCancel(p.key) }) { Text(stringResource(R.string.apps_cancel)) }
             }
         }
     }
@@ -212,16 +214,16 @@ private fun AppList(
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         OutlinedTextField(
             value = query, onValueChange = { query = it }, singleLine = true,
-            placeholder = { Text("Search apps") },
+            placeholder = { Text(stringResource(R.string.apps_search_placeholder)) },
             trailingIcon = {
-                if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, "Clear search") }
+                if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, stringResource(R.string.apps_clear_search)) }
             },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
         )
         LazyColumn(Modifier.fillMaxSize()) {
             item { Text(header, style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(vertical = 8.dp)) }
             if (shown.isEmpty()) item {
-                Text("No apps match.", style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.muted, modifier = Modifier.padding(vertical = 16.dp))
+                Text(stringResource(R.string.apps_no_match), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.muted, modifier = Modifier.padding(vertical = 16.dp))
             }
             items(shown, key = { it.pkg }) { app ->
                 val isEssential = essentials.isEssential(app.pkg) || app.pkg in allowed
@@ -231,7 +233,7 @@ private fun AppList(
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 6.dp)) {
                         Text(app.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                         val ms = usage[app.pkg] ?: 0L
-                        if (ms >= 60_000L) Num("${formatMinutes((ms / 60_000).toInt())} today", color = Earnd.palette.muted)
+                        if (ms >= 60_000L) Num(stringResource(R.string.apps_usage_today, formatMinutes((ms / 60_000).toInt())), color = Earnd.palette.muted)
                     }
                     trailing(app, app.pkg in leisure, isEssential)
                 }
@@ -246,7 +248,7 @@ private fun WebsiteList(sites: List<AppRuleEntity>, onAdd: (String) -> Unit, onR
     var text by remember { mutableStateOf("") }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         item {
-            Text("Sites listed here lock in browsers, including their subdomains.", style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(vertical = 8.dp))
+            Text(stringResource(R.string.apps_sites_explain), style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(vertical = 8.dp))
             OutlinedTextField(
                 value = text, onValueChange = { text = it }, singleLine = true,
                 placeholder = { Text("example.com") },
@@ -254,18 +256,18 @@ private fun WebsiteList(sites: List<AppRuleEntity>, onAdd: (String) -> Unit, onR
                     IconButton(onClick = {
                         normalizeHost(text)?.let(onAdd)
                         text = ""
-                    }) { Icon(Icons.Outlined.Add, "Add site") }
+                    }) { Icon(Icons.Outlined.Add, stringResource(R.string.apps_add_site)) }
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         if (sites.isEmpty()) item {
-            Text("No sites yet.", style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.muted, modifier = Modifier.padding(vertical = 16.dp))
+            Text(stringResource(R.string.apps_no_sites), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.muted, modifier = Modifier.padding(vertical = 16.dp))
         }
         items(sites, key = { it.key }) { r ->
             Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(r.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                IconButton(onClick = { onRemove(r) }) { Icon(Icons.Outlined.Close, "Remove ${r.label}") }
+                IconButton(onClick = { onRemove(r) }) { Icon(Icons.Outlined.Close, stringResource(R.string.apps_remove_site, r.label)) }
             }
             RowDivider()
         }

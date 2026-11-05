@@ -16,7 +16,9 @@ import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.earnd.app.R
 import com.earnd.app.data.entity.DaySegment
+import com.earnd.app.i18n.Str
 
 /** App-owned icon set and colour swatches for habits. Keys are stored in HabitEntity.iconKey. */
 object HabitLook {
@@ -44,10 +46,31 @@ object HabitLook {
 
     fun icon(key: String): ImageVector = icons[key] ?: Icons.Outlined.Star
 
-    fun segmentLabel(s: DaySegment): String = when (s) {
-        DaySegment.MORNING -> "Morning"
-        DaySegment.AFTERNOON -> "Afternoon"
-        DaySegment.EVENING -> "Evening"
-        DaySegment.NONE -> "Any time"
+    fun segmentLabel(s: DaySegment): String = Str.get(
+        when (s) {
+            DaySegment.MORNING -> R.string.habits_segment_morning
+            DaySegment.AFTERNOON -> R.string.habits_segment_afternoon
+            DaySegment.EVENING -> R.string.habits_segment_evening
+            DaySegment.NONE -> R.string.habits_segment_any
+        },
+    )
+
+    /** Spoken name of an icon, for content descriptions; the key itself when unknown. */
+    fun iconLabel(key: String): String = when (key) {
+        "star" -> Str.get(R.string.habits_icon_star)
+        "water" -> Str.get(R.string.habits_icon_water)
+        "move" -> Str.get(R.string.habits_icon_move)
+        "read" -> Str.get(R.string.habits_icon_read)
+        "meds" -> Str.get(R.string.habits_icon_meds)
+        "calm" -> Str.get(R.string.habits_icon_calm)
+        "tidy" -> Str.get(R.string.habits_icon_tidy)
+        "food" -> Str.get(R.string.habits_icon_food)
+        "sleep" -> Str.get(R.string.habits_icon_sleep)
+        "work" -> Str.get(R.string.habits_icon_work)
+        "create" -> Str.get(R.string.habits_icon_create)
+        "music" -> Str.get(R.string.habits_icon_music)
+        "care" -> Str.get(R.string.habits_icon_care)
+        "plant" -> Str.get(R.string.habits_icon_plant)
+        else -> key
     }
 }

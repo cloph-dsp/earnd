@@ -25,6 +25,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,7 +83,7 @@ fun TimeBankCard(
                 val leftMs = s.plannedEndAt - now
                 val total = (s.plannedEndAt - s.startedAt).coerceAtLeast(1L)
                 Text(
-                    if (s.reason == SessionReason.ALL_DONE) "OPEN FOR THE REST OF TODAY" else "OPEN · TIME LEFT",
+                    stringResource(if (s.reason == SessionReason.ALL_DONE) R.string.home_bank_open_rest_of_day else R.string.home_bank_open_time_left),
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp), color = p.secondary,
                 )
                 Row(verticalAlignment = Alignment.Bottom) {
@@ -91,43 +93,45 @@ fun TimeBankCard(
                     Num(formatRemaining(leftMs), Modifier.padding(bottom = 8.dp), color = p.secondary)
                 }
                 DrainRuler(leftMs.toFloat() / total)
-                Num("Until " + UiFormats.value.formatTime(s.plannedEndAt, java.time.ZoneId.systemDefault()), color = p.secondary)
+                Num(stringResource(R.string.home_bank_until, UiFormats.value.formatTime(s.plannedEndAt, java.time.ZoneId.systemDefault())), color = p.secondary)
                 if (s.reason == SessionReason.SPEND) {
-                    Text("Unused whole minutes go back to the bank.", style = MaterialTheme.typography.bodySmall, color = p.secondary)
+                    Text(stringResource(R.string.home_bank_unused_back), style = MaterialTheme.typography.bodySmall, color = p.secondary)
                 }
                 Spacer(Modifier.height(4.dp))
-                OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Lock now") }
+                OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.home_bank_lock_now)) }
             } else {
                 // The unlock cap limits one session, not the bank, so it is not a scale for the balance.
                 val scale = maxOf(DRAIN_REFERENCE_MIN, (state.balance + 29) / 30 * 30)
-                Text("LOCKED · BALANCE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp), color = p.secondary)
+                Text(stringResource(R.string.home_bank_locked_balance), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp), color = p.secondary)
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(if (state.loading) "—" else "${state.balance}", style = NumberStyle.copy(fontSize = 64.sp, lineHeight = 64.sp), color = p.amber)
                     Text(" min", Modifier.padding(bottom = 8.dp), style = MaterialTheme.typography.bodyLarge, color = p.secondary)
                     Spacer(Modifier.weight(1f))
-                    Num("of $scale min", Modifier.padding(bottom = 8.dp), color = p.secondary)
+                    Num(stringResource(R.string.home_bank_of_scale, scale), Modifier.padding(bottom = 8.dp), color = p.secondary)
                 }
                 DrainRuler(state.balance, scale)
                 DrainScale(scale)
                 if (state.nextExpiryAt != null && state.minutesExpiringNext > 0) {
                     Num(
-                        "${state.minutesExpiringNext} min expire at " +
+                        stringResource(
+                            R.string.home_bank_expire_at, state.minutesExpiringNext,
                             UiFormats.value.formatTime(state.nextExpiryAt, java.time.ZoneId.systemDefault()),
+                        ),
                         color = p.secondary,
                     )
                 }
                 when {
                     state.allDone && state.allDoneUnlock -> {
-                        Text("Everything for today is done.", style = MaterialTheme.typography.bodyMedium, color = p.secondary)
+                        Text(stringResource(R.string.home_bank_all_done), style = MaterialTheme.typography.bodyMedium, color = p.secondary)
                         Spacer(Modifier.height(4.dp))
-                        Button(onClick = onAllDoneUnlock, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Unlock for today") }
+                        Button(onClick = onAllDoneUnlock, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.home_bank_unlock_today)) }
                     }
                     state.hardMode -> Text(
-                        "Hard mode: apps open once today's habits are done.",
+                        stringResource(R.string.home_bank_hard_mode),
                         style = MaterialTheme.typography.bodyMedium, color = p.secondary,
                     )
                     state.balance > 0 -> SpendPicker(state.balance, state.unlockCapMin, onSpend)
-                    else -> Text("Check in a habit or finish a task to earn minutes.", style = MaterialTheme.typography.bodyMedium, color = p.secondary)
+                    else -> Text(stringResource(R.string.home_bank_earn_hint), style = MaterialTheme.typography.bodyMedium, color = p.secondary)
                 }
             }
         }
@@ -141,7 +145,7 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
     var pick by remember(balance, cap) { mutableIntStateOf(options.first()) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() } }
-    Text("Minutes to open", style = MaterialTheme.typography.labelSmall, color = p.secondary)
+    Text(stringResource(R.string.home_bank_minutes_to_open), style = MaterialTheme.typography.labelSmall, color = p.secondary)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { m ->
             val sel = m == pick
@@ -152,11 +156,11 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
                     .selectable(selected = sel, role = Role.RadioButton, onClick = { pick = m }),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(if (m == balance) "All" else if (m == options.last() && cap != null) "Max $m" else "$m", style = NumberStyle.copy(fontSize = 15.sp, lineHeight = 18.sp), color = if (sel) p.onAmber else p.text)
+                Text(if (m == balance) stringResource(R.string.home_bank_pick_all) else if (m == options.last() && cap != null) stringResource(R.string.home_bank_pick_max, m) else "$m", style = NumberStyle.copy(fontSize = 15.sp, lineHeight = 18.sp), color = if (sel) p.onAmber else p.text)
             }
         }
     }
     QuietButton(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-        Text("Unlock ${formatMinutes(pick)} · until " + UiFormats.value.formatTime(now + pick * 60_000L, java.time.ZoneId.systemDefault()), style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.home_bank_unlock_until, formatMinutes(pick), UiFormats.value.formatTime(now + pick * 60_000L, java.time.ZoneId.systemDefault())), style = MaterialTheme.typography.labelLarge)
     }
 }

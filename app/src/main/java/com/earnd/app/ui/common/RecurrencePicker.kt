@@ -20,10 +20,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.earnd.app.R
 import com.earnd.app.domain.RRule
 import com.earnd.app.domain.RRule.Freq
 import com.earnd.app.domain.RRule.WeekdayNum
+import com.earnd.app.i18n.Str
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -48,13 +51,16 @@ fun RecurrencePicker(rule: RRule?, fromCompletion: Boolean, start: LocalDate, on
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Preset.values().forEach { p ->
             val label = when (p) {
-                Preset.ONCE -> "Once"
-                Preset.DAILY -> "Daily"
-                Preset.WEEKDAYS -> "Weekdays"
-                Preset.WEEKLY -> "Weekly on ${RRule.dayName(start.dayOfWeek)}"
-                Preset.MONTHLY -> "Monthly on the ${RRule.ordinalName(start.dayOfMonth)}"
-                Preset.YEARLY -> "Yearly on ${start.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${start.dayOfMonth}"
-                Preset.CUSTOM -> "Custom…"
+                Preset.ONCE -> stringResource(R.string.rrule_once)
+                Preset.DAILY -> stringResource(R.string.rrule_daily)
+                Preset.WEEKDAYS -> stringResource(R.string.rrule_weekdays)
+                Preset.WEEKLY -> stringResource(R.string.rrule_weekly_on, RRule.dayName(start.dayOfWeek))
+                Preset.MONTHLY -> stringResource(R.string.rrule_monthly_on, stringResource(R.string.rrule_the, RRule.dayOfMonthName(start.dayOfMonth)))
+                Preset.YEARLY -> stringResource(
+                    R.string.rrule_yearly_on,
+                    stringResource(R.string.rrule_month_days, RRule.monthName(start.monthValue), start.dayOfMonth.toString()),
+                )
+                Preset.CUSTOM -> stringResource(R.string.rrule_custom_ellipsis)
             }
             FilterChip(selected = p == selected, onClick = {
                 if (p == Preset.CUSTOM) custom = true else onChange(presets[p], false)
@@ -126,63 +132,79 @@ private fun CustomRecurrenceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Custom repeat") },
+        title = { Text(stringResource(R.string.rrule_custom_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                SectionTitle("Next date counts from")
-                ChoiceChips(listOf(false, true), fromCompletion, { if (it) "Completion" else "Due date" }) { fromCompletion = it }
-                SectionTitle("Every")
-                NumberField("How many", interval, { interval = it }, Modifier.fillMaxWidth())
+                SectionTitle(stringResource(R.string.rrule_counts_from))
+                ChoiceChips(listOf(false, true), fromCompletion, { Str.get(if (it) R.string.rrule_completion else R.string.rrule_due_date) }) { fromCompletion = it }
+                SectionTitle(stringResource(R.string.rrule_every))
+                NumberField(stringResource(R.string.rrule_how_many), interval, { interval = it }, Modifier.fillMaxWidth())
                 ChoiceChips(Freq.values().toList(), freq, {
                     val plural = (interval ?: 1) != 1
-                    when (it) {
-                        Freq.DAILY -> if (plural) "Days" else "Day"; Freq.WEEKLY -> if (plural) "Weeks" else "Week"
-                        Freq.MONTHLY -> if (plural) "Months" else "Month"; Freq.YEARLY -> if (plural) "Years" else "Year"
-                    }
+                    Str.get(
+                        when (it) {
+                            Freq.DAILY -> if (plural) R.string.rrule_unit_days else R.string.rrule_unit_day
+                            Freq.WEEKLY -> if (plural) R.string.rrule_unit_weeks else R.string.rrule_unit_week
+                            Freq.MONTHLY -> if (plural) R.string.rrule_unit_months else R.string.rrule_unit_month
+                            Freq.YEARLY -> if (plural) R.string.rrule_unit_years else R.string.rrule_unit_year
+                        },
+                    )
                 }) { freq = it }
                 if (!fromCompletion) when (freq) {
-                    Freq.WEEKLY -> { SectionTitle("On"); WeekdayPicker(mask) { mask = it } }
+                    Freq.WEEKLY -> { SectionTitle(stringResource(R.string.rrule_on)); WeekdayPicker(mask) { mask = it } }
                     Freq.MONTHLY -> {
-                        SectionTitle("On")
+                        SectionTitle(stringResource(R.string.rrule_on))
                         ChoiceChips(MonthMode.values().toList(), monthMode, {
-                            when (it) { MonthMode.DAY -> "Day of month"; MonthMode.LAST_DAY -> "Last day"; MonthMode.NTH_WEEKDAY -> "Nth weekday" }
+                            Str.get(
+                                when (it) {
+                                    MonthMode.DAY -> R.string.rrule_mode_day
+                                    MonthMode.LAST_DAY -> R.string.rrule_mode_last_day
+                                    MonthMode.NTH_WEEKDAY -> R.string.rrule_mode_nth_weekday
+                                },
+                            )
                         }) { monthMode = it }
                         when (monthMode) {
-                            MonthMode.DAY -> NumberField("Day (1-31, clamps to month end)", monthDay, { monthDay = it })
+                            MonthMode.DAY -> NumberField(stringResource(R.string.rrule_day_clamps), monthDay, { monthDay = it })
                             MonthMode.NTH_WEEKDAY -> NthWeekday(ordinal, nthDay, { ordinal = it }, { nthDay = it })
                             MonthMode.LAST_DAY -> Unit
                         }
                     }
                     Freq.YEARLY -> {
-                        SectionTitle("On")
-                        val month = start.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+                        SectionTitle(stringResource(R.string.rrule_on))
+                        val month = start.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
                         ChoiceChips(listOf(MonthMode.DAY, MonthMode.NTH_WEEKDAY), if (monthMode == MonthMode.NTH_WEEKDAY) monthMode else MonthMode.DAY, {
-                            if (it == MonthMode.DAY) "$month ${start.dayOfMonth}" else "A weekday of $month"
+                            if (it == MonthMode.DAY) Str.get(R.string.rrule_month_days, month, start.dayOfMonth.toString()) else Str.get(R.string.rrule_a_weekday_of, month)
                         }) { monthMode = it }
                         if (monthMode == MonthMode.NTH_WEEKDAY) NthWeekday(ordinal, nthDay, { ordinal = it }, { nthDay = it })
                     }
                     Freq.DAILY -> Unit
                 }
-                SectionTitle("Ends")
+                SectionTitle(stringResource(R.string.rrule_ends))
                 ChoiceChips(EndMode.values().toList(), endMode, {
-                    when (it) { EndMode.NEVER -> "Never"; EndMode.UNTIL -> "On a date"; EndMode.COUNT -> "After N times" }
+                    Str.get(
+                        when (it) {
+                            EndMode.NEVER -> R.string.rrule_end_never
+                            EndMode.UNTIL -> R.string.rrule_end_on_date
+                            EndMode.COUNT -> R.string.rrule_end_after_n
+                        },
+                    )
                 }) { endMode = it }
                 when (endMode) {
-                    EndMode.UNTIL -> OutlinedTextField(untilText, { untilText = it }, label = { Text("Last date (YYYY-MM-DD)") }, singleLine = true)
-                    EndMode.COUNT -> NumberField("Times", count, { count = it })
+                    EndMode.UNTIL -> OutlinedTextField(untilText, { untilText = it }, label = { Text(stringResource(R.string.rrule_last_date)) }, singleLine = true)
+                    EndMode.COUNT -> NumberField(stringResource(R.string.rrule_times), count, { count = it })
                     EndMode.NEVER -> Unit
                 }
-                Text(draft?.summary(fromCompletion, start) ?: "Check the values above.",
+                Text(draft?.summary(fromCompletion, start) ?: stringResource(R.string.rrule_check_values),
                     style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 12.dp))
             }
         },
-        confirmButton = { TextButton(enabled = draft != null, onClick = { draft?.let { onApply(it, fromCompletion) } }) { Text("Done") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(enabled = draft != null, onClick = { draft?.let { onApply(it, fromCompletion) } }) { Text(stringResource(R.string.habits_done)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.habits_cancel)) } },
     )
 }
 
 @Composable
 private fun NthWeekday(ordinal: Int, day: DayOfWeek, onOrdinal: (Int) -> Unit, onDay: (DayOfWeek) -> Unit) {
-    ChoiceChips(listOf(1, 2, 3, 4, -1), ordinal, { RRule.ordinalName(it).replaceFirstChar(Char::uppercase) }, onOrdinal)
-    ChoiceChips(DayOfWeek.values().toList(), day, { RRule.dayName(it) }, onDay)
+    ChoiceChips(listOf(1, 2, 3, 4, -1), ordinal, { RRule.ordinalName(it, day).replaceFirstChar(Char::uppercase) }, onOrdinal)
+    ChoiceChips(DayOfWeek.values().toList(), day, { RRule.dayName(it).replaceFirstChar { c -> c.titlecase(Locale.getDefault()) } }, onDay)
 }

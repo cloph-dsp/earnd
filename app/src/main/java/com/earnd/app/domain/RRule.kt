@@ -1,5 +1,7 @@
 package com.earnd.app.domain
 
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -158,47 +160,64 @@ data class RRule(
 
     /** Human-readable summary, e.g. "Every 2 weeks on Sun" or "3 days after completion, 10 times". */
     fun summary(fromCompletion: Boolean = false, start: LocalDate? = null): String {
-        val unit = when (freq) { Freq.DAILY -> "day"; Freq.WEEKLY -> "week"; Freq.MONTHLY -> "month"; Freq.YEARLY -> "year" }
         val base = if (fromCompletion) {
-            "${if (interval == 1) "1 $unit" else "$interval ${unit}s"} after completion"
+            Str.plural(
+                when (freq) {
+                    Freq.DAILY -> R.plurals.rrule_after_completion_days
+                    Freq.WEEKLY -> R.plurals.rrule_after_completion_weeks
+                    Freq.MONTHLY -> R.plurals.rrule_after_completion_months
+                    Freq.YEARLY -> R.plurals.rrule_after_completion_years
+                },
+                interval,
+            )
         } else when (freq) {
-            Freq.DAILY -> (if (interval == 1) "Daily" else "Every $interval days") +
-                (if (byDay.isNotEmpty()) " on " + dayList() else "")
-            Freq.WEEKLY -> when {
-                interval == 1 && byDay.map { it.day }.toSet() == WORKDAYS -> "Weekdays"
-                else -> (if (interval == 1) "Weekly" else "Every $interval weeks") +
-                    " on " + (if (byDay.isEmpty()) start?.dayOfWeek?.let(::dayName) ?: "the same day" else dayList())
+            Freq.DAILY -> {
+                val head = if (interval == 1) Str.get(R.string.rrule_daily) else Str.get(R.string.rrule_every_days, interval)
+                if (byDay.isNotEmpty()) Str.get(R.string.rrule_with_days, head, dayList()) else head
             }
-            Freq.MONTHLY -> (if (interval == 1) "Monthly" else "Every $interval months") + " on " + monthPart(start)
-            Freq.YEARLY -> (if (interval == 1) "Yearly" else "Every $interval years") + " on " + yearPart(start)
+            Freq.WEEKLY -> when {
+                interval == 1 && byDay.map { it.day }.toSet() == WORKDAYS -> Str.get(R.string.rrule_weekdays)
+                else -> {
+                    val days = if (byDay.isEmpty()) start?.dayOfWeek?.let(::dayName) ?: Str.get(R.string.rrule_same_day) else dayList()
+                    if (interval == 1) Str.get(R.string.rrule_weekly_on, days) else Str.get(R.string.rrule_every_weeks_on, interval, days)
+                }
+            }
+            Freq.MONTHLY ->
+                if (interval == 1) Str.get(R.string.rrule_monthly_on, monthPart(start))
+                else Str.get(R.string.rrule_every_months_on, interval, monthPart(start))
+            Freq.YEARLY ->
+                if (interval == 1) Str.get(R.string.rrule_yearly_on, yearPart(start))
+                else Str.get(R.string.rrule_every_years_on, interval, yearPart(start))
         }
-        val end = when {
-            count != null -> if (count == 1) ", once" else ", $count times"
-            until != null -> ", until $until"
-            else -> ""
+        return when {
+            count == 1 -> Str.get(R.string.rrule_with_once, base)
+            count != null -> Str.get(R.string.rrule_with_times, base, count)
+            until != null -> Str.get(R.string.rrule_with_until, base, until.toString())
+            else -> base
         }
-        return base + end
     }
 
     private fun dayList() = byDay.sortedBy { it.day.value }.joinToString(", ") { dayName(it.day) }
 
     private fun monthPart(start: LocalDate?): String = when {
-        byMonthDay.isNotEmpty() -> "the " + byMonthDay.joinToString(", ") { dayOfMonthName(it) }
-        byDay.isNotEmpty() -> "the " + byDay.joinToString(", ") { wd ->
-            (if (wd.ordinal == 0) "every" else ordinalName(wd.ordinal)) + " " + fullDayName(wd.day)
-        }
-        start != null -> "the " + dayOfMonthName(start.dayOfMonth)
-        else -> "the same day"
+        byMonthDay.isNotEmpty() -> Str.get(R.string.rrule_the, byMonthDay.joinToString(", ") { dayOfMonthName(it) })
+        byDay.isNotEmpty() -> Str.get(R.string.rrule_the, byDay.joinToString(", ") { wd ->
+            if (wd.ordinal == 0) Str.get(R.string.rrule_every_weekday, fullDayName(wd.day))
+            else Str.get(R.string.rrule_nth_weekday, ordinalName(wd.ordinal, wd.day), fullDayName(wd.day))
+        })
+        start != null -> Str.get(R.string.rrule_the, dayOfMonthName(start.dayOfMonth))
+        else -> Str.get(R.string.rrule_same_day)
     }
 
     private fun yearPart(start: LocalDate?): String {
         val months = byMonth.ifEmpty { listOfNotNull(start?.monthValue) }
-        val monthNames = months.joinToString(", ") { java.time.Month.of(it).getDisplayName(TextStyle.SHORT, Locale.ENGLISH) }
+        val monthNames = months.joinToString(", ") { monthName(it) }
         return when {
-            byDay.isNotEmpty() -> monthPart(start) + " of " + monthNames
-            byMonthDay.isNotEmpty() -> "$monthNames " + byMonthDay.joinToString(", ") { if (it > 0) "$it" else dayOfMonthName(it) }
-            start != null -> "$monthNames ${start.dayOfMonth}"
-            else -> "the same date"
+            byDay.isNotEmpty() -> Str.get(R.string.rrule_of_months, monthPart(start), monthNames)
+            byMonthDay.isNotEmpty() ->
+                Str.get(R.string.rrule_month_days, monthNames, byMonthDay.joinToString(", ") { if (it > 0) "$it" else dayOfMonthName(it) })
+            start != null -> Str.get(R.string.rrule_month_days, monthNames, "${start.dayOfMonth}")
+            else -> Str.get(R.string.rrule_same_date)
         }
     }
 
@@ -216,18 +235,37 @@ data class RRule(
         fun maskToDays(mask: Int): List<DayOfWeek> = DayOfWeek.values().filter { mask and (1 shl (it.value - 1)) != 0 }
         fun daysToMask(days: Collection<DayOfWeek>): Int = days.fold(0) { m, d -> m or (1 shl (d.value - 1)) }
 
-        fun dayName(d: DayOfWeek): String = d.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
-        fun fullDayName(d: DayOfWeek): String = d.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+        fun dayName(d: DayOfWeek): String = d.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+        fun fullDayName(d: DayOfWeek): String = d.getDisplayName(TextStyle.FULL, Locale.getDefault())
 
-        fun ordinalName(n: Int): String = when (n) {
-            -1 -> "last"; -2 -> "second to last"; 1 -> "1st"; 2 -> "2nd"; 3 -> "3rd"
-            else -> if (n > 0) "${n}th" else "${-n}th to last"
+        /** Short month name (1..12) in the current language. */
+        fun monthName(month: Int): String = java.time.Month.of(month).getDisplayName(TextStyle.SHORT, Locale.getDefault())
+
+        /** Ordinal in the masculine form ("1st", "last", "second to last"). */
+        fun ordinalName(n: Int): String = ordinal(n, feminine = false)
+
+        /** Ordinal agreeing with the weekday's grammatical gender (relevant in languages that inflect it). */
+        fun ordinalName(n: Int, day: DayOfWeek): String = ordinal(n, feminine = day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY)
+
+        private fun ordinal(n: Int, feminine: Boolean): String = when (n) {
+            -1 -> Str.get(if (feminine) R.string.rrule_ord_f_last else R.string.rrule_ord_m_last)
+            -2 -> Str.get(if (feminine) R.string.rrule_ord_f_last2 else R.string.rrule_ord_m_last2)
+            1 -> Str.get(if (feminine) R.string.rrule_ord_f_1 else R.string.rrule_ord_m_1)
+            2 -> Str.get(if (feminine) R.string.rrule_ord_f_2 else R.string.rrule_ord_m_2)
+            3 -> Str.get(if (feminine) R.string.rrule_ord_f_3 else R.string.rrule_ord_m_3)
+            else ->
+                if (n > 0) Str.get(if (feminine) R.string.rrule_ord_f_n else R.string.rrule_ord_m_n, n)
+                else Str.get(if (feminine) R.string.rrule_ord_f_last_n else R.string.rrule_ord_m_last_n, -n)
         }
 
         fun dayOfMonthName(d: Int): String = when {
-            d == -1 -> "last day"
-            d < 0 -> "${ordinalName(d)} day"
-            else -> ordinalName(d)
+            d == -1 -> Str.get(R.string.rrule_dom_last)
+            d == -2 -> Str.get(R.string.rrule_dom_last2)
+            d < 0 -> Str.get(R.string.rrule_dom_last_n, -d)
+            d == 1 -> Str.get(R.string.rrule_dom_st, d)
+            d == 2 -> Str.get(R.string.rrule_dom_nd, d)
+            d == 3 -> Str.get(R.string.rrule_dom_rd, d)
+            else -> Str.get(R.string.rrule_dom_th, d)
         }
 
         /** Parses a rule (optionally prefixed with "RRULE:"); throws [IllegalArgumentException]. */

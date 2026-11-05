@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notify_channel_morning">Aviso da manhã</string>
+    <string name="notify_channel_report">Relatório diário</string>
+    <string name="notify_morning_line_1">Primeiro os pequenos passos, depois o ecrã.</string>
+    <string name="notify_morning_line_2">Começar pelo mais fácil.</string>
+    <string name="notify_morning_line_3">Os minutos de hoje esperam para ser ganhos.</string>
+    <string name="notify_morning_line_4">Um registo e o dia fica encaminhado.</string>
+    <string name="notify_morning_line_5">Fazer agora, aproveitar depois.</string>
+    <string name="notify_morning_line_6">Um dia novo, um banco novo.</string>
+    <string name="notify_morning_line_7">O eu do futuro agradece desde já.</string>
+    <plurals name="notify_habits_today">
+        <item quantity="one">%1$d hábito hoje</item>
+        <item quantity="other">%1$d hábitos hoje</item>
+    </plurals>
+    <string name="notify_report_title_empty">Relatório de hoje</string>
+    <string name="notify_report_title_all">Tudo feito hoje: %1$d/%2$d</string>
+    <string name="notify_report_title_partial">Hoje: %1$d/%2$d hábitos feitos</string>
+    <string name="notify_report_done">Feito: %1$s</string>
+    <string name="notify_report_missed">Em falta: %1$s</string>
+    <string name="notify_report_leisure">Lazer usado: %1$s · ganho: %2$s</string>
+    <string name="notify_hours_minutes">%1$d h %2$d min</string>
+    <string name="notify_minutes">%1$d min</string>
+</resources>

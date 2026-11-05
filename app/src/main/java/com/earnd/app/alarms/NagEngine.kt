@@ -52,10 +52,10 @@ class NagEngine(
     }
 
     /** Full-screen alarm snooze. Returns the new nag time, or null if the snooze limit is reached. */
-    suspend fun snooze(ownerKind: OwnerKind, ownerId: Long, now: Long): Long? {
+    suspend fun snooze(ownerKind: OwnerKind, ownerId: Long, now: Long, minutes: Int = NagSchedule.SNOOZE_MIN): Long? {
         val s = nags.get(ownerKind, ownerId) ?: return null
         if (!NagSchedule.canSnooze(s, configs.get(ownerKind, ownerId))) return null
-        val at = now + NagSchedule.SNOOZE_MIN * 60_000L
+        val at = now + minutes * 60_000L
         nags.upsert(s.copy(snoozeCount = s.snoozeCount + 1, nextNagAt = at))
         return at
     }

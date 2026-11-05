@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tasks list -->
+    <string name="tasks_title">Tasks</string>
+    <string name="tasks_new_with_details">New task with details</string>
+    <string name="tasks_nothing_open">Nothing open.</string>
+    <string name="tasks_hide_completed">Hide completed (%1$d)</string>
+    <string name="tasks_show_completed">Show completed (%1$d)</string>
+    <string name="tasks_repeats">Repeats</string>
+    <string name="tasks_bucket_overdue">Overdue</string>
+    <string name="tasks_bucket_today">Today</string>
+    <string name="tasks_bucket_upcoming">Upcoming</string>
+    <string name="tasks_bucket_no_date">No date</string>
+    <string name="tasks_bucket_completed">Completed</string>
+
+    <!-- Task editor -->
+    <string name="tasks_edit_new">New task</string>
+    <string name="tasks_edit_subtask">Subtask</string>
+    <string name="tasks_edit_task">Task</string>
+    <string name="tasks_save">Save</string>
+    <string name="tasks_field_title">Title</string>
+    <string name="tasks_field_notes">Notes</string>
+    <string name="tasks_section_due">Due</string>
+    <string name="tasks_section_priority">Priority</string>
+    <string name="tasks_priority_none">None</string>
+    <string name="tasks_priority_low">Low</string>
+    <string name="tasks_priority_medium">Medium</string>
+    <string name="tasks_priority_high">High</string>
+    <string name="tasks_section_repeat">Repeat</string>
+    <string name="tasks_section_reward">Reward</string>
+    <string name="tasks_reward_switch">Earn minutes for this task</string>
+    <string name="tasks_reward_hint">Tasks never lock anything on their own.</string>
+    <string name="tasks_reward_minutes">Minutes earned</string>
+    <string name="tasks_section_subtasks">Subtasks</string>
+    <string name="tasks_remove">Remove</string>
+    <string name="tasks_add_subtask">Add subtask</string>
+    <string name="tasks_section_alarm">Alarm</string>
+    <string name="tasks_alarm_switch">Custom alarm for this task</string>
+    <string name="tasks_alarm_default_hint">Uses your default alarm settings.</string>
+    <string name="tasks_alarm_needs_date">Alarms need a due date.</string>
+    <string name="tasks_delete">Delete</string>
+    <string name="tasks_skip_this_one">Skip this one</string>
+    <string name="tasks_delete_title">Delete this task?</string>
+    <string name="tasks_delete_body_sub">This removes the subtask.</string>
+    <string name="tasks_delete_body">Subtasks are removed too.</string>
+    <string name="tasks_keep">Keep</string>
+    <string name="tasks_due_no_date">No date</string>
+    <string name="tasks_due_today">Today</string>
+    <string name="tasks_due_tomorrow">Tomorrow</string>
+    <string name="tasks_due_date_label">Date (%1$s)</string>
+    <string name="tasks_due_time_label">Time (optional)</string>
+    <string name="tasks_repeat_missed_hint">If a day is missed, it moves on to the next one by itself.</string>
+
+    <!-- Stats -->
+    <string name="stats_this_week">This week</string>
+    <string name="stats_earned">earned</string>
+    <string name="stats_spent">spent</string>
+    <string name="stats_check_ins">check-ins</string>
+    <string name="stats_tasks">tasks</string>
+    <string name="stats_section_earned_spent">Earned and spent</string>
+    <string name="stats_section_done_per_day">Done per day</string>
+    <string name="stats_row_check_ins">Check-ins</string>
+    <string name="stats_row_tasks">Tasks</string>
+    <string name="stats_day_desc">%1$s: earned %2$d min, spent %3$d min</string>
+    <string name="stats_screen_time_today">Screen time today</string>
+    <string name="stats_usage_access_explain">Allow usage access to see which apps took your time today. It is read on this phone only.</string>
+    <string name="stats_allow_usage_access">Allow usage access</string>
+    <string name="stats_on_screen_so_far">%1$s on screen so far.</string>
+    <string name="stats_by_hour">By hour</string>
+
+    <!-- Apps and sites -->
+    <string name="apps_title">Apps and sites</string>
+    <string name="apps_back">Back</string>
+    <string name="apps_tab_leisure">Leisure apps</string>
+    <string name="apps_tab_websites">Websites</string>
+    <string name="apps_tab_always_open">Always open</string>
+    <string name="apps_header_leisure">Leisure apps open while you have minutes. The percentage is how much of their screen time is charged.</string>
+    <string name="apps_header_always_open">Calls, messages, maps, settings and this app are always open. Add others here.</string>
+    <string name="apps_leisure_tag">Leisure</string>
+    <string name="apps_hard_mode_effect">Hard mode: this takes effect at %1$s.</string>
+    <string name="apps_counts_pct">Counts %1$d%% of time</string>
+    <string name="apps_counts_pct_default">Counts %1$d%% of time (default)</string>
+    <string name="apps_pending_title">Waiting for the hard-mode cooldown</string>
+    <string name="apps_pending_item">%1$s at %2$s</string>
+    <string name="apps_cancel">Cancel</string>
+    <string name="apps_search_placeholder">Search apps</string>
+    <string name="apps_clear_search">Clear search</string>
+    <string name="apps_no_match">No apps match.</string>
+    <string name="apps_usage_today">%1$s today</string>
+    <string name="apps_sites_explain">Sites listed here lock in browsers, including their subdomains.</string>
+    <string name="apps_add_site">Add site</string>
+    <string name="apps_no_sites">No sites yet.</string>
+    <string name="apps_remove_site">Remove %1$s</string>
+</resources>

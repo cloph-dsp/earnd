@@ -36,10 +36,12 @@
     <string name="alarms_ring_ignored">ignored %d×</string>
     <string name="alarms_ring_reward">+%d min</string>
     <plurals name="alarms_ring_snooze">
-        <item quantity="one">Snooze %1$d min (%2$d left)</item>
-        <item quantity="other">Snooze %1$d min (%2$d left)</item>
+        <item quantity="one">Snooze (%1$d left)</item>
+        <item quantity="other">Snooze (%1$d left)</item>
     </plurals>
     <string name="alarms_ring_no_snooze">No snoozes left.</string>
     <string name="alarms_channel_guard">Blocking is off</string>
     <string name="alarms_channel_guard_desc">Tells you when the blocking service has been switched off.</string>
+    <string name="alarms_sound_default">Default</string>
+    <string name="alarms_sound_custom">Custom</string>
 </resources>

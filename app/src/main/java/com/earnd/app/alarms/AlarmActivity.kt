@@ -59,11 +59,10 @@ class AlarmActivity : ComponentActivity() {
                 AlarmScreen(
                     label = label,
                     snoozesLeft = left,
-                    snoozeMinutes = NagSchedule.SNOOZE_MIN,
                     ignoredCount = ignored,
                     rewardMinutes = reward,
                     onStop = { act { actions.stop(o.first, o.second) } },
-                    onSnooze = { act { actions.snooze(o.first, o.second) } },
+                    onSnooze = { minutes -> act { actions.snooze(o.first, o.second, minutes) } },
                     onDone = { act { actions.done(o.first, o.second) } },
                 )
             }

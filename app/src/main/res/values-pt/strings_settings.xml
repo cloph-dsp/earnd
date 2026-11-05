@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared bits of the settings area -->
+    <string name="settings_title">Definições</string>
+    <string name="settings_cancel">Cancelar</string>
+    <string name="settings_allow">Permitir</string>
+    <string name="settings_off">Desativado</string>
+    <string name="settings_from">De</string>
+    <string name="settings_until">Até</string>
+    <string name="settings_at">Às</string>
+    <string name="settings_follow_system">Seguir o sistema</string>
+    <string name="settings_minutes_short">%1$d min</string>
+
+    <!-- Category pages -->
+    <string name="settings_page_blocking">Bloqueio</string>
+    <string name="settings_page_time_bank">Banco de tempo</string>
+    <string name="settings_page_schedule">Horário</string>
+    <string name="settings_page_reminders">Lembretes e alarmes</string>
+    <string name="settings_page_appearance">Aspeto</string>
+    <string name="settings_page_remote">Controlo remoto</string>
+    <string name="settings_page_backup">Cópia de segurança e dados</string>
+    <string name="settings_page_permissions">Permissões</string>
+    <string name="settings_page_about">Acerca</string>
+
+    <!-- Category summaries -->
+    <string name="settings_sum_locked">Bloqueado</string>
+    <string name="settings_sum_max_min">máx. %1$d min</string>
+    <string name="settings_sum_no_cap">sem limite de desbloqueio</string>
+    <string name="settings_sum_hard_mode">modo rígido</string>
+    <string name="settings_sum_resets_daily">Reposição diária</string>
+    <string name="settings_sum_resets_weekly">Reposição semanal</string>
+    <string name="settings_sum_expires_after">Expira após %1$d h</string>
+    <string name="settings_sum_min_per_habit">%1$d min por hábito</string>
+    <string name="settings_sum_day_starts">Início do dia %1$s</string>
+    <string name="settings_sum_day_starts_weekend">Início do dia %1$s, fins de semana %2$s</string>
+    <string name="settings_sum_bedtime">Hora de deitar %1$s-%2$s</string>
+    <string name="settings_sum_bedtime_off">Hora de deitar desativada</string>
+    <string name="settings_sum_quiet">Silêncio %1$s-%2$s</string>
+    <string name="settings_sum_nudge">Aviso da manhã %1$s</string>
+    <string name="settings_sum_nudge_off">Aviso da manhã desativado</string>
+    <string name="settings_sum_report">Relatório %1$s</string>
+    <string name="settings_sum_report_off">Relatório desativado</string>
+    <string name="settings_sum_theme_system">Tema do sistema</string>
+    <string name="settings_sum_compact">compacta</string>
+    <string name="settings_sum_comfortable">confortável</string>
+    <string name="settings_sum_remote_on">Agente local permitido</string>
+    <string name="settings_sum_backup">Exportar, importar ou eliminar os dados</string>
+    <string name="settings_sum_permissions">O que o Earnd pode fazer</string>
+    <string name="settings_sum_about">Software livre, GPL-3.0</string>
+
+    <!-- Hard mode and pending changes -->
+    <string name="settings_hard_mode_applies_at">Modo rígido: esta alteração aplica-se às %1$s.</string>
+    <string name="settings_looser_applies_at">As definições menos rígidas aplicam-se às %1$s.</string>
+
+    <!-- Permissions page -->
+    <string name="settings_permissions_blurb">Acesso ao uso, sobreposição, notificações e alarmes exatos.</string>
+    <string name="settings_permissions_review">Rever permissões</string>
+
+    <!-- Blocking -->
+    <string name="settings_blocking_apps_section">Apps e sites</string>
+    <string name="settings_blocking_lock_leisure">Bloquear apps de lazer</string>
+    <string name="settings_blocking_choose_apps">Escolher apps, sites e apps sempre abertas</string>
+    <string name="settings_blocking_unlock_section">Janela de desbloqueio</string>
+    <string name="settings_blocking_longest">Desbloqueio único mais longo</string>
+    <string name="settings_blocking_no_cap">Sem limite</string>
+    <string name="settings_blocking_cap_helper">Os desbloqueios terminam após este tempo. Os minutos não usados ficam guardados para o seguinte.</string>
+    <string name="settings_blocking_puzzle_section">Desafio</string>
+    <string name="settings_blocking_puzzle_label">Desafio antes de remover um bloqueio ou flexibilizar uma regra</string>
+    <string name="settings_puzzle_none">Nenhum</string>
+    <string name="settings_puzzle_arithmetic">Aritmética</string>
+    <string name="settings_puzzle_sentence">Escrever uma frase</string>
+    <string name="settings_blocking_hard_mode">Modo rígido</string>
+    <string name="settings_blocking_hard_mode_hint">Os minutos não podem ser gastos manualmente; o lazer só abre quando tudo está feito. Flexibilizar qualquer definição aguarda o período de espera.</string>
+    <string name="settings_blocking_cooldown">Período de espera antes de flexibilizar (minutos)</string>
+
+    <!-- Time bank -->
+    <string name="settings_bank_reset_section">Reposição</string>
+    <string name="settings_bank_reset_label">Reposição dos minutos guardados</string>
+    <string name="settings_bank_reset_daily">Diária</string>
+    <string name="settings_bank_reset_weekly">Semanal</string>
+    <string name="settings_bank_reset_rolling">Contínua</string>
+    <string name="settings_bank_expire_after">Os minutos expiram após: %1$d h</string>
+    <string name="settings_bank_rolling_helper">Cada entrada ganha expira após este tempo. O gasto usa primeiro os minutos mais antigos.</string>
+    <string name="settings_bank_week_starts">Início da semana</string>
+    <string name="settings_bank_unlocking_section">Desbloqueio</string>
+    <string name="settings_bank_all_done_unlock">Abrir tudo quando os hábitos de hoje estiverem feitos</string>
+    <string name="settings_bank_rewards_section">Recompensas predefinidas</string>
+    <string name="settings_bank_habit_paid">Pagamento dos minutos dos hábitos</string>
+    <string name="settings_bank_paid_each">Com cada registo</string>
+    <string name="settings_bank_paid_once">Quando tudo estiver feito</string>
+    <string name="settings_bank_default_habit_min">Minutos predefinidos por registo</string>
+    <string name="settings_bank_default_task_reward">Recompensa predefinida da tarefa (minutos, vazio = nenhuma)</string>
+    <string name="settings_bank_promise">Prometo provar</string>
+    <string name="settings_bank_promise_hint">Os hábitos são registados com foto, salvo indicação em contrário no hábito.</string>
+    <string name="settings_bank_comeback_section">Regresso</string>
+    <string name="settings_bank_comeback_bonus">Bónus de regresso</string>
+    <string name="settings_bank_comeback_hint">Após dias falhados, o primeiro registo ganha até o dobro. Saltar nunca compensa mais do que fazer.</string>
+
+    <!-- Schedule -->
+    <string name="settings_sched_day_start_section">Início do dia</string>
+    <string name="settings_sched_day_starts_weekdays">Início do dia (dias úteis)</string>
+    <string name="settings_sched_later_weekend">Início mais tarde ao fim de semana</string>
+    <string name="settings_sched_later_weekend_hint">Ao sábado e ao domingo, os lembretes de hábitos e as insistências são adiados pela diferença. As tarefas com hora definida não mudam.</string>
+    <string name="settings_sched_day_starts_weekends">Início do dia (fins de semana)</string>
+    <string name="settings_sched_quiet_section">Horas de silêncio</string>
+    <string name="settings_sched_quiet_helper">Sem insistências neste intervalo. Aos fins de semana termina mais tarde pelo mesmo desvio.</string>
+    <string name="settings_sched_bedtime_section">Hora de deitar</string>
+    <string name="settings_sched_bedtime_lock">Bloquear apps de lazer à noite</string>
+    <string name="settings_sched_bedtime_grace">Tolerância pontual (minutos)</string>
+    <string name="settings_sched_parts_section">Partes do dia</string>
+    <string name="settings_sched_parts_switch">Desbloquear por parte do dia</string>
+    <string name="settings_sched_parts_hint">Concluir os hábitos da manhã abre as apps de lazer até começar a tarde, e assim sucessivamente.</string>
+    <string name="settings_sched_morning">Manhã</string>
+    <string name="settings_sched_afternoon">Tarde</string>
+    <string name="settings_sched_evening">Noite</string>
+    <string name="settings_sched_vacation_section">Férias</string>
+    <string name="settings_vacation_blurb">Pausa do bloqueio e das sequências entre duas datas.</string>
+    <string name="settings_vacation_from">De (%1$s)</string>
+    <string name="settings_vacation_to">Até</string>
+    <string name="settings_vacation_set">Definir férias</string>
+    <string name="settings_vacation_clear">Limpar</string>
+
+    <!-- Reminders -->
+    <string name="settings_rem_nudges_section">Avisos</string>
+    <string name="settings_rem_morning_nudge">Aviso da manhã</string>
+    <string name="settings_rem_morning_nudge_hint">Um resumo curto dos hábitos de hoje. Mais tarde ao fim de semana, quando o início do fim de semana é mais tarde.</string>
+    <string name="settings_rem_daily_report">Relatório diário</string>
+    <string name="settings_rem_daily_report_hint">À noite: o que ficou feito, o que não ficou e os minutos de lazer usados.</string>
+    <string name="settings_rem_ringing_section">Toque do alarme</string>
+    <string name="settings_rem_ring_for">Tocar durante</string>
+    <string name="settings_rem_volume">Volume do alarme: %1$d%%</string>
+    <string name="settings_rem_volume_helper">Percentagem do volume de alarme do dispositivo. O volume de alarme do sistema não é alterado.</string>
+    <string name="settings_rem_gentle">Início suave</string>
+    <string name="settings_rem_gentle_hint">O volume sobe ao longo de 20 s. Não se aplica a toques de 10 s ou menos.</string>
+    <string name="settings_rem_defaults_section">Predefinições para novos itens</string>
+    <string name="settings_rem_default_tasks">Predefinição para tarefas</string>
+    <string name="settings_rem_default_habits">Predefinição para lembretes de hábitos</string>
+    <string name="settings_rem_default_hide">Ocultar: %1$s</string>
+    <string name="settings_rem_default_edit">Editar: %1$s</string>
+    <string name="settings_rem_status_section">Estado</string>
+    <string name="settings_rem_exact_title">Alarmes exatos</string>
+    <string name="settings_rem_exact_ok">Permitido. Os lembretes tocam à hora certa.</string>
+    <string name="settings_rem_exact_no">Não permitido. Os lembretes podem chegar atrasados.</string>
+
+    <!-- Appearance -->
+    <string name="settings_app_theme">Tema</string>
+    <string name="settings_app_theme_light">Claro</string>
+    <string name="settings_app_theme_dark">Escuro</string>
+    <string name="settings_app_density">Lista de hábitos</string>
+    <string name="settings_app_density_compact">Compacta</string>
+    <string name="settings_app_density_comfortable">Confortável</string>
+    <string name="settings_app_date_format">Formato da data</string>
+    <string name="settings_app_date_dmy">DD/MM/AAAA</string>
+    <string name="settings_app_date_ymd">AAAA-MM-DD</string>
+    <string name="settings_app_date_mdy">MM/DD/AAAA</string>
+    <string name="settings_app_time_format">Formato da hora</string>
+    <string name="settings_app_time_24">24 horas</string>
+    <string name="settings_app_time_12">12 horas</string>
+
+    <!-- Backup page -->
+    <string name="settings_backup_section">Cópia de segurança</string>
+    <string name="settings_danger_section">Zona de perigo</string>
+
+    <!-- About -->
+    <string name="settings_about_blurb">O Earnd é software livre (GPL-3.0). Tudo fica neste telemóvel.</string>
+
+    <!-- Remote -->
+    <string name="settings_remote_allow">Permitir um agente local via adb</string>
+    <string name="settings_remote_hint">Pode ler e gerir hábitos e tarefas. Nunca pode desbloquear apps nem alterar o bloqueio.</string>
+    <string name="settings_remote_last">Última ação remota: %1$s</string>
+    <string name="settings_remote_none">nenhuma ainda</string>
+    <string name="settings_remote_refused">%1$s (recusado)</string>
+
+    <!-- Backup section -->
+    <string name="backup_blurb">Um ficheiro JSON com hábitos, tarefas, histórico, banco de tempo, apps bloqueadas e definições. As fotos não estão incluídas.</string>
+    <string name="backup_export">Exportar</string>
+    <string name="backup_import">Importar</string>
+    <string name="backup_exported">%1$d linhas exportadas.</string>
+    <string name="backup_export_failed">Falha ao exportar: %1$s</string>
+    <string name="backup_cant_import">Não foi possível importar: %1$s</string>
+    <string name="backup_imported">Cópia de segurança importada.</string>
+    <string name="backup_import_failed">Falha ao importar: %1$s</string>
+    <string name="backup_replace_title">Substituir tudo?</string>
+    <string name="backup_replace_body">Esta cópia de segurança tem %1$d linhas. Tudo neste telemóvel é substituído por ela. Esta ação não pode ser anulada.</string>
+    <string name="backup_replace_confirm">Substituir</string>
+    <string name="backup_clear_blurb">Elimina hábitos, tarefas, histórico, minutos guardados, apps bloqueadas e definições deste telemóvel.</string>
+    <string name="backup_clear_button">Eliminar todos os dados</string>
+    <string name="backup_clear_title">Eliminar todos os dados?</string>
+    <string name="backup_clear_body">Hábitos, tarefas, histórico, minutos guardados, apps bloqueadas e definições são todos eliminados. Escrever %1$s para confirmar.</string>
+    <string name="backup_clear_confirm">Eliminar tudo</string>
+    <string name="backup_cleared">Todos os dados eliminados.</string>
+    <string name="backup_clear_failed">Não foi possível eliminar: %1$s</string>
+
+    <!-- Backup file errors (shown to the user when an import is refused) -->
+    <string name="backup_err_open">Não foi possível abrir o ficheiro</string>
+    <string name="backup_err_not_json">Ficheiro JSON inválido: %1$s</string>
+    <string name="backup_err_not_backup">Não é uma cópia de segurança do Earnd</string>
+    <string name="backup_err_no_format_version">Falta a versão do formato</string>
+    <string name="backup_err_newer">A cópia de segurança é de uma versão mais recente do Earnd</string>
+    <string name="backup_err_no_schema_version">Falta a versão do esquema</string>
+    <string name="backup_err_no_tables">Faltam as tabelas</string>
+    <string name="backup_err_table_not_list">A tabela %1$s não é uma lista</string>
+    <string name="backup_err_row_not_object">Uma linha em %1$s não é um objeto</string>
+    <string name="backup_err_unsupported_value">Valor não suportado em %1$s.%2$s</string>
+    <string name="backup_err_unknown_schema">Esquema de cópia de segurança desconhecido</string>
+    <string name="backup_err_unknown_table">Tabela desconhecida \"%1$s\"</string>
+    <string name="backup_err_unknown_column">Coluna desconhecida \"%1$s\" em %2$s</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_p1_title">Boas-vindas ao Earnd</string>
+    <string name="onboarding_p1_body">Escolher as apps que distraem. O Earnd mantém-nas fechadas até ser feito um pouco do que realmente importa.</string>
+    <string name="onboarding_p2_title">Ganhar tempo</string>
+    <string name="onboarding_p2_body">Cada registo de hábito e cada tarefa concluída acrescenta minutos ao banco. Iniciar uma sessão a qualquer momento abre as apps até ela terminar.</string>
+    <string name="onboarding_p3_title">Como funciona: hábitos</string>
+    <string name="onboarding_p3_body">Adicionar alguns hábitos e escolher quando acontecem. Registar com um toque, ou com uma foto como prova. Cada registo ganha minutos.</string>
+    <string name="onboarding_p4_title">Como funciona: tarefas</string>
+    <string name="onboarding_p4_body">As tarefas servem para coisas pontuais. Nunca bloqueiam nada, mas uma tarefa pode ter uma recompensa que acrescenta minutos quando é concluída.</string>
+    <string name="onboarding_p5_title">Como funciona: desbloqueio</string>
+    <string name="onboarding_p5_body">Gastar minutos guardados abre as apps de lazer por algum tempo; concluir tudo o que está planeado para hoje também as abre. Os minutos guardados são repostos por dia ou por semana.</string>
+    <string name="onboarding_p6_title">Suave por conceção</string>
+    <string name="onboarding_p6_body">Dias sem nada planeado nunca bloqueiam nada. Telefone, mensagens, mapas e definições ficam sempre abertos. Os dados ficam neste telemóvel.</string>
+    <string name="onboarding_permissions_title">Permissões</string>
+    <string name="onboarding_permissions_later">Estas opções podem ser alteradas mais tarde nas Definições.</string>
+    <string name="onboarding_skip">Saltar</string>
+    <string name="onboarding_next">Seguinte</string>
+    <string name="onboarding_get_started">Começar</string>
+    <string name="onboarding_keep_title">Manter o Earnd ativo</string>
+    <string name="onboarding_restricted_title">Se o serviço de bloqueio estiver a cinzento</string>
+    <string name="onboarding_restricted_body">O Android pode marcá-lo como definição restrita. Abrir Informações da app, tocar no menu de três pontos no canto superior direito, escolher Permitir definições restritas e voltar a ativar o serviço de bloqueio.</string>
+    <string name="onboarding_open_app_info">Abrir Informações da app</string>
+    <string name="onboarding_oem_title">Em telemóveis %1$s</string>
+    <string name="onboarding_generic_battery">Se os lembretes pararem ou o bloqueio se desligar, verificar se a utilização da bateria do Earnd está definida como Sem restrições.</string>
+    <string name="onboarding_back">Voltar</string>
+
+    <!-- Permission cards -->
+    <string name="onboarding_perm_a11y_title">Serviço de bloqueio</string>
+    <string name="onboarding_perm_a11y_why">Permite ao Earnd detetar a abertura de uma app ou site de lazer e mostrar o ecrã de bloqueio. Nada é gravado nem enviado para lado nenhum.</string>
+    <string name="onboarding_perm_usage_title">Acesso ao uso</string>
+    <string name="onboarding_perm_usage_why">Alternativa opcional para detetar a app em primeiro plano. O Earnd funciona sem ela.</string>
+    <string name="onboarding_perm_notif_title">Notificações</string>
+    <string name="onboarding_perm_notif_why">Lembretes e a lista única do que ainda está pendente.</string>
+    <string name="onboarding_perm_exact_title">Alarmes exatos</string>
+    <string name="onboarding_perm_exact_why">Para os lembretes tocarem à hora certa, em vez de quando o sistema calhar.</string>
+    <string name="onboarding_perm_battery_title">Executar em segundo plano</string>
+    <string name="onboarding_perm_battery_why">Impede o sistema de adormecer o Earnd, o que silenciaria alarmes e bloqueio.</string>
+    <string name="onboarding_perm_fullscreen_title">Alarmes em ecrã inteiro</string>
+    <string name="onboarding_perm_fullscreen_why">Permite que um alarme definido como sonoro ocupe o ecrã, mesmo com o telemóvel bloqueado.</string>
+    <string name="onboarding_perm_optional">%1$s (opcional)</string>
+    <string name="onboarding_perm_on">Ativo</string>
+    <string name="onboarding_perm_off">Inativo</string>
+    <string name="onboarding_perm_allow">Permitir</string>
+
+    <!-- Phone-maker guidance -->
+    <string name="onboarding_oem_battery_unrestricted">Definições &gt; Apps &gt; Earnd &gt; Bateria: Sem restrições.</string>
+    <string name="onboarding_oem_xiaomi_1">Definições &gt; Apps &gt; Gerir apps &gt; Earnd &gt; Arranque automático: ativado.</string>
+    <string name="onboarding_oem_xiaomi_2">Mesma página &gt; Poupança de bateria: Sem restrições.</string>
+    <string name="onboarding_oem_xiaomi_3">Em Recentes, puxar o Earnd para baixo e tocar no cadeado para não ser removido.</string>
+    <string name="onboarding_oem_samsung_2">Definições &gt; Bateria &gt; Limites de utilização em segundo plano: garantir que o Earnd não está em Apps adormecidas nem em Apps em suspensão profunda.</string>
+    <string name="onboarding_oem_nothing_2">Em Recentes, manter premido o Earnd e bloqueá-lo.</string>
+    <string name="onboarding_oem_oneplus_1">Definições &gt; Apps &gt; Earnd &gt; Bateria: Sem restrições (ou Não otimizar).</string>
+    <string name="onboarding_oem_oneplus_2">Mesma página: permitir Arranque automático e atividade em segundo plano.</string>
+    <string name="onboarding_oem_oneplus_3">Em Recentes, bloquear o Earnd para não ser removido.</string>
+    <string name="onboarding_oem_huawei_1">Definições &gt; Bateria &gt; Arranque de apps &gt; Earnd: mudar para Gerir manualmente e ativar as três opções.</string>
+    <string name="onboarding_oem_huawei_2">Em Recentes, puxar o Earnd para baixo para o bloquear.</string>
+
+    <!-- Alarm editor -->
+    <string name="alarmsui_daily_reminder_at">Lembrete diário às</string>
+    <string name="alarmsui_reminders">Lembretes</string>
+    <string name="alarmsui_style">Estilo</string>
+    <string name="alarmsui_style_silent">Silencioso</string>
+    <string name="alarmsui_style_notification">Notificação</string>
+    <string name="alarmsui_style_alarm">Alarme</string>
+    <string name="alarmsui_style_full_screen">Alarme em ecrã inteiro</string>
+    <string name="alarmsui_advanced">Avançado</string>
+    <string name="alarmsui_hide">Ocultar</string>
+    <string name="alarmsui_show">Mostrar</string>
+    <string name="alarmsui_if_no_response">Se não houver resposta</string>
+    <string name="alarmsui_nag_off">Deixar</string>
+    <string name="alarmsui_nag_progressive">Lembrar, espaçando</string>
+    <string name="alarmsui_nag_fixed">Lembrar a cada…</string>
+    <string name="alarmsui_nag_every">A cada (minutos)</string>
+    <string name="alarmsui_nag_max">Parar após este número (vazio = continuar)</string>
+    <string name="alarmsui_vibrate">Vibrar</string>
+    <string name="alarmsui_sound">Som: %1$s</string>
+    <string name="alarmsui_choose">Escolher</string>
+    <string name="alarmsui_ring_for">Tocar durante</string>
+    <string name="alarmsui_volume">Volume</string>
+    <string name="alarmsui_default">Predefinido</string>
+    <string name="alarmsui_percent">%1$d%%</string>
+    <string name="alarmsui_snoozes_allowed">Adiamentos permitidos</string>
+    <string name="alarmsui_weekend_shift">Hoje (fim de semana) toca às %1$s.</string>
+    <string name="alarmsui_ring_minutes">%1$d min</string>
+    <string name="alarmsui_ring_seconds">%1$d s</string>
+    <string name="alarmsui_ring_custom">Personalizado (segundos, 1-600)</string>
+
+    <!-- Reminder chips and offsets -->
+    <string name="alarmsui_add_reminder">+ Adicionar lembrete</string>
+    <string name="alarmsui_no_reminders">Sem lembretes</string>
+    <string name="alarmsui_remind_me">Definir lembrete</string>
+    <string name="alarmsui_at_due_time">À hora do prazo</string>
+    <string name="alarmsui_custom">Personalizado</string>
+    <string name="alarmsui_before_word">antes</string>
+    <string name="alarmsui_add">Adicionar</string>
+    <string name="alarmsui_cancel">Cancelar</string>
+    <string name="alarmsui_offset_before">%1$s antes</string>
+    <string name="alarmsui_unit_min">min</string>
+    <string name="alarmsui_unit_h">h</string>
+    <string name="alarmsui_unit_days">dias</string>
+    <string name="alarmsui_dur_zero">0 min</string>
+    <string name="alarmsui_dur_h">%1$d h</string>
+    <string name="alarmsui_dur_min">%1$d min</string>
+    <plurals name="alarmsui_dur_weeks">
+        <item quantity="one">%d semana</item>
+        <item quantity="many">%d semanas</item>
+        <item quantity="other">%d semanas</item>
+    </plurals>
+    <plurals name="alarmsui_dur_days">
+        <item quantity="one">%d dia</item>
+        <item quantity="many">%d dias</item>
+        <item quantity="other">%d dias</item>
+    </plurals>
+
+    <!-- Sound picker -->
+    <string name="alarmsui_sound_title">Som do alarme</string>
+    <string name="alarmsui_sound_default">Predefinido</string>
+    <string name="alarmsui_sound_custom">"%1$s  (personalizado)"</string>
+    <string name="alarmsui_sound_typed">"%1$s  (%2$s)"</string>
+    <string name="alarmsui_type_alarm">alarme</string>
+    <string name="alarmsui_type_notification">notificação</string>
+    <string name="alarmsui_type_ringtone">toque</string>
+    <string name="alarmsui_sound_close">Fechar</string>
+    <string name="alarmsui_sound_stop">Parar</string>
+    <string name="alarmsui_sound_play">Reproduzir</string>
+    <string name="settings_app_language">Idioma</string>
+</resources>

@@ -44,9 +44,8 @@ import java.time.format.DateTimeFormatter
 internal fun AlarmScreen(
     label: String,
     snoozesLeft: Int,
-    snoozeMinutes: Int,
     onStop: () -> Unit,
-    onSnooze: () -> Unit,
+    onSnooze: (Int) -> Unit,
     onDone: () -> Unit,
     ignoredCount: Int = 0,
     rewardMinutes: Int = 0,
@@ -86,8 +85,19 @@ internal fun AlarmScreen(
             }
             Spacer(Modifier.height(12.dp))
             if (RingPolicy.canSnooze(snoozesLeft)) {
-                QuietButton(onClick = onSnooze, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    Text(pluralStringResource(R.plurals.alarms_ring_snooze, snoozesLeft, snoozeMinutes, snoozesLeft))
+                Text(
+                    pluralStringResource(R.plurals.alarms_ring_snooze, snoozesLeft, snoozesLeft),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                NagSchedule.SNOOZE_CHOICES_MIN.chunked(2).forEach { pair ->
+                    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pair.forEach { m ->
+                            QuietButton(onClick = { onSnooze(m) }, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                                Text(com.earnd.app.ui.common.formatMinutes(m))
+                            }
+                        }
+                    }
                 }
             } else {
                 Text(

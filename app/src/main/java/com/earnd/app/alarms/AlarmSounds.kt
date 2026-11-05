@@ -2,6 +2,8 @@ package com.earnd.app.alarms
 
 import android.content.Context
 import android.media.RingtoneManager
+import com.earnd.app.R
+import com.earnd.app.i18n.Str
 import java.io.File
 
 /** One selectable alarm sound. [key] is "system:<title>" or "custom:<filename>"; [type] alarm/notification/ringtone/custom. */
@@ -55,7 +57,7 @@ object AlarmSounds {
 
     /** Display name for a stored uri, or "Default". */
     fun nameOf(uri: String?, options: List<SoundOption>): String =
-        if (uri == null) "Default" else options.firstOrNull { it.uri == uri }?.title ?: "Custom"
+        if (uri == null) Str.get(R.string.alarms_sound_default) else options.firstOrNull { it.uri == uri }?.title ?: Str.get(R.string.alarms_sound_custom)
 
     /** A stored `file://` uri or absolute path as a File, else null. */
     fun filePath(uri: String): File? = when {

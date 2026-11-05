@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared by the habit screens and the recurrence picker -->
+    <string name="habits_title">Habits</string>
+    <string name="habits_add">Add habit</string>
+    <string name="habits_done">Done</string>
+    <string name="habits_cancel">Cancel</string>
+    <string name="habits_save">Save</string>
+    <string name="habits_delete">Delete</string>
+    <string name="habits_archive">Archive</string>
+    <string name="habits_restore">Restore</string>
+    <string name="habits_edit">Edit</string>
+    <string name="habits_back">Back</string>
+    <string name="habits_keep">Keep</string>
+
+    <!-- Habits list -->
+    <string name="habits_reorder">Reorder habits</string>
+    <string name="habits_empty">No habits yet. Add one to start earning screen time.</string>
+    <string name="habits_move_up">Move up</string>
+    <string name="habits_move_down">Move down</string>
+    <string name="habits_archived">Archived</string>
+    <string name="habits_row_stopwatch">%1$s · stopwatch</string>
+    <string name="habits_row_focus">%1$s · %2$s min focus</string>
+    <string name="habits_row_comeback">%1$s comeback</string>
+    <string name="habits_today_done">done</string>
+    <string name="habits_today_rest">rest</string>
+    <string name="habits_streak_short">streak %1$dd</string>
+
+    <!-- Short schedule text for lists -->
+    <string name="habits_sched_weekends">Weekends</string>
+    <string name="habits_sched_x_week">%1$dx / week</string>
+    <string name="habits_sched_custom">Custom</string>
+    <string name="habits_sched_times_a_day">%1$s, %2$dx a day</string>
+
+    <!-- Habit detail -->
+    <string name="habits_archive_title">Archive %1$s?</string>
+    <string name="habits_archive_body">It leaves Today and stops counting. You can restore it from the Habits tab.</string>
+    <string name="habits_streak_zero">A fresh start today.</string>
+    <plurals name="habits_streak_days">
+        <item quantity="one">Done %1$d day in a row.</item>
+        <item quantity="other">Done %1$d days in a row.</item>
+    </plurals>
+    <string name="habits_stat_current">Current streak</string>
+    <string name="habits_stat_best">Best streak</string>
+    <string name="habits_stat_days_done">Days done</string>
+    <string name="habits_archived_note">Archived. Restore it to see it on Today again.</string>
+    <string name="habits_prev_month">Previous month</string>
+    <string name="habits_next_month">Next month</string>
+    <string name="habits_last_year_only">Only the last year is shown here.</string>
+    <string name="habits_recent_checkins">Recent check-ins</string>
+    <string name="habits_no_checkins">No check-ins yet.</string>
+    <string name="habits_photo">Photo</string>
+    <string name="habits_undo_checkin">Undo check-in</string>
+
+    <!-- Day segments -->
+    <string name="habits_segment_morning">Morning</string>
+    <string name="habits_segment_afternoon">Afternoon</string>
+    <string name="habits_segment_evening">Evening</string>
+    <string name="habits_segment_any">Any time</string>
+
+    <!-- Icon names (content descriptions) -->
+    <string name="habits_icon_star">Star</string>
+    <string name="habits_icon_water">Water</string>
+    <string name="habits_icon_move">Move</string>
+    <string name="habits_icon_read">Read</string>
+    <string name="habits_icon_meds">Medication</string>
+    <string name="habits_icon_calm">Calm</string>
+    <string name="habits_icon_tidy">Tidy</string>
+    <string name="habits_icon_food">Food</string>
+    <string name="habits_icon_sleep">Sleep</string>
+    <string name="habits_icon_work">Work</string>
+    <string name="habits_icon_create">Create</string>
+    <string name="habits_icon_music">Music</string>
+    <string name="habits_icon_care">Care</string>
+    <string name="habits_icon_plant">Plant</string>
+
+    <!-- Habit editor -->
+    <string name="habits_new">New habit</string>
+    <string name="habits_edit_title">Edit habit</string>
+    <string name="habits_name">Name</string>
+    <string name="habits_section_when">When</string>
+    <string name="habits_kind_daily">Every day</string>
+    <string name="habits_kind_weekdays">Some days</string>
+    <string name="habits_kind_every_n">Every few days</string>
+    <string name="habits_kind_times_week">Times per week</string>
+    <string name="habits_kind_custom">Custom</string>
+    <string name="habits_every_how_many_days">Every how many days</string>
+    <string name="habits_days_per_week">Days per week (any days)</string>
+    <string name="habits_section_reminder">Reminder</string>
+    <string name="habits_remind_some_days">Remind only on some days</string>
+    <string name="habits_remind_every_day_hint">Reminds on every day the habit is scheduled.</string>
+    <string name="habits_reminder_message">Reminder message (optional)</string>
+    <string name="habits_reminder_message_hint">Uses the habit name</string>
+    <string name="habits_custom_reminder">Custom reminder for this habit</string>
+    <string name="habits_custom_reminder_hint">Uses your default reminder settings.</string>
+    <string name="habits_more_options">More options</string>
+    <string name="habits_hide">Hide</string>
+    <string name="habits_show">Show</string>
+    <string name="habits_section_look">Look</string>
+    <string name="habits_part_of_day">Part of the day</string>
+    <string name="habits_times_per_day">Times per day</string>
+    <string name="habits_section_amount">Amount (optional)</string>
+    <string name="habits_target">Target</string>
+    <string name="habits_unit">Unit</string>
+    <string name="habits_section_focus">Focus timer</string>
+    <string name="habits_timed_focus">Timed focus</string>
+    <string name="habits_timed_focus_off_hint">Check-in becomes a timer that keeps other apps closed until it ends.</string>
+    <string name="habits_timed_focus_on_hint">Cancelling loses the progress. Calls, messages and maps stay open.</string>
+    <string name="habits_minutes">Minutes</string>
+    <string name="habits_stopwatch_switch">Open-ended (stopwatch)</string>
+    <string name="habits_stopwatch_off_hint">Count up instead, e.g. music practice. Other apps stay closed until you tap Finish.</string>
+    <string name="habits_stopwatch_on_hint">Earns minutes x rate on Finish. Shorter than the minimum: no reward, no check-in.</string>
+    <string name="habits_earned_per_min">Earned per min</string>
+    <string name="habits_minimum_min">Minimum min</string>
+    <string name="habits_cap_min">Cap min</string>
+    <string name="habits_section_reward">Reward and check-in</string>
+    <string name="habits_default_reward">Use the default reward</string>
+    <string name="habits_default_reward_hint">%1$d min per check-in, set in Settings.</string>
+    <string name="habits_minutes_per_checkin">Minutes earned per check-in</string>
+    <string name="habits_reward_beyond">Reward beyond target</string>
+    <string name="habits_reward_beyond_on_hint" formatted="false">Check-ins beyond the daily target earn a little extra (up to +50%).</string>
+    <string name="habits_reward_beyond_off_hint">Check-ins beyond the daily target are recorded but earn 0 minutes.</string>
+    <string name="habits_check_in_with">Check in with</string>
+    <string name="habits_mode_default_photo">Default (photo)</string>
+    <string name="habits_mode_default_tap">Default (tap)</string>
+    <string name="habits_mode_photo">A photo</string>
+    <string name="habits_mode_tap">A tap</string>
+    <string name="habits_photo_note">Taking the picture is the commitment. Photos stay on this phone.</string>
+    <string name="habits_section_manage">Manage</string>
+    <string name="habits_delete_title">Delete %1$s?</string>
+    <string name="habits_delete_body">Its history goes too. Archiving keeps the history instead.</string>
+    <string name="habits_rule_weeks">Weeks</string>
+    <string name="habits_rule_days_of_month">Days of month</string>
+    <string name="habits_rule_last_word">last</string>
+    <string name="habits_rule_days_of_month_label">Days of month (e.g. 1, 15, last)</string>
+    <string name="habits_rule_every_how_many_weeks">Every how many weeks</string>
+    <string name="habits_durations">Durations</string>
+    <string name="habits_reward_for_min">Reward for %1$d min</string>
+
+    <!-- One-line summary of non-default options -->
+    <string name="habits_more_times_a_day">%1$dx a day</string>
+    <string name="habits_more_target">target</string>
+    <string name="habits_more_focus">%1$d min focus</string>
+    <string name="habits_more_stopwatch">stopwatch</string>
+    <string name="habits_more_reward">%1$d min reward</string>
+    <string name="habits_more_no_bonus">no bonus</string>
+    <string name="habits_more_photo">photo</string>
+    <string name="habits_more_tap">tap</string>
+
+    <!-- Charging -->
+    <string name="habits_charging_metered">Metered %1$d%%</string>
+
+    <!-- Recurrence text (RRule summaries, habit schedules and the recurrence picker) -->
+    <string name="rrule_daily">Daily</string>
+    <string name="rrule_weekdays">Weekdays</string>
+    <string name="rrule_every_day">Every day</string>
+    <string name="rrule_every_days">Every %1$d days</string>
+    <string name="rrule_with_days">%1$s on %2$s</string>
+    <string name="rrule_weekly_on">Weekly on %1$s</string>
+    <string name="rrule_every_weeks_on">Every %1$d weeks on %2$s</string>
+    <string name="rrule_monthly_on">Monthly on %1$s</string>
+    <string name="rrule_every_months_on">Every %1$d months on %2$s</string>
+    <string name="rrule_yearly_on">Yearly on %1$s</string>
+    <string name="rrule_every_years_on">Every %1$d years on %2$s</string>
+    <string name="rrule_same_day">the same day</string>
+    <string name="rrule_same_date">the same date</string>
+    <string name="rrule_the">the %1$s</string>
+    <string name="rrule_every_weekday">every %1$s</string>
+    <string name="rrule_nth_weekday">%1$s %2$s</string>
+    <string name="rrule_of_months">%1$s of %2$s</string>
+    <string name="rrule_month_days">%1$s %2$s</string>
+    <string name="rrule_with_once">%1$s, once</string>
+    <string name="rrule_with_times">%1$s, %2$d times</string>
+    <string name="rrule_with_until">%1$s, until %2$s</string>
+    <plurals name="rrule_after_completion_days">
+        <item quantity="one">%1$d day after completion</item>
+        <item quantity="other">%1$d days after completion</item>
+    </plurals>
+    <plurals name="rrule_after_completion_weeks">
+        <item quantity="one">%1$d week after completion</item>
+        <item quantity="other">%1$d weeks after completion</item>
+    </plurals>
+    <plurals name="rrule_after_completion_months">
+        <item quantity="one">%1$d month after completion</item>
+        <item quantity="other">%1$d months after completion</item>
+    </plurals>
+    <plurals name="rrule_after_completion_years">
+        <item quantity="one">%1$d year after completion</item>
+        <item quantity="other">%1$d years after completion</item>
+    </plurals>
+    <plurals name="rrule_times_a_week">
+        <item quantity="one">%1$d time a week</item>
+        <item quantity="other">%1$d times a week</item>
+    </plurals>
+
+    <!-- Ordinals for weekdays; masculine and feminine forms (identical in English) -->
+    <string name="rrule_ord_m_1">1st</string>
+    <string name="rrule_ord_m_2">2nd</string>
+    <string name="rrule_ord_m_3">3rd</string>
+    <string name="rrule_ord_m_n">%1$dth</string>
+    <string name="rrule_ord_m_last">last</string>
+    <string name="rrule_ord_m_last2">second to last</string>
+    <string name="rrule_ord_m_last_n">%1$dth to last</string>
+    <string name="rrule_ord_f_1">1st</string>
+    <string name="rrule_ord_f_2">2nd</string>
+    <string name="rrule_ord_f_3">3rd</string>
+    <string name="rrule_ord_f_n">%1$dth</string>
+    <string name="rrule_ord_f_last">last</string>
+    <string name="rrule_ord_f_last2">second to last</string>
+    <string name="rrule_ord_f_last_n">%1$dth to last</string>
+
+    <!-- Days of the month -->
+    <string name="rrule_dom_st">%1$dst</string>
+    <string name="rrule_dom_nd">%1$dnd</string>
+    <string name="rrule_dom_rd">%1$drd</string>
+    <string name="rrule_dom_th">%1$dth</string>
+    <string name="rrule_dom_last">last day</string>
+    <string name="rrule_dom_last2">second to last day</string>
+    <string name="rrule_dom_last_n">%1$dth to last day</string>
+
+    <!-- Recurrence picker -->
+    <string name="rrule_once">Once</string>
+    <string name="rrule_custom_ellipsis">Custom…</string>
+    <string name="rrule_custom_title">Custom repeat</string>
+    <string name="rrule_counts_from">Next date counts from</string>
+    <string name="rrule_completion">Completion</string>
+    <string name="rrule_due_date">Due date</string>
+    <string name="rrule_every">Every</string>
+    <string name="rrule_how_many">How many</string>
+    <string name="rrule_unit_day">Day</string>
+    <string name="rrule_unit_days">Days</string>
+    <string name="rrule_unit_week">Week</string>
+    <string name="rrule_unit_weeks">Weeks</string>
+    <string name="rrule_unit_month">Month</string>
+    <string name="rrule_unit_months">Months</string>
+    <string name="rrule_unit_year">Year</string>
+    <string name="rrule_unit_years">Years</string>
+    <string name="rrule_on">On</string>
+    <string name="rrule_mode_day">Day of month</string>
+    <string name="rrule_mode_last_day">Last day</string>
+    <string name="rrule_mode_nth_weekday">Nth weekday</string>
+    <string name="rrule_day_clamps">Day (1-31, clamps to month end)</string>
+    <string name="rrule_a_weekday_of">A weekday of %1$s</string>
+    <string name="rrule_ends">Ends</string>
+    <string name="rrule_end_never">Never</string>
+    <string name="rrule_end_on_date">On a date</string>
+    <string name="rrule_end_after_n">After N times</string>
+    <string name="rrule_last_date">Last date (YYYY-MM-DD)</string>
+    <string name="rrule_times">Times</string>
+    <string name="rrule_check_values">Check the values above.</string>
+</resources>

@@ -1,9 +1,13 @@
 package com.earnd.app.ui.alarms
 
+import com.earnd.app.i18n.TestStr
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 
 class ReminderOffsetsTest {
+    @Before fun english() = TestStr.install()
+
     @Test fun labels() {
         assertEquals("At due time", ReminderOffsets.label(0))
         assertEquals("15 min before", ReminderOffsets.label(15))

@@ -1,15 +1,19 @@
 package com.earnd.app.notify
 
+import com.earnd.app.i18n.TestStr
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 
 class NotifyTest {
+
+    @Before fun strings() = TestStr.install()
 
     private fun ms(t: LocalDateTime, zone: ZoneId = ZoneOffset.UTC) = t.atZone(zone).toInstant().toEpochMilli()
 

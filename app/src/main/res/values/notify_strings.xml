@@ -2,4 +2,23 @@
 <resources>
     <string name="notify_channel_morning">Morning nudge</string>
     <string name="notify_channel_report">Daily report</string>
+    <string name="notify_morning_line_1">Small steps first, screen time after.</string>
+    <string name="notify_morning_line_2">Start with the easiest one.</string>
+    <string name="notify_morning_line_3">Today\'s minutes are waiting to be earned.</string>
+    <string name="notify_morning_line_4">One check-in and you\'re on your way.</string>
+    <string name="notify_morning_line_5">Do it now, enjoy it later.</string>
+    <string name="notify_morning_line_6">A fresh day, a fresh bank.</string>
+    <string name="notify_morning_line_7">Future you says thanks in advance.</string>
+    <plurals name="notify_habits_today">
+        <item quantity="one">%1$d habit today</item>
+        <item quantity="other">%1$d habits today</item>
+    </plurals>
+    <string name="notify_report_title_empty">Today\'s report</string>
+    <string name="notify_report_title_all">All done today: %1$d/%2$d</string>
+    <string name="notify_report_title_partial">Today: %1$d/%2$d habits done</string>
+    <string name="notify_report_done">Done: %1$s</string>
+    <string name="notify_report_missed">Missed: %1$s</string>
+    <string name="notify_report_leisure">Leisure used: %1$s · earned: %2$s</string>
+    <string name="notify_hours_minutes">%1$d h %2$d min</string>
+    <string name="notify_minutes">%1$d min</string>
 </resources>

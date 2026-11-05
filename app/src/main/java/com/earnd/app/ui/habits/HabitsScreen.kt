@@ -36,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.earnd.app.R
 import androidx.compose.ui.unit.dp
 import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.HabitEntity
@@ -76,29 +78,29 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit) {
 
     Scaffold(
         floatingActionButton = {
-            if (!reorder) com.earnd.app.ui.theme.AddFab(onClick = onAddHabit, description = "Add habit")
+            if (!reorder) com.earnd.app.ui.theme.AddFab(onClick = onAddHabit, description = stringResource(R.string.habits_add))
         },
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Habits", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    if (reorder) TextButton(onClick = { reorder = false }) { Text("Done") }
+                    Text(stringResource(R.string.habits_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    if (reorder) TextButton(onClick = { reorder = false }) { Text(stringResource(R.string.habits_done)) }
                     else IconButton(onClick = { reorder = true }, enabled = order.size > 1) {
-                        Icon(Icons.Outlined.SwapVert, "Reorder habits", tint = p.secondary)
+                        Icon(Icons.Outlined.SwapVert, stringResource(R.string.habits_reorder), tint = p.secondary)
                     }
                 }
             }
             val list = rows
             if (list != null && list.isEmpty()) item {
-                Text("No habits yet. Add one to start earning screen time.", style = MaterialTheme.typography.bodyMedium,
+                Text(stringResource(R.string.habits_empty), style = MaterialTheme.typography.bodyMedium,
                     color = p.muted, modifier = Modifier.padding(vertical = 16.dp))
             }
             if (reorder) {
                 itemsIndexed(order, key = { _, h -> "o${h.id}" }) { i, h ->
                     Line(h, onOpen = {}) {
-                        IconButton(enabled = i > 0, onClick = { move(i, i - 1) }) { Icon(Icons.Outlined.KeyboardArrowUp, "Move up") }
-                        IconButton(enabled = i < order.lastIndex, onClick = { move(i, i + 1) }) { Icon(Icons.Outlined.KeyboardArrowDown, "Move down") }
+                        IconButton(enabled = i > 0, onClick = { move(i, i - 1) }) { Icon(Icons.Outlined.KeyboardArrowUp, stringResource(R.string.habits_move_up)) }
+                        IconButton(enabled = i < order.lastIndex, onClick = { move(i, i + 1) }) { Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.habits_move_down)) }
                     }
                 }
             } else {
@@ -107,10 +109,10 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit) {
                 }
             }
             if (archived.isNotEmpty()) {
-                item { SectionTitle("Archived") }
+                item { SectionTitle(stringResource(R.string.habits_archived)) }
                 items(archived, key = { "a${it.id}" }) { h ->
                     Line(h, onOpen = { onOpenHabit(h.id) }, muted = true) {
-                        TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id) } }) { Text("Restore") }
+                        TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id) } }) { Text(stringResource(R.string.habits_restore)) }
                     }
                 }
             }
@@ -131,16 +133,19 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
             val focusing = com.earnd.app.focus.focusLabel(h.id)
             if (focusing != null) com.earnd.app.ui.theme.Num(focusing, color = p.amber)
             else Row {
+                val schedule = HabitRules.scheduleSummary(h)
+                val focusOptions = com.earnd.app.domain.TimedHabit.options(h, settings)
                 Text(
-                    HabitRules.scheduleSummary(h) + when {
-                        h.stopwatch -> " · stopwatch"
-                        else -> com.earnd.app.domain.TimedHabit.options(h, settings).takeIf { it.isNotEmpty() }
-                            ?.let { o -> " · " + o.joinToString("/") { "${it.minutes}" } + " min focus" } ?: ""
+                    when {
+                        h.stopwatch -> stringResource(R.string.habits_row_stopwatch, schedule)
+                        focusOptions.isNotEmpty() ->
+                            stringResource(R.string.habits_row_focus, schedule, focusOptions.joinToString("/") { "${it.minutes}" })
+                        else -> schedule
                     },
                     style = MaterialTheme.typography.bodySmall, color = p.muted,
                 )
                 if (!d.complete && d.comebackMissed > 0) com.earnd.app.ui.theme.Num(
-                    "  " + com.earnd.app.domain.Comeback.label(d.comebackMissed) + " comeback", color = p.amber,
+                    "  " + stringResource(R.string.habits_row_comeback, com.earnd.app.domain.Comeback.label(d.comebackMissed)), color = p.amber,
                 )
             }
         }
@@ -152,12 +157,12 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
         }
         Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(min = 64.dp)) {
             val today = when {
-                d.complete -> if (d.done > d.required) "${d.done}/${d.required} ✓" else "done"
-                !due -> "rest"
+                d.complete -> if (d.done > d.required) "${d.done}/${d.required} ✓" else stringResource(R.string.habits_today_done)
+                !due -> stringResource(R.string.habits_today_rest)
                 else -> "${d.done}/${d.required}"
             }
             Num(today, color = if (d.complete) p.amber else if (due) p.secondary else p.muted)
-            if (streak > 0) Num("streak ${streak}d", color = p.muted, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 12.sp))
+            if (streak > 0) Num(stringResource(R.string.habits_streak_short, streak), color = p.muted, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 12.sp))
         }
     }
 }

@@ -24,8 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.earnd.app.R
 import com.earnd.app.data.entity.AlarmConfigEntity
 
 /**
@@ -43,10 +45,10 @@ fun ReminderChips(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> Unit)
         offsets.forEach { m ->
             RemovableChip(ReminderOffsets.label(m)) { onChange(cfg.copy(offsetsBeforeMin = ReminderOffsets.remove(cfg.offsetsBeforeMin, m))) }
         }
-        AssistChip(onClick = { picking = true }, label = { Text("+ Add reminder") })
+        AssistChip(onClick = { picking = true }, label = { Text(stringResource(R.string.alarmsui_add_reminder)) })
     }
     if (cfg.atDue.not() && offsets.isEmpty()) {
-        Text("No reminders", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.alarmsui_no_reminders), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (picking) {
         ReminderPickerDialog(
@@ -74,16 +76,16 @@ private fun ReminderPickerDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
     val valid = total != null && total in 1..ReminderOffsets.MAX_MIN
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Remind me") },
+        title = { Text(stringResource(R.string.alarmsui_remind_me)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    AssistChip(onClick = { onPick(0) }, label = { Text("At due time") })
+                    AssistChip(onClick = { onPick(0) }, label = { Text(stringResource(R.string.alarmsui_at_due_time)) })
                     ReminderOffsets.PRESETS.forEach { m ->
                         AssistChip(onClick = { onPick(m) }, label = { Text(ReminderOffsets.duration(m)) })
                     }
                 }
-                Text("Custom", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.alarmsui_custom), style = MaterialTheme.typography.labelLarge)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = amount,
@@ -101,12 +103,12 @@ private fun ReminderPickerDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
                             }
                         }
                     }
-                    Text("before")
+                    Text(stringResource(R.string.alarmsui_before_word))
                 }
                 if (valid) Text(ReminderOffsets.label(total!!), style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(enabled = valid, onClick = { onPick(total!!) }) { Text("Add") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(enabled = valid, onClick = { onPick(total!!) }) { Text(stringResource(R.string.alarmsui_add)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.alarmsui_cancel)) } },
     )
 }

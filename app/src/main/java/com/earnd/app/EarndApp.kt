@@ -15,6 +15,7 @@ class EarndApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.earnd.app.i18n.Str.init(this)
         ServiceLocator.init(this)
         ServiceLocator.timeBank // registers the period-change hook on settings before anything edits them
         appScope.launch { // keeps DateTimeFormats.current in sync for non-UI text (lock screen, alarms, widgets)

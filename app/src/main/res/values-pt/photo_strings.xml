@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="photo_take">Tirar foto</string>
+    <string name="photo_saving">A guardar…</string>
+    <string name="photo_cancel">Cancelar</string>
+    <string name="photo_allow">Permitir câmara</string>
+    <string name="photo_failed">A foto não foi guardada. Tentar novamente?</string>
+    <string name="photo_permission_title">Acesso à câmara</string>
+    <string name="photo_permission_body">O Earnd usa a câmara apenas para fotos de registo. Ficam neste dispositivo.</string>
+</resources>

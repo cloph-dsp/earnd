@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarms_channel_pending">Pendentes</string>
+    <string name="alarms_channel_pending_desc">Um resumo discreto do que continua em aberto, atualizado no local.</string>
+    <string name="alarms_channel_quiet">Pendentes (atualizações silenciosas)</string>
+    <string name="alarms_channel_upcoming">Em breve</string>
+    <string name="alarms_channel_ring">Alarmes</string>
+    <string name="alarms_channel_ring_desc">Alarmes em ecrã inteiro que tocam até haver resposta.</string>
+
+    <plurals name="alarms_pending_title">
+        <item quantity="one">%d coisa pendente</item>
+        <item quantity="other">%d coisas pendentes</item>
+    </plurals>
+    <plurals name="alarms_digest_title">
+        <item quantity="one">Resumo diário: %d item antigo</item>
+        <item quantity="other">Resumo diário: %d itens antigos</item>
+    </plurals>
+    <plurals name="alarms_line_nagged">
+        <item quantity="one">%1$s · lembrado %2$d vez</item>
+        <item quantity="other">%1$s · lembrado %2$d vezes</item>
+    </plurals>
+    <string name="alarms_more">+%d na app</string>
+    <string name="alarms_done_action">Feito: %s</string>
+    <string name="alarms_upcoming_text">Às %s</string>
+
+    <string name="alarms_ring_kicker">Agora</string>
+    <string name="alarms_ring_fallback">Lembrete</string>
+    <string name="alarms_ring_text">Tocar para abrir o alarme.</string>
+    <string name="alarms_ring_stop">Parar</string>
+    <string name="alarms_ring_snooze_short">Adiar %d min</string>
+    <string name="alarms_ring_mark_done">Marcar como feito</string>
+    <string name="alarms_channel_missed">Alarmes perdidos</string>
+    <string name="alarms_missed_title">Alarme perdido</string>
+    <string name="alarms_ring_done">Feito</string>
+    <string name="alarms_ring_silence">Silenciar</string>
+    <string name="alarms_ring_ignored">ignorado %d×</string>
+    <string name="alarms_ring_reward">+%d min</string>
+    <plurals name="alarms_ring_snooze">
+        <item quantity="one">Adiar (resta %1$d)</item>
+        <item quantity="other">Adiar (restam %1$d)</item>
+    </plurals>
+    <string name="alarms_ring_no_snooze">Sem adiamentos restantes.</string>
+    <string name="alarms_channel_guard">Bloqueio desativado</string>
+    <string name="alarms_channel_guard_desc">Avisa quando o serviço de bloqueio é desativado.</string>
+    <string name="alarms_sound_default">Predefinido</string>
+    <string name="alarms_sound_custom">Personalizado</string>
+</resources>
