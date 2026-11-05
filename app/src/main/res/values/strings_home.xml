@@ -76,4 +76,5 @@
     <string name="home_puzzle_sentence_4">I can earn the minutes back by doing one small habit first.</string>
     <string name="home_puzzle_sentence_5">A short walk would feel better than another hour of scrolling.</string>
     <string name="home_puzzle_sentence_6">I am loosening a rule I set for myself on a calmer day.</string>
+    <string name="home_bank_debt">%1$d min owed from undone check-ins</string>
 </resources>

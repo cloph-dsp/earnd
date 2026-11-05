@@ -145,13 +145,36 @@ class RollingBankTest {
         assertEquals(2, bank.balance().minutes)
     }
 
-    @Test fun undoNeverGoesBelowZero() = runTest {
+    @Test fun undoNeverGoesBelowZeroButLeavesADebt() = runTest {
         earn(10, 1)
         bank.spend(10)
         bank.reverse(OwnerKind.HABIT, 1)
         assertEquals(0, bank.balance().minutes)
-        earn(3, 2)
-        assertEquals(3, bank.balance().minutes)
+        assertEquals(10, bank.balance().debt)
+        earn(3, 2) // pays the debt first
+        assertEquals(0, bank.balance().minutes)
+        assertEquals(7, bank.balance().debt)
+        earn(8, 3)
+        assertEquals(1, bank.balance().minutes)
+        assertEquals(0, bank.balance().debt)
+    }
+
+    @Test fun checkInSpendUndoRepeatGainsNothing() = runTest {
+        repeat(3) { i ->
+            earn(5, i + 1L)
+            bank.spend(5)
+            bank.reverse(OwnerKind.HABIT, i + 1L)
+        }
+        assertEquals(0, bank.balance().minutes)
+        assertEquals(5, bank.balance().debt) // the one spend that happened is owed; repeating adds nothing
+    }
+
+    @Test fun undoingAnEarnThatPaidDebtRestoresTheDebt() = runTest {
+        earn(10, 1); bank.spend(10); bank.reverse(OwnerKind.HABIT, 1) // debt 10
+        earn(6, 2)                                                    // pays 6, debt 4, nothing banked
+        bank.reverse(OwnerKind.HABIT, 2)                              // its 6 were never banked: debt back to 10
+        assertEquals(0, bank.balance().minutes)
+        assertEquals(10, bank.balance().debt)
     }
 
     @Test fun undoOfExpiredEntryDoesNotTouchOthers() = runTest {

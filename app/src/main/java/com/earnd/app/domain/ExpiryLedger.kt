@@ -16,7 +16,7 @@ data class Lot(
 data class NextExpiry(val at: Long, val minutes: Int)
 
 /** New unspent amounts for lots, by id, plus the expiry of the last lot touched. */
-data class LotChanges(val remaining: Map<Long, Int>, val lastExpiresAt: Long? = null)
+data class LotChanges(val remaining: Map<Long, Int>, val lastExpiresAt: Long? = null, val uncovered: Int = 0)
 
 /**
  * Pure rolling-expiry arithmetic. A lot counts while `expiresAt > now`; spending consumes the oldest
@@ -58,7 +58,8 @@ object ExpiryLedger {
 
     /**
      * Undo of a source that netted [net] minutes. The source's own unspent minutes are removed; whatever part
-     * of [net] was already spent comes off the other lots (oldest first), never taking the balance below zero.
+     * of [net] was already spent comes off the other lots (oldest first), never taking the balance below zero;
+     * what even they cannot cover is returned as [LotChanges.uncovered], a debt that future earnings pay down.
      * Expired unspent minutes of the source are simply gone and cost nothing.
      */
     fun undo(lots: List<Lot>, now: Long, sourceKind: OwnerKind, sourceId: Long, net: Int): LotChanges {
@@ -75,7 +76,7 @@ object ExpiryLedger {
             changes[lot.id] = lot.remaining - take
             deficit -= take
         }
-        return LotChanges(changes)
+        return LotChanges(changes, uncovered = deficit)
     }
 
     /** Where unused minutes of an ended session go back: nowhere if their lot has already expired. */

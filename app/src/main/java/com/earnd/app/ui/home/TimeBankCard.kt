@@ -56,6 +56,8 @@ data class BankState(
     val allDoneUnlock: Boolean,
     val nextExpiryAt: Long? = null,
     val minutesExpiringNext: Int = 0,
+    /** Minutes owed from undone check-ins whose minutes were already spent; the next earnings pay it first. */
+    val debtMin: Int = 0,
     /** True until the balance has been read; the card shows a dash instead of a misleading 0. */
     val loading: Boolean = false,
 )
@@ -119,6 +121,9 @@ fun TimeBankCard(
                         ),
                         color = p.secondary,
                     )
+                }
+                if (state.debtMin > 0) {
+                    Num(stringResource(R.string.home_bank_debt, state.debtMin), color = p.red)
                 }
                 when {
                     state.allDone && state.allDoneUnlock -> {

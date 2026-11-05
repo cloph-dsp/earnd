@@ -76,4 +76,5 @@
     <string name="home_puzzle_sentence_4">Posso recuperar os minutos se fizer primeiro um pequeno hábito.</string>
     <string name="home_puzzle_sentence_5">Uma caminhada curta sabe melhor do que mais uma hora no ecrã.</string>
     <string name="home_puzzle_sentence_6">Estou a flexibilizar uma regra que defini num dia mais calmo.</string>
+    <string name="home_bank_debt">%1$d min em dívida por registos anulados</string>
 </resources>

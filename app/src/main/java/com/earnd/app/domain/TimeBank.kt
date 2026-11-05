@@ -29,6 +29,8 @@ data class Balance(
     val resetsAt: Long?,
     val nextExpiryAt: Long? = null,
     val minutesExpiringNext: Int = 0,
+    /** Rolling mode: minutes still owed from undone check-ins whose minutes were already spent; new earnings pay it first. */
+    val debt: Int = 0,
 )
 
 sealed interface SpendResult {
@@ -81,10 +83,14 @@ class TimeBank(
         if (s.resetPeriod == ResetPeriod.ROLLING) {
             val lots = lots(now)
             val next = ExpiryLedger.nextExpiry(lots, now)
-            return Balance(ExpiryLedger.balance(lots, now), key, null, next?.at, next?.minutes ?: 0)
+            return Balance(ExpiryLedger.balance(lots, now), key, null, next?.at, next?.minutes ?: 0, debt())
         }
         return Balance(ledger.sum(key), key, resetsAt(s, now))
     }
+
+    private suspend fun debt(): Int = settings.rawGet(DEBT_KEY)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+
+    private suspend fun setDebt(minutes: Int) = settings.rawPut(DEBT_KEY, minutes.coerceAtLeast(0).toString())
 
     private suspend fun lots(now: Long): List<Lot> = ledger.unexpiredLots(now).map { it.toLot() }
 
@@ -96,11 +102,15 @@ class TimeBank(
         val now = clock.now()
         val s = settings.current()
         val rolling = s.resetPeriod == ResetPeriod.ROLLING && minutes > 0
+        // Earnings first pay down a debt left by undoing minutes that were already spent.
+        val owed = if (rolling) debt() else 0
+        val toDebt = minOf(owed, minutes)
+        if (toDebt > 0) setDebt(owed - toDebt)
         val id = ledger.insert(
             LedgerEntryEntity(at = now, kind = kind, minutes = minutes, sourceKind = sourceKind,
                 sourceId = sourceId, periodKey = periodKey(s, now),
                 expiresAt = if (rolling) now + s.rollingExpiryHours * HOUR else null,
-                remaining = if (rolling) minutes else 0),
+                remaining = if (rolling) minutes - toDebt else 0),
         )
         bus.emit(ChangeKind.BALANCE)
         id
@@ -120,7 +130,9 @@ class TimeBank(
             if (net <= 0) return@run
             val sourceLots = entries.filter { it.expiresAt != null }.map { it.toLot() }
             val all = (lots(now) + sourceLots).distinctBy { it.id }
-            applyChanges(ExpiryLedger.undo(all, now, sourceKind, sourceId, net))
+            val undone = ExpiryLedger.undo(all, now, sourceKind, sourceId, net)
+            applyChanges(undone)
+            if (undone.uncovered > 0) setDebt(debt() + undone.uncovered)
             ledger.insert(LedgerEntryEntity(at = now, kind = LedgerKind.UNDO, minutes = -net,
                 sourceKind = sourceKind, sourceId = sourceId, periodKey = key))
             bus.emit(ChangeKind.BALANCE)
@@ -303,7 +315,8 @@ class TimeBank(
         val oldRolling = old.resetPeriod == ResetPeriod.ROLLING
         val newRolling = new.resetPeriod == ResetPeriod.ROLLING
         if (oldRolling || newRolling) {
-            // Moving to or from rolling: carry the live balance across as one entry in the new mode.
+            // Moving to or from rolling: carry the live balance across as one entry in the new mode (a debt does not travel).
+            setDebt(0)
             val live = if (oldRolling) lots(now) else emptyList()
             val carry = if (oldRolling) ExpiryLedger.balance(live, now) else ledger.sum(oldKey)
             if (oldRolling) live.forEach { ledger.setRemaining(it.id, 0) }
@@ -350,6 +363,7 @@ class TimeBank(
         const val HOUR = 3_600_000L
         private const val TICK_MS = 30_000L
         private const val LAST_PERIOD_KEY = "bank.lastPeriodKey"
+        private const val DEBT_KEY = "bank.debt"
 
         fun bedtimeWindow(s: Settings): DailyWindow? =
             if (s.bedtimeEnabled) DailyWindow(s.bedtimeStartMin, s.bedtimeEndMin) else null
