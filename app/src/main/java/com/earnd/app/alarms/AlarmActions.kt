@@ -19,7 +19,8 @@ class AlarmActions(private val context: Context) {
     /** An item's due time arrived. */
     suspend fun onDue(kind: OwnerKind, id: Long) {
         // Reconcile marks it pending if it is still open. If it fails, ring anyway: a late alarm beats a silent one.
-        val reconciled = runCatching { AlarmsModule.planner.rearmAll() }.isSuccess
+        val reconciled = runCatching { AlarmsModule.planner.rearmAll() }
+            .onFailure { android.util.Log.e("Earnd", "Re-arm before ringing failed", it) }.isSuccess
         if (reconciled && db.nagStateDao().get(kind, id) == null) return
         val style = styleOf(kind, id)
         if (style == AlarmStyle.FULL_SCREEN) Ringing.show(context, kind, id)

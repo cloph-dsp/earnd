@@ -10,8 +10,9 @@ object NotifyChannels {
     const val MORNING = "notify_morning"
     const val REPORT = "notify_report"
 
-    const val ID_MORNING = 4101
-    const val ID_REPORT = 4102
+    // Not in the 4100s: those belong to the alarm notifications (ring, guard-off), which a nudge must never replace.
+    const val ID_MORNING = 4301
+    const val ID_REPORT = 4302
 
     fun ensure(context: Context) {
         context.getSystemService(NotificationManager::class.java).createNotificationChannels(

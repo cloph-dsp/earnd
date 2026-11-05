@@ -35,8 +35,8 @@ class NotifyReceiver : BroadcastReceiver() {
                         ACTION_MORNING -> morning(app)
                         ACTION_REPORT -> report(app)
                     }
-                }
-                Notify.init(app)
+                }.onFailure { android.util.Log.e("Earnd", "Nudge or report failed", it) }
+                runCatching { Notify.init(app) }.onFailure { android.util.Log.e("Earnd", "Re-arming nudge and report failed", it) }
             } finally {
                 pending.finish()
             }
@@ -46,10 +46,7 @@ class NotifyReceiver : BroadcastReceiver() {
     private suspend fun todayLines(): List<HabitLine>? {
         val today = ServiceLocator.clock.today()
         if (ServiceLocator.settings.current().onVacation(today.toEpochDay())) return null
-        val db = ServiceLocator.db
-        val counts = db.checkInDao().forDay(today.toEpochDay()).groupingBy { it.habitId }.eachCount()
-        return db.habitDao().active().filter { HabitSchedule.isScheduled(it, today) }
-            .map { HabitLine(it.name, counts[it.id] ?: 0, it.timesPerDay) }
+        return ServiceLocator.habitService.daySummary(today).map { HabitLine(it.habit.name, it.done, it.required) }
     }
 
     private suspend fun morning(context: Context) {

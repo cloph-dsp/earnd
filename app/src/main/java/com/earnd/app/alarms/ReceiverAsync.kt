@@ -14,6 +14,7 @@ internal fun BroadcastReceiver.launchAsync(block: suspend () -> Unit) {
     receiverScope.launch {
         try { block() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Throwable) {
             // A failing receiver must not take the whole process (and the blocking service with it) down.
+            android.util.Log.e("Earnd", "Receiver work failed", e)
         } finally { pending.finish() }
     }
 }

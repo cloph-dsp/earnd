@@ -76,18 +76,22 @@ class GuardAccessibilityService : AccessibilityService() {
         overlay = MeterOverlay(this, getSystemService(WindowManager::class.java))
         registerScreenReceiver()
         // After a rebind (process killed, service toggled) no window event has arrived yet: read the app in front now.
-        runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
-            ?.takeIf { !isTransientSystemUi(it) }
-            ?.let { pkg ->
+        val root = runCatching { rootInActiveWindow }.getOrNull()
+        try {
+            root?.packageName?.toString()?.takeIf { !isTransientSystemUi(it) }?.let { pkg ->
                 foregroundPkg = pkg
-                if (BrowserUrls.isBrowser(pkg)) lastUrl = runCatching { BrowserUrls.extract(rootInActiveWindow, pkg) }.getOrNull()
+                if (BrowserUrls.isBrowser(pkg)) lastUrl = runCatching { BrowserUrls.extract(root, pkg) }.getOrNull()
             }
+        } finally {
+            @Suppress("DEPRECATION")
+            runCatching { root?.recycle() }
+        }
         schedule(force = true)
         scope.launch {
             ServiceLocator.changeBus.events.collect { kind ->
                 if (kind == ChangeKind.BLOCKLIST) ServiceLocator.essentialApps.refresh()
                 if (kind in RECHECK_ON) recheck(force = true)
-                if (kind == ChangeKind.BALANCE && armed) runCatching {
+                if (kind == ChangeKind.BALANCE && armed) attempt {
                     val now = System.currentTimeMillis()
                     syncBalance(now)
                     scheduleZero(now)
@@ -184,37 +188,43 @@ class GuardAccessibilityService : AccessibilityService() {
         if (!force && key == lastCheckKey && now - lastCheckAt < SAME_KEY_MS) return
         lastCheckKey = key
         lastCheckAt = now
-        val env = env()
-        if (!env.screenUsable) { pauseCounting(now); return }
-        // Charge the time since the last check at the previous rate before deciding with the new balance.
-        attempt { ServiceLocator.meterEngine.advance(now, env.allowed) }
-        val decision = attempt { ServiceLocator.blockPolicy.decide(pkg, url, now) }
-            .getOrDefault(BlockDecision.Allow)
-        val ruleKey = (decision as? BlockDecision.Metered)?.key
-        grantKey?.let { if (it != ruleKey) ServiceLocator.grants.leave(it, now) }
-        grantKey = ruleKey
-        var primary: Counted? = null
-        when (decision) {
-            is BlockDecision.Block -> {
-                pauseCounting(now)
-                if (foregroundPkg == pkg) showLock(pkg, url, decision)
-                return
-            }
-            is BlockDecision.Metered -> {
-                if (ServiceLocator.grants.active(decision.key, now)) {
-                    ServiceLocator.grants.enter(decision.key)
-                    primary = Counted(decision.key, pkg, decision.ratePct, primary = true)
-                } else {
+        // A cancelled pass applied nothing, so the next one must not be skipped as a duplicate of it.
+        try {
+            val env = env()
+            if (!env.screenUsable) { pauseCounting(now); return }
+            // Charge the time since the last check at the previous rate before deciding with the new balance.
+            attempt { ServiceLocator.meterEngine.advance(now, env.allowed) }
+            val decision = attempt { ServiceLocator.blockPolicy.decide(pkg, url, now) }
+                .getOrDefault(BlockDecision.Allow)
+            val ruleKey = (decision as? BlockDecision.Metered)?.key
+            grantKey?.let { if (it != ruleKey) ServiceLocator.grants.leave(it, now) }
+            grantKey = ruleKey
+            var primary: Counted? = null
+            when (decision) {
+                is BlockDecision.Block -> {
                     pauseCounting(now)
-                    if (foregroundPkg == pkg) showGate(pkg, url, decision)
+                    if (foregroundPkg == pkg) showLock(pkg, url, decision)
                     return
                 }
+                is BlockDecision.Metered -> {
+                    if (ServiceLocator.grants.active(decision.key, now)) {
+                        ServiceLocator.grants.enter(decision.key)
+                        primary = Counted(decision.key, pkg, decision.ratePct, primary = true)
+                    } else {
+                        pauseCounting(now)
+                        if (foregroundPkg == pkg) showGate(pkg, url, decision)
+                        return
+                    }
+                }
+                BlockDecision.Allow -> Unit
             }
-            BlockDecision.Allow -> Unit
+            // A failing look at the windows beside the app must not stop the app in front from being counted.
+            val extras = attempt { extraTargets(pkg, now) }.getOrDefault(emptyList())
+            applyCounting(CountRules.pick(primary, extras), env, now)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            lastCheckKey = null
+            throw e
         }
-        // A failing look at the windows beside the app must not stop the app in front from being counted.
-        val extras = attempt { extraTargets(pkg, now) }.getOrDefault(emptyList())
-        applyCounting(CountRules.pick(primary, extras), env, now)
     }
 
     /** Leisure apps visible beside the foreground one (picture-in-picture, split-screen); exhausted ones get the lock. */
@@ -277,7 +287,7 @@ class GuardAccessibilityService : AccessibilityService() {
         zeroJob = scope.launch {
             delay(wait)
             val t = System.currentTimeMillis()
-            runCatching { ServiceLocator.meterEngine.advance(t, env().allowed) }
+            attempt { ServiceLocator.meterEngine.advance(t, env().allowed) }
             // Separate job: the re-check cancels and re-creates this one.
             scope.launch { recheck(force = true) }
         }
@@ -295,7 +305,7 @@ class GuardAccessibilityService : AccessibilityService() {
                 if (e.allowed != wasAllowed || !e.screenUsable) { wasAllowed = e.allowed; scope.launch { recheck(force = true) }; continue }
                 if (now - lastTickAdvance >= TICK_MS) {
                     lastTickAdvance = now
-                    runCatching { ServiceLocator.meterEngine.advance(now, e.allowed) }
+                    attempt { ServiceLocator.meterEngine.advance(now, e.allowed) }
                 }
                 renderOverlay(now)
             }
@@ -326,7 +336,7 @@ class GuardAccessibilityService : AccessibilityService() {
 
     /** Stops counting (charging up to [now]) and removes the overlay: leaving the app, screen off, lock/gate shown. */
     private suspend fun pauseCounting(now: Long) {
-        runCatching { ServiceLocator.meterEngine.stop(now) }
+        attempt { ServiceLocator.meterEngine.stop(now) }
         armed = false
         stopTicker()
         hideOverlay()
