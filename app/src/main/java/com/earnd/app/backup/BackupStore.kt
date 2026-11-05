@@ -57,6 +57,7 @@ class BackupStore(private val db: EarndDatabase) {
 
     /** Replaces everything with [data] in one transaction. */
     suspend fun restore(data: BackupData) = withContext(Dispatchers.IO) {
+        refuseInHardMode()
         val known = columns()
         BackupCodec.validate(data, sql.version, known)?.let { throw BackupFormatException(it) }
         db.runInTransaction {
@@ -69,8 +70,14 @@ class BackupStore(private val db: EarndDatabase) {
     }
 
     suspend fun clearAll() = withContext(Dispatchers.IO) {
+        refuseInHardMode()
         db.clearAllTables()
         announce()
+    }
+
+    /** A restore or a wipe would bring back older settings and refund spent minutes, so hard mode refuses both. */
+    private suspend fun refuseInHardMode() {
+        if (ServiceLocator.settings.current().hardMode) throw IllegalStateException(Str.get(R.string.backup_err_hard_mode))
     }
 
     private suspend fun announce() {

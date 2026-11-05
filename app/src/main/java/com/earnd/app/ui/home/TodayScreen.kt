@@ -64,6 +64,7 @@ import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.launchUi
 import com.earnd.app.ui.habits.HabitLook
 import com.earnd.app.ui.habits.HabitActions
+import com.earnd.app.ui.habits.AmountDialog
 import com.earnd.app.ui.habits.HabitRules
 import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.domain.minuteOfDay
@@ -291,26 +292,6 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     }
 }
 
-/** Asks how much was done; the amount is added to today's total. */
-@Composable
-private fun AmountDialog(h: HabitEntity, onDismiss: () -> Unit, onAdd: (Double) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    val amount = HabitRules.parseAmount(text)
-    val unit = h.unit ?: stringResource(R.string.home_amount_default_unit)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(h.name) },
-        text = {
-            OutlinedTextField(
-                text, { text = it.take(10) },
-                label = { Text(stringResource(R.string.home_amount_prompt, unit)) }, singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
-        },
-        confirmButton = { TextButton(enabled = amount != null, onClick = { amount?.let(onAdd) }) { Text(stringResource(R.string.common_add)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
-    )
-}
 
 fun refuseText(reason: String): String = when (reason) {
     com.earnd.app.domain.RefuseReason.HARD_MODE -> Str.get(R.string.home_refuse_hard_mode)

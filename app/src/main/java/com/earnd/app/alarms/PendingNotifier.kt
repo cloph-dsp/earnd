@@ -31,10 +31,12 @@ class PendingNotifier(private val context: Context) {
         }
         val states = ServiceLocator.db.nagStateDao().all()
         val digest = states.isNotEmpty() && states.filter { it.dueAt <= now }.all { NagSchedule.isDigest(it, now) }
-        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest, quiet))
+        val needsApp = items.filter { it.ownerKind == com.earnd.app.data.entity.OwnerKind.HABIT && AlarmsModule.actions.needsApp(it.ownerKind, it.ownerId) }
+            .map { it.ownerId }.toSet()
+        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest, quiet, needsApp))
     }
 
-    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean, quiet: Boolean = false): Notification {
+    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean, quiet: Boolean = false, needsApp: Set<Long> = emptySet()): Notification {
         AlarmChannels.ensure(context)
         val res = context.resources
         val title = if (digest) res.getQuantityString(R.plurals.alarms_digest_title, items.size, items.size)
@@ -61,7 +63,7 @@ class PendingNotifier(private val context: Context) {
         openAppIntent()?.let { builder.setContentIntent(it) }
         // Android shows up to three actions; items are already ordered most-ignored first.
         items.take(MAX_ACTIONS).forEach { item ->
-            builder.addAction(0, context.getString(R.string.alarms_done_action, ellipsize(item.label, 22)), doneIntent(item))
+            builder.addAction(0, context.getString(R.string.alarms_done_action, ellipsize(item.label, 22)), doneIntent(item, item.ownerKind == com.earnd.app.data.entity.OwnerKind.HABIT && item.ownerId in needsApp))
         }
         return builder.build()
     }
@@ -75,7 +77,12 @@ class PendingNotifier(private val context: Context) {
         return if (it.nagCount > 0) "$short ×${it.nagCount}" else short
     }
 
-    private fun doneIntent(item: PendingItem): PendingIntent {
+    private fun doneIntent(item: PendingItem, needsApp: Boolean): PendingIntent {
+        if (needsApp) {
+            return PendingIntent.getActivity(context, (10_000 + item.ownerId % 50_000).toInt(),
+                com.earnd.app.blocking.BlockingIntents.checkIn(context, item.ownerId),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
         val intent = Intent(context, DoneActionReceiver::class.java).setAction(AlarmKeys.ACTION_DONE)
             .setData(AlarmKeys.uri(item.ownerKind, item.ownerId, "done"))
             .putOwner(item.ownerKind, item.ownerId)

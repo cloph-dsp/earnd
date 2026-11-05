@@ -248,4 +248,6 @@
     <string name="rrule_last_date">Última data (AAAA-MM-DD)</string>
     <string name="rrule_times">Vezes</string>
     <string name="rrule_check_values">Verificar os valores acima.</string>
+    <string name="habits_hard_mode_blocked">O modo rígido está ativo e este hábito é para hoje. Só pode ser removido ou facilitado depois de feito, ou amanhã.</string>
+    <string name="habits_hard_mode_ok">OK</string>
 </resources>

@@ -332,4 +332,5 @@
     <string name="alarmsui_sound_stop">Parar</string>
     <string name="alarmsui_sound_play">Reproduzir</string>
     <string name="settings_app_language">Idioma</string>
+    <string name="backup_err_hard_mode">O modo rígido está ativo, por isso os dados não podem ser substituídos nem eliminados.</string>
 </resources>

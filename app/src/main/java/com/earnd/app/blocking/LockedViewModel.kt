@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 sealed interface EarnItem {
     val minutes: Int
     /** [minutes] is what one check-in earns now (0 in "only when everything is done" mode). */
-    data class Habit(val day: HabitDay, override val minutes: Int, val needsPhoto: Boolean) : EarnItem
+    data class Habit(val day: HabitDay, override val minutes: Int, val needsPhoto: Boolean, val needsApp: Boolean = needsPhoto) : EarnItem
     data class Task(val id: Long, val title: String, override val minutes: Int, val overdue: Boolean) : EarnItem
 }
 
@@ -57,7 +57,7 @@ class LockedViewModel(val cause: BlockCause) : ViewModel() {
     private val habitItems = combine(habits.observeToday(), ServiceLocator.settings.settings) { days, s ->
         days.filter { !it.complete }.map { d ->
             val minutes = if (s.rewardMode == RewardMode.ALL_DONE) 0 else HabitProgress.rewardMinutes(d.habit, s)
-            EarnItem.Habit(d, minutes, habits.photoRequired(d.habit, s))
+            EarnItem.Habit(d, minutes, habits.photoRequired(d.habit, s), habits.checkInKind(d.habit, s) != com.earnd.app.domain.HabitService.CheckInKind.TAP)
         }.filter { it.minutes > 0 || s.rewardMode == RewardMode.ALL_DONE }
     }
 

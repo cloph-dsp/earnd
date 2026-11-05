@@ -14,6 +14,7 @@ import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.NagMode
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.data.entity.Priority
+import com.earnd.app.data.entity.RewardMode
 import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.data.entity.TaskEntity
 import com.earnd.app.domain.Charging
@@ -33,8 +34,10 @@ import java.time.LocalDate
  * Policy: creating things and strengthening blocking is allowed; weakening never is. Habits,
  * tasks, reminders and alarms can be configured; apps/sites can be blocked (never unblocked);
  * settings can only be tightened (classified by [SettingsChanges.isWeakening], the same rule the
- * phone UI uses). Raising rewards or dropping photo proof fails with `forbidden_weaken`. The time
- * bank, unlock sessions, vacation and remote access itself are refused as `forbidden`.
+ * phone UI uses). Raising rewards, dropping photo proof, lowering times per day or a target of, or rescheduling away,
+ * a habit that is due today, or archiving it, fails with `forbidden_weaken`. A remote check-in
+ * never stands in for proof (photo, focus session, amount) and never makes the last check-in that would
+ * unlock the day. The time bank, unlock sessions, vacation and remote access itself are refused as `forbidden`.
  */
 class RemoteDispatcher(private val backend: RemoteBackend) {
 
@@ -89,6 +92,10 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         "habits.update" -> habitSave(a, habitOr404(a.requireLong("id")))
         "habits.archive" -> {
             val h = habitOr404(a.requireLong("id"))
+            // Removing a habit that is due today can complete the day: phone only.
+            if (!h.archived && HabitSchedule.isScheduled(h, backend.today()) && backend.checkInsToday(h.id).size < h.timesPerDay.coerceAtLeast(1)) {
+                throw WeakenForbidden("a habit that is due today can only be archived on the phone")
+            }
             backend.archiveHabit(h.id)
             ok("id" to h.id)
         }
@@ -290,6 +297,17 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
                 throw WeakenForbidden("reward beyond target can only be turned on on the phone")
             }
             timedWeakening(existing, h, s)?.let { throw WeakenForbidden(it) }
+            // What is still owed today cannot be reduced remotely: that would be a way to complete the day.
+            val today = backend.today()
+            val owedToday = HabitSchedule.isScheduled(existing, today) &&
+                backend.checkInsToday(existing.id).size < existing.timesPerDay.coerceAtLeast(1)
+            if (owedToday) {
+                if (h.timesPerDay < existing.timesPerDay) throw WeakenForbidden("times per day can only be raised remotely while the habit is due")
+                existing.targetQuantity?.let { old ->
+                    if (h.targetQuantity == null || h.targetQuantity < old) throw WeakenForbidden("the target can only be raised remotely while the habit is due")
+                }
+                if (!HabitSchedule.isScheduled(h, today)) throw WeakenForbidden("a habit that is due today cannot be rescheduled away from today remotely")
+            }
         }
         val id = backend.saveHabit(h)
         saveAlarm(a, OwnerKind.HABIT, id, habit = true)
@@ -315,14 +333,30 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         }
     }
 
+    /** Whether one more check-in of [h] would make every habit scheduled today complete. */
+    private suspend fun wouldCompleteDay(h: HabitEntity): Boolean {
+        val today = backend.today()
+        return backend.habits(includeArchived = false).filter { HabitSchedule.isScheduled(it, today) }.all {
+            backend.checkInsToday(it.id).size + (if (it.id == h.id) 1 else 0) >= it.timesPerDay.coerceAtLeast(1)
+        }
+    }
+
     private fun photoOn(h: HabitEntity, s: Settings) = h.checkInMode == CheckInMode.PHOTO || HabitProgress.photoRequired(h, s)
 
     private suspend fun habitCheckIn(a: RemoteArgs): Map<String, Any?> {
         val h = habitOr404(a.requireLong("id"))
         if (h.archived) return fail("archived")
-        // Photo habits need proof taken on the phone itself.
-        if (h.checkInMode == CheckInMode.PHOTO) return fail("photo_required", "This habit is checked in with a photo on the phone")
-        val c = backend.checkIn(h.id, a.double("qty", QTY_RANGE))
+        val s = backend.settings()
+        // Proof (photo, focus session, amount) has to happen on the phone itself.
+        if (photoOn(h, s)) return fail("photo_required", "This habit is checked in with a photo on the phone")
+        if (TimedHabit.isTimed(h)) return fail("focus_required", "This habit is checked in by a focus session on the phone")
+        val qty = a.double("qty", QTY_RANGE)
+        if (h.targetQuantity != null && qty == null) return fail("amount_required", "This habit needs qty=")
+        // The check-in that completes the day would unlock apps: that one is done on the phone.
+        if ((s.hardMode || s.allDoneUnlock || s.rewardMode == RewardMode.ALL_DONE) && wouldCompleteDay(h)) {
+            return fail("forbidden", "The check-in that completes the day can only be done on the phone")
+        }
+        val c = backend.checkIn(h.id, qty)
         return ok("id" to h.id, "checkInId" to c.id, "minutesEarned" to c.minutesEarned)
     }
 

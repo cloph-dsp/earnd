@@ -70,6 +70,7 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
     var habit by remember { mutableStateOf<HabitEntity?>(null) }
     var alarm by remember { mutableStateOf<AlarmConfigEntity?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var hardBlocked by remember { mutableStateOf(false) }
     LaunchedEffect(habitId) {
         habit = sl.db.habitDao().get(habitId) ?: HabitEntity(
             name = "", iconKey = "star", colorArgb = HabitLook.colors.first(),
@@ -86,6 +87,8 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
     var more by remember(h.id) { mutableStateOf(false) }
     val save: () -> Unit = {
         launchUi {
+            val old = if (isNew) null else sl.db.habitDao().get(h.id)
+            if (old != null && sl.habitService.hardModeBlocksEdit(old, h)) { hardBlocked = true; return@launchUi }
             val id = sl.habitService.save(
                 h.copy(name = h.name.trim(), minutesPerCheckIn = HabitRules.rewardMinutes(h, sl.settings.current())),
             )
@@ -263,11 +266,18 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         if (!isNew) {
             SectionTitle(stringResource(R.string.habits_section_manage))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { launchUi { sl.habitService.archive(h.id); onDone() } }) { Text(stringResource(R.string.habits_archive)) }
-                Button(onClick = { confirmDelete = true }) { Text(stringResource(R.string.habits_delete)) }
+                OutlinedButton(onClick = { launchUi { if (sl.habitService.hardModeBlocks(h)) hardBlocked = true else { sl.habitService.archive(h.id); onDone() } } }) { Text(stringResource(R.string.habits_archive)) }
+                Button(onClick = { launchUi { if (sl.habitService.hardModeBlocks(h)) hardBlocked = true else confirmDelete = true } }) { Text(stringResource(R.string.habits_delete)) }
             }
         }
         }
+    }
+    if (hardBlocked) {
+        AlertDialog(
+            onDismissRequest = { hardBlocked = false },
+            text = { Text(stringResource(R.string.habits_hard_mode_blocked)) },
+            confirmButton = { TextButton(onClick = { hardBlocked = false }) { Text(stringResource(R.string.habits_hard_mode_ok)) } },
+        )
     }
     if (confirmDelete) {
         AlertDialog(

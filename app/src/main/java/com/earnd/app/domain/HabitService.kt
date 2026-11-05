@@ -269,6 +269,32 @@ class HabitService(
     fun photoRequired(h: HabitEntity, s: Settings): Boolean =
         h.checkInMode == CheckInMode.PHOTO || HabitProgress.photoRequired(h, s)
 
+    /** Hard mode: a habit that is due today and not done yet cannot be removed or made easier. */
+    suspend fun hardModeBlocks(h: HabitEntity): Boolean {
+        if (h.id == 0L || h.archived || !settingsNow().hardMode) return false
+        val today = clock.today()
+        if (!isScheduled(h, today)) return false
+        val done = HabitProgress.doneUnits(h, checkIns.forDay(today.toEpochDay()).filter { it.habitId == h.id })
+        return done < HabitProgress.required(h)
+    }
+
+    /** Hard mode and an edit of [old] into [new] that lowers what is owed today. */
+    suspend fun hardModeBlocksEdit(old: HabitEntity, new: HabitEntity): Boolean {
+        if (!hardModeBlocks(old)) return false
+        val lowerTarget = old.targetQuantity?.let { q -> new.targetQuantity == null || new.targetQuantity < q } == true
+        return new.timesPerDay < old.timesPerDay || lowerTarget || !isScheduled(new, clock.today())
+    }
+
+    /** The flow a check-in of [h] must go through; notification, alarm, lock screen and widget all use this. */
+    enum class CheckInKind { TAP, PHOTO, FOCUS, AMOUNT }
+
+    fun checkInKind(h: HabitEntity, s: Settings): CheckInKind = when {
+        TimedHabit.isTimed(h) -> CheckInKind.FOCUS
+        photoRequired(h, s) -> CheckInKind.PHOTO
+        h.targetQuantity != null -> CheckInKind.AMOUNT
+        else -> CheckInKind.TAP
+    }
+
     suspend fun archive(habitId: Long) {
         habits.archive(habitId)
         bus.emit(ChangeKind.HABITS)

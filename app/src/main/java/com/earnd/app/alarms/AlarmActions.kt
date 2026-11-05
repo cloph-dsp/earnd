@@ -29,7 +29,7 @@ class AlarmActions(private val context: Context) {
     suspend fun onUpcoming(kind: OwnerKind, id: Long, dueAt: Long) {
         val label = labelOf(kind, id)
         if (label.isNotBlank()) {
-            UpcomingNotifier.show(context, kind, id, label, dueAt, silent = styleOf(kind, id) == AlarmStyle.SILENT)
+            UpcomingNotifier.show(context, kind, id, label, dueAt, silent = styleOf(kind, id) == AlarmStyle.SILENT, needsApp = needsApp(kind, id))
         }
         AlarmsModule.planner.rearmAll()
     }
@@ -57,19 +57,34 @@ class AlarmActions(private val context: Context) {
         runCatching { com.earnd.app.blocking.GuardWatch.check(context) }
     }
 
-    /** "Done" from the notification or the ringing screen: completes via the domain services. */
-    suspend fun done(kind: OwnerKind, id: Long) {
-        runCatching {
+    /** True when "Done" for this item must go through the app (photo, focus timer or amount) instead of a plain tap. */
+    suspend fun needsApp(kind: OwnerKind, id: Long): Boolean {
+        if (kind != OwnerKind.HABIT) return false
+        val h = runCatching { db.habitDao().get(id) }.getOrNull() ?: return false
+        val s = runCatching { ServiceLocator.settings.current() }.getOrNull() ?: return false
+        return ServiceLocator.habitService.checkInKind(h, s) != com.earnd.app.domain.HabitService.CheckInKind.TAP
+    }
+
+    /**
+     * "Done" from the notification or the ringing screen. Completes only what a plain tap can complete: a habit that
+     * needs a photo, a focus session or an amount returns false (the caller opens the app) and keeps nagging, and a
+     * failed save keeps nagging too instead of looking done.
+     */
+    suspend fun done(kind: OwnerKind, id: Long): Boolean {
+        if (needsApp(kind, id)) return false
+        val saved = runCatching {
             when (kind) {
                 OwnerKind.TASK -> ServiceLocator.taskService.complete(id)
                 OwnerKind.HABIT -> ServiceLocator.habitService.checkIn(id)
             }
-        }
+        }.isSuccess
+        if (!saved) return false
         nag.resolve(kind, id)
         Ringing.dismiss(context, kind, id)
         UpcomingNotifier.cancel(context, kind, id)
         AlarmsModule.planner.rearmAll()
         AlarmsModule.notifier.refresh(alert = false)
+        return true
     }
 
     /** Stop: silence this occurrence without completing it; the next reminder time rings again. */

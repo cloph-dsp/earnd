@@ -248,4 +248,6 @@
     <string name="rrule_last_date">Last date (YYYY-MM-DD)</string>
     <string name="rrule_times">Times</string>
     <string name="rrule_check_values">Check the values above.</string>
+    <string name="habits_hard_mode_blocked">Hard mode is on and this habit is due today. It can be removed or made easier once it is done, or tomorrow.</string>
+    <string name="habits_hard_mode_ok">OK</string>
 </resources>

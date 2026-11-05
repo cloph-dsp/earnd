@@ -83,6 +83,7 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
     var month by remember { mutableStateOf(YearMonth.from(today)) }
     var reload by remember { mutableIntStateOf(0) }
     var confirmArchive by remember { mutableStateOf(false) }
+    var hardBlocked by remember { mutableStateOf(false) }
     // Reload whenever today's check-ins change (undo here, or check-in elsewhere).
     val todays by remember { sl.db.checkInDao().observeForDay(today.toEpochDay()) }.collectAsState(initial = emptyList())
     LaunchedEffect(habitId, reload, todays.size) {
@@ -109,12 +110,17 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
             if (h.archived) {
                 TextButton(onClick = { launchUi { sl.habitService.unarchive(h.id); reload++ } }) { Text(stringResource(R.string.habits_restore)) }
             } else {
-                IconButton(onClick = { confirmArchive = true }) { Icon(Icons.Outlined.Archive, stringResource(R.string.habits_archive)) }
+                IconButton(onClick = { launchUi { if (sl.habitService.hardModeBlocks(h)) hardBlocked = true else confirmArchive = true } }) { Icon(Icons.Outlined.Archive, stringResource(R.string.habits_archive)) }
             }
         }
         IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, stringResource(R.string.habits_edit)) }
     }) {
         if (h == null) return@EditScaffold
+        if (hardBlocked) AlertDialog(
+            onDismissRequest = { hardBlocked = false },
+            text = { Text(stringResource(R.string.habits_hard_mode_blocked)) },
+            confirmButton = { TextButton(onClick = { hardBlocked = false }) { Text(stringResource(R.string.habits_hard_mode_ok)) } },
+        )
         if (confirmArchive) AlertDialog(
             onDismissRequest = { confirmArchive = false },
             title = { Text(stringResource(R.string.habits_archive_title, h.name)) },

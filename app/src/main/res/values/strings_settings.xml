@@ -330,4 +330,5 @@
     <string name="alarmsui_sound_stop">Stop</string>
     <string name="alarmsui_sound_play">Play</string>
     <string name="settings_app_language">Language</string>
+    <string name="backup_err_hard_mode">Hard mode is on, so data cannot be replaced or cleared.</string>
 </resources>

@@ -61,7 +61,7 @@ class LockedActivity : ComponentActivity() {
                 LockedScreen(
                     cause = cause, target = target, until = until, ui = ui, message = message,
                     onCheckIn = { item ->
-                        if (item.needsPhoto) openInApp(BlockingIntents.checkIn(this, item.day.habit.id))
+                        if (item.needsApp) openInApp(BlockingIntents.checkIn(this, item.day.habit.id))
                         else vm.checkIn(item.day.habit.id)
                     },
                     onTask = { vm.completeTask(it.id) },

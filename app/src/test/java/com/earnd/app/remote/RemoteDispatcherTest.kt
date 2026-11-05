@@ -84,6 +84,8 @@ class RemoteDispatcherTest {
     }
 
     private val b = FakeBackend()
+
+    @org.junit.Before fun installStrings() = com.earnd.app.i18n.TestStr.install()
     private val d = RemoteDispatcher(b)
     private fun b64(s: String) = Base64.getEncoder().encodeToString(s.toByteArray())
 
@@ -312,6 +314,7 @@ class RemoteDispatcherTest {
 
     @Test fun quantityRangeIsChecked() = runTest {
         val id = b.saveHabit(HabitEntity(name = "w", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0))
+        b.saveHabit(HabitEntity(name = "other", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0)) // not the last of the day
         assertTrue(d.handle("habits.checkin", mapOf("id" to "$id", "qty" to "NaN")).contains("bad_args"))
         assertTrue(d.handle("habits.checkin", mapOf("id" to "$id", "qty" to "-1")).contains("bad_args"))
         assertTrue(d.handle("habits.checkin", mapOf("id" to "$id", "qty" to "250")).startsWith("{\"ok\":true"))
@@ -321,6 +324,8 @@ class RemoteDispatcherTest {
         val a = b.saveHabit(HabitEntity(name = "a", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, sortOrder = 0))
         val c = b.saveHabit(HabitEntity(name = "c", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, sortOrder = 1))
         val e = b.saveHabit(HabitEntity(name = "e", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, sortOrder = 2))
+        assertTrue(d.handle("habits.archive", mapOf("id" to "$c")).contains("forbidden_weaken")) // due today and not done
+        assertTrue(d.handle("habits.checkin", mapOf("id" to "$c")).startsWith("{\"ok\":true"))
         d.handle("habits.archive", mapOf("id" to "$c"))
         assertTrue(b.habits.getValue(c).archived)
         d.handle("habits.unarchive", mapOf("id" to "$c"))
@@ -330,6 +335,20 @@ class RemoteDispatcherTest {
         assertEquals(listOf(e, a, c), b.habits.values.sortedBy { it.sortOrder }.map { it.id })
         assertTrue(d.handle("habits.reorder", mapOf("ids" to "$a,$a")).contains("bad_args"))
         assertTrue(d.handle("habits.reorder", mapOf("ids" to "9999")).contains("not_found"))
+    }
+
+    @Test fun theCheckInThatCompletesTheDayIsPhoneOnly() = runTest {
+        val a = b.saveHabit(HabitEntity(name = "a", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0))
+        val c = b.saveHabit(HabitEntity(name = "c", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0))
+        assertTrue(d.handle("habits.checkin", mapOf("id" to "$a")).startsWith("{\"ok\":true"))
+        val last = d.handle("habits.checkin", mapOf("id" to "$c"))
+        assertTrue(last, last.contains("forbidden"))
+    }
+
+    @Test fun whatIsOwedTodayCannotBeLoweredRemotely() = runTest {
+        val id = b.saveHabit(HabitEntity(name = "p", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, timesPerDay = 3))
+        assertTrue(d.handle("habits.update", mapOf("id" to "$id", "times" to "2")).contains("forbidden_weaken"))
+        assertTrue(d.handle("habits.update", mapOf("id" to "$id", "times" to "4")).startsWith("{\"ok\":true"))
     }
 
     @Test fun weakeningHabitFieldsIsForbidden() = runTest {

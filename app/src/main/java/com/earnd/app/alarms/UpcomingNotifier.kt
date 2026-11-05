@@ -13,10 +13,16 @@ import java.util.Date
 
 /** Heads-up reminder shown at an "offset before" time. Replaced per item, cleared when done. */
 internal object UpcomingNotifier {
-    fun show(context: Context, kind: OwnerKind, id: Long, label: String, dueAt: Long, silent: Boolean) {
+    fun show(context: Context, kind: OwnerKind, id: Long, label: String, dueAt: Long, silent: Boolean, needsApp: Boolean = false) {
         AlarmChannels.ensure(context)
         val time = DateFormat.getTimeFormat(context).format(Date(dueAt))
-        val done = PendingIntent.getBroadcast(
+        // Photo, focus and amount habits cannot be completed from the shade: the action opens their check-in flow.
+        val done = if (needsApp && kind == OwnerKind.HABIT) {
+            PendingIntent.getActivity(
+                context, notifId(kind, id), com.earnd.app.blocking.BlockingIntents.checkIn(context, id),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        } else PendingIntent.getBroadcast(
             context, 0,
             Intent(context, DoneActionReceiver::class.java).setAction(AlarmKeys.ACTION_DONE)
                 .setData(AlarmKeys.uri(kind, id, "done-upcoming")).putOwner(kind, id),

@@ -63,7 +63,7 @@ class AlarmActivity : ComponentActivity() {
                     rewardMinutes = reward,
                     onStop = { act { actions.stop(o.first, o.second) } },
                     onSnooze = { minutes -> act { actions.snooze(o.first, o.second, minutes) } },
-                    onDone = { act { actions.done(o.first, o.second) } },
+                    onDone = { act { if (!actions.done(o.first, o.second)) startActivity(com.earnd.app.blocking.BlockingIntents.checkIn(this@AlarmActivity, o.second)) } },
                 )
             }
         }

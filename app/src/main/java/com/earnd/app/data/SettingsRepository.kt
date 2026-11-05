@@ -57,24 +57,37 @@ class SettingsRepository(
             update(transform)
             return now
         }
-        val appliesAt = now + cur.weakenCooldownMin * 60_000L
-        write(PENDING, transform(cur))
+        // Queue only the keys this change touches, merged with an earlier queued change: applying later then
+        // overlays them on the live settings and cannot undo anything tightened in between.
+        val before = SettingsCodec.encode(cur)
+        val changes = SettingsCodec.encode(transform(cur)).filter { (k, v) -> before[k] != v }
+        val earlier = pendingWeakeningAt()
+        val carried = if (earlier != null) pendingChanges() else emptyMap()
+        clearPendingRows()
+        (carried + changes).forEach { (k, v) -> dao.put(SettingEntity(PENDING + k, v)) }
+        val appliesAt = maxOf(now + cur.weakenCooldownMin * 60_000L, earlier ?: 0L)
         dao.put(SettingEntity(PENDING_AT, appliesAt.toString()))
         return appliesAt
     }
 
+    private suspend fun pendingChanges(): Map<String, String> = dao.all().filter { it.key.startsWith(PENDING) }
+        .associate { it.key.removePrefix(PENDING) to it.value }
+
+    private suspend fun clearPendingRows() = dao.all().filter { it.key.startsWith(PENDING) }.forEach { dao.delete(it.key) }
+
     /** When a queued weakening will apply, or null if none is queued. */
     suspend fun pendingWeakeningAt(): Long? = dao.get(PENDING_AT)?.toLongOrNull()
 
-    suspend fun cancelPendingWeakening() = dao.put(SettingEntity(PENDING_AT, ""))
+    suspend fun cancelPendingWeakening() {
+        clearPendingRows()
+        dao.put(SettingEntity(PENDING_AT, ""))
+    }
 
     suspend fun applyDueWeakening(now: Long): Boolean {
         val at = pendingWeakeningAt() ?: return false
         if (now < at) return false
-        val pending = dao.all().filter { it.key.startsWith(PENDING) }
-            .associate { it.key.removePrefix(PENDING) to it.value }
         val old = decode(dao.all())
-        val new = SettingsCodec.decode(pending)
+        val new = SettingsCodec.decode(SettingsCodec.encode(old) + pendingChanges())
         write(PREFIX, new)
         cancelPendingWeakening()
         notifyPeriodChange(old, new)
