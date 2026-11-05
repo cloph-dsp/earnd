@@ -23,6 +23,7 @@ class EarndApp : Application() {
                 DateTimeFormats.current = DateTimeFormats(s.dateFormat, s.timeFormat, android.text.format.DateFormat.is24HourFormat(this@EarndApp))
             }
         }
+        appScope.launch { runCatching { com.earnd.app.notify.Notify.init(this@EarndApp) } } // nudge and report survive a force-stop
         AlarmsModule.start(this, appScope)     // re-plans alarms on task/habit/settings changes
         WidgetRefresher.start(this, appScope)  // refreshes widgets on balance/session/task changes
         appScope.launch { runCatching { ServiceLocator.focus.restore() } } // finish or re-arm a focus session after restart

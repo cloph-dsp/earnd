@@ -44,4 +44,6 @@
     <string name="alarms_channel_guard_desc">Avisa quando o serviço de bloqueio é desativado.</string>
     <string name="alarms_sound_default">Predefinido</string>
     <string name="alarms_sound_custom">Personalizado</string>
+    <string name="alarms_channel_ring_fallback">Alarmes (reserva)</string>
+    <string name="alarms_channel_ring_fallback_desc">Usado quando o alarme em ecrã inteiro não arranca. Toca o som de alarme uma vez.</string>
 </resources>

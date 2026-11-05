@@ -29,9 +29,12 @@ class NotifyReceiver : BroadcastReceiver() {
         val pending = goAsync()
         scope.launch {
             try {
-                when (intent.action) {
-                    ACTION_MORNING -> morning(app)
-                    ACTION_REPORT -> report(app)
+                // The chain re-arms itself, so a failure while posting must not stop it.
+                runCatching {
+                    when (intent.action) {
+                        ACTION_MORNING -> morning(app)
+                        ACTION_REPORT -> report(app)
+                    }
                 }
                 Notify.init(app)
             } finally {

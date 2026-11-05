@@ -26,7 +26,7 @@ class MutexTransactor(private val inner: Transactor? = null) : Transactor {
     override suspend fun <T> run(block: suspend () -> T): T {
         if (coroutineContext[Held]?.owner === this) return block()
         return mutex.withLock {
-            withContext(Held(this)) { inner?.run(block) ?: block() }
+            withContext(Held(this)) { if (inner != null) inner.run(block) else block() } // not `?:`: a block that returns null would run twice
         }
     }
 }

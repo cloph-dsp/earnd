@@ -75,6 +75,14 @@ class GuardAccessibilityService : AccessibilityService() {
         GuardWatch.clear(this)
         overlay = MeterOverlay(this, getSystemService(WindowManager::class.java))
         registerScreenReceiver()
+        // After a rebind (process killed, service toggled) no window event has arrived yet: read the app in front now.
+        runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
+            ?.takeIf { !isTransientSystemUi(it) }
+            ?.let { pkg ->
+                foregroundPkg = pkg
+                if (BrowserUrls.isBrowser(pkg)) lastUrl = runCatching { BrowserUrls.extract(rootInActiveWindow, pkg) }.getOrNull()
+            }
+        schedule(force = true)
         scope.launch {
             ServiceLocator.changeBus.events.collect { kind ->
                 if (kind == ChangeKind.BLOCKLIST) ServiceLocator.essentialApps.refresh()
@@ -90,10 +98,19 @@ class GuardAccessibilityService : AccessibilityService() {
         scope.launch {
             while (isActive) {
                 delay(TICK_MS)
-                runCatching { ServiceLocator.focus.completeIfDue() } // backstop if the end alarm was late
-                recheck(force = true)
+                attempt { ServiceLocator.focus.completeIfDue() } // backstop if the end alarm was late
+                attempt { recheck(force = true) }
             }
         }
+    }
+
+    /** Like runCatching for suspend code, but a cancelled job stays cancelled instead of carrying on with stale state. */
+    private suspend inline fun <T> attempt(block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Result.failure(e)
     }
 
     private fun registerScreenReceiver() {
@@ -170,8 +187,8 @@ class GuardAccessibilityService : AccessibilityService() {
         val env = env()
         if (!env.screenUsable) { pauseCounting(now); return }
         // Charge the time since the last check at the previous rate before deciding with the new balance.
-        runCatching { ServiceLocator.meterEngine.advance(now, env.allowed) }
-        val decision = runCatching { ServiceLocator.blockPolicy.decide(pkg, url, now) }
+        attempt { ServiceLocator.meterEngine.advance(now, env.allowed) }
+        val decision = attempt { ServiceLocator.blockPolicy.decide(pkg, url, now) }
             .getOrDefault(BlockDecision.Allow)
         val ruleKey = (decision as? BlockDecision.Metered)?.key
         grantKey?.let { if (it != ruleKey) ServiceLocator.grants.leave(it, now) }
@@ -195,7 +212,8 @@ class GuardAccessibilityService : AccessibilityService() {
             }
             BlockDecision.Allow -> Unit
         }
-        val extras = runCatching { extraTargets(pkg, now) }.getOrNull() ?: return
+        // A failing look at the windows beside the app must not stop the app in front from being counted.
+        val extras = attempt { extraTargets(pkg, now) }.getOrDefault(emptyList())
         applyCounting(CountRules.pick(primary, extras), env, now)
     }
 
@@ -235,11 +253,11 @@ class GuardAccessibilityService : AccessibilityService() {
     private suspend fun applyCounting(pick: Counted?, env: Env, now: Long) {
         val engine = ServiceLocator.meterEngine
         val active = pick?.takeIf { env.allowed }?.let { MeterActive(it.key, it.pkg, it.ratePct, now) }
-        runCatching { engine.switchTo(active, now) }
+        attempt { engine.switchTo(active, now) }
         armed = pick != null
         if (pick == null) { stopTicker(); hideOverlay(); return }
         label = if (pick.key == pick.pkg) labelOf(pick.pkg) else pick.key
-        runCatching { syncBalance(now) }
+        attempt { syncBalance(now) }
         startTicker()
         renderOverlay(now)
         scheduleZero(now)

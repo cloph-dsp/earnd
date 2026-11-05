@@ -44,4 +44,6 @@
     <string name="alarms_channel_guard_desc">Tells you when the blocking service has been switched off.</string>
     <string name="alarms_sound_default">Default</string>
     <string name="alarms_sound_custom">Custom</string>
+    <string name="alarms_channel_ring_fallback">Alarms (backup)</string>
+    <string name="alarms_channel_ring_fallback_desc">Used when the full-screen alarm cannot start. Plays the alarm sound once.</string>
 </resources>

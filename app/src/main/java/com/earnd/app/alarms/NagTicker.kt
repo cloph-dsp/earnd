@@ -40,6 +40,7 @@ object NagTicker {
     class TickWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
         override suspend fun doWork(): Result {
             AlarmsModule.actions.nagPass()
+            runCatching { com.earnd.app.notify.Notify.init(applicationContext) } // re-arms the nudge and report if something cleared them
             return Result.success()
         }
     }

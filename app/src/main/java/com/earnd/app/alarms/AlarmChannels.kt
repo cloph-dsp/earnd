@@ -14,6 +14,8 @@ object AlarmChannels {
     const val RING = "alarms_ring_v2"
     private const val RING_LEGACY = "alarms_ring"
     const val MISSED = "alarms_missed"
+    /** Used only when the ringing service cannot start: the system plays the sound itself, once. */
+    const val RING_FALLBACK = "alarms_ring_fallback"
     const val GUARD = "alarms_guard_off"
 
     fun ensure(context: Context) {
@@ -35,6 +37,19 @@ object AlarmChannels {
             enableVibration(false)
             setBypassDnd(true)
         }
+        val fallback = NotificationChannel(RING_FALLBACK, context.getString(R.string.alarms_channel_ring_fallback),
+            NotificationManager.IMPORTANCE_HIGH).apply {
+            description = context.getString(R.string.alarms_channel_ring_fallback_desc)
+            setSound(
+                android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM),
+                android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build(),
+            )
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 600, 300, 600, 300, 600)
+            setBypassDnd(true)
+        }
         val guard = NotificationChannel(GUARD, context.getString(R.string.alarms_channel_guard),
             NotificationManager.IMPORTANCE_HIGH).apply {
             description = context.getString(R.string.alarms_channel_guard_desc)
@@ -42,6 +57,6 @@ object AlarmChannels {
         val missed = NotificationChannel(MISSED, context.getString(R.string.alarms_channel_missed),
             NotificationManager.IMPORTANCE_DEFAULT)
         nm.deleteNotificationChannel(RING_LEGACY)
-        nm.createNotificationChannels(listOf(pending, quiet, upcoming, ring, guard, missed))
+        nm.createNotificationChannels(listOf(pending, quiet, upcoming, ring, fallback, guard, missed))
     }
 }

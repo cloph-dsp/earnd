@@ -12,6 +12,8 @@ private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.Default
 internal fun BroadcastReceiver.launchAsync(block: suspend () -> Unit) {
     val pending = goAsync()
     receiverScope.launch {
-        try { block() } finally { pending.finish() }
+        try { block() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Throwable) {
+            // A failing receiver must not take the whole process (and the blocking service with it) down.
+        } finally { pending.finish() }
     }
 }

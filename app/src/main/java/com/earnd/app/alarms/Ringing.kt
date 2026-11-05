@@ -21,8 +21,9 @@ internal object Ringing {
         val label = AlarmsModule.actions.labelOf(kind, id).ifBlank { context.getString(R.string.alarms_ring_fallback) }
         if (AlarmRingService.start(context, kind, id, label)) return
         // Service refused: a plain heads-up with the same actions (no looping sound to get stuck).
+        // It uses a channel that makes its own sound and vibration: the ring channel is silent by design.
         context.getSystemService(NotificationManager::class.java)
-            .notify(AlarmKeys.NOTIF_RING, build(context, kind, id, label, snoozesLeft = 0))
+            .notify(AlarmKeys.NOTIF_RING, build(context, kind, id, label, snoozesLeft = 0, channel = AlarmChannels.RING_FALLBACK))
     }
 
     fun openIntent(context: Context, kind: OwnerKind, id: Long): PendingIntent = PendingIntent.getActivity(
@@ -38,9 +39,9 @@ internal object Ringing {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-    fun build(context: Context, kind: OwnerKind, id: Long, label: String, snoozesLeft: Int): Notification {
+    fun build(context: Context, kind: OwnerKind, id: Long, label: String, snoozesLeft: Int, channel: String = AlarmChannels.RING): Notification {
         val open = openIntent(context, kind, id)
-        val b = NotificationCompat.Builder(context, AlarmChannels.RING)
+        val b = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(label)

@@ -18,8 +18,9 @@ class AlarmActions(private val context: Context) {
 
     /** An item's due time arrived. */
     suspend fun onDue(kind: OwnerKind, id: Long) {
-        AlarmsModule.planner.rearmAll() // reconcile marks it pending if it is still open
-        if (db.nagStateDao().get(kind, id) == null) return
+        // Reconcile marks it pending if it is still open. If it fails, ring anyway: a late alarm beats a silent one.
+        val reconciled = runCatching { AlarmsModule.planner.rearmAll() }.isSuccess
+        if (reconciled && db.nagStateDao().get(kind, id) == null) return
         val style = styleOf(kind, id)
         if (style == AlarmStyle.FULL_SCREEN) Ringing.show(context, kind, id)
         AlarmsModule.notifier.refresh(alert = style != AlarmStyle.SILENT && !inQuiet(), quiet = inQuiet())

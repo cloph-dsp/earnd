@@ -194,7 +194,8 @@ class HabitService(
         return inSegment.isNotEmpty() && inSegment.all { it.complete }
     }
 
-    suspend fun anythingScheduled(day: LocalDate): Boolean = habits.active().any { isScheduled(it, day) }
+    /** True when some habit is still due on [day]; a weekly habit whose quota is already met does not count, so it does not keep apps locked. */
+    suspend fun anythingScheduled(day: LocalDate): Boolean = daySummary(day).isNotEmpty()
 
     /** Whether [h] is complete on [day]; quantity habits compare the summed amount. */
     suspend fun isComplete(h: HabitEntity, day: LocalDate): Boolean =
