@@ -17,6 +17,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.RowDivider
 import androidx.compose.material3.Scaffold
@@ -78,7 +79,7 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                                 }
                             },
                             icon = { Icon(t.icon, contentDescription = null) },
-                            label = { Text(stringResource(t.label)) },
+                            label = { Text(stringResource(t.label), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Earnd.palette.amber, selectedTextColor = Earnd.palette.amber,
                                 indicatorColor = androidx.compose.ui.graphics.Color.Transparent,

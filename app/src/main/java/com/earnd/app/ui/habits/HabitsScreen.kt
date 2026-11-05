@@ -132,7 +132,7 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
             Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (d.complete) p.done else p.text)
             val focusing = com.earnd.app.focus.focusLabel(h.id)
             if (focusing != null) com.earnd.app.ui.theme.Num(focusing, color = p.amber)
-            else Row {
+            else Column {
                 val schedule = HabitRules.scheduleSummary(h)
                 val focusOptions = com.earnd.app.domain.TimedHabit.options(h, settings)
                 Text(
@@ -145,7 +145,7 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, onOpen: () 
                     style = MaterialTheme.typography.bodySmall, color = p.muted,
                 )
                 if (!d.complete && d.comebackMissed > 0) com.earnd.app.ui.theme.Num(
-                    "  " + stringResource(R.string.habits_row_comeback, com.earnd.app.domain.Comeback.label(d.comebackMissed)), color = p.amber,
+                    stringResource(R.string.habits_row_comeback, com.earnd.app.domain.Comeback.label(d.comebackMissed)), color = p.amber,
                 )
             }
         }
