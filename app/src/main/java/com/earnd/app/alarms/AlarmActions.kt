@@ -71,20 +71,34 @@ class AlarmActions(private val context: Context) {
      * failed save keeps nagging too instead of looking done.
      */
     suspend fun done(kind: OwnerKind, id: Long): Boolean {
-        if (needsApp(kind, id)) return false
-        val saved = runCatching {
+        // An item that no longer exists (or is already done) is resolved without a save, as before.
+        val gone = runCatching {
+            when (kind) {
+                OwnerKind.HABIT -> db.habitDao().get(id).let { it == null || it.archived }
+                OwnerKind.TASK -> ServiceLocator.taskService.get(id).let { it == null || it.completedAt != null }
+            }
+        }.getOrDefault(false)
+        if (!gone && needsApp(kind, id)) return refreshed(false)
+        val saved = gone || runCatching {
             when (kind) {
                 OwnerKind.TASK -> ServiceLocator.taskService.complete(id)
                 OwnerKind.HABIT -> ServiceLocator.habitService.checkIn(id)
             }
         }.isSuccess
-        if (!saved) return false
+        if (!saved) return refreshed(false)
         nag.resolve(kind, id)
         Ringing.dismiss(context, kind, id)
         UpcomingNotifier.cancel(context, kind, id)
         AlarmsModule.planner.rearmAll()
         AlarmsModule.notifier.refresh(alert = false)
         return true
+    }
+
+    /** Rebuilds the pending notification (an action may now need the app) and rearms, then returns [result]. */
+    private suspend fun refreshed(result: Boolean): Boolean {
+        runCatching { AlarmsModule.planner.rearmAll() }
+        runCatching { AlarmsModule.notifier.refresh(alert = false) }
+        return result
     }
 
     /** Stop: silence this occurrence without completing it; the next reminder time rings again. */

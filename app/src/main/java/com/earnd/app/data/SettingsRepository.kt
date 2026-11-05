@@ -65,6 +65,7 @@ class SettingsRepository(
         val carried = if (earlier != null) pendingChanges() else emptyMap()
         clearPendingRows()
         (carried + changes).forEach { (k, v) -> dao.put(SettingEntity(PENDING + k, v)) }
+        dao.put(SettingEntity(PENDING_FMT, PENDING_FORMAT))
         val appliesAt = maxOf(now + cur.weakenCooldownMin * 60_000L, earlier ?: 0L)
         dao.put(SettingEntity(PENDING_AT, appliesAt.toString()))
         return appliesAt
@@ -76,10 +77,16 @@ class SettingsRepository(
     private suspend fun clearPendingRows() = dao.all().filter { it.key.startsWith(PENDING) }.forEach { dao.delete(it.key) }
 
     /** When a queued weakening will apply, or null if none is queued. */
-    suspend fun pendingWeakeningAt(): Long? = dao.get(PENDING_AT)?.toLongOrNull()
+    suspend fun pendingWeakeningAt(): Long? {
+        val at = dao.get(PENDING_AT)?.toLongOrNull() ?: return null
+        // A queue written before changes-only rows held a full snapshot: drop it rather than apply it.
+        if (dao.get(PENDING_FMT) != PENDING_FORMAT) { cancelPendingWeakening(); return null }
+        return at
+    }
 
     suspend fun cancelPendingWeakening() {
         clearPendingRows()
+        dao.delete(PENDING_FMT)
         dao.put(SettingEntity(PENDING_AT, ""))
     }
 
@@ -110,6 +117,8 @@ class SettingsRepository(
         const val PREFIX = "s."
         const val PENDING = "pending."
         const val PENDING_AT = "pendingAt"
+        const val PENDING_FMT = "pendingFmt"
+        const val PENDING_FORMAT = "2"
         const val RAW = "raw."
     }
 }

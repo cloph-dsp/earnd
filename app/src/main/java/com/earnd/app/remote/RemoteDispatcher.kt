@@ -8,6 +8,7 @@ import com.earnd.app.domain.TimedHabit
 import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.AppRule
+import com.earnd.app.data.entity.CheckInEntity
 import com.earnd.app.data.entity.CheckInMode
 import com.earnd.app.data.entity.DaySegment
 import com.earnd.app.data.entity.HabitEntity
@@ -93,7 +94,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         "habits.archive" -> {
             val h = habitOr404(a.requireLong("id"))
             // Removing a habit that is due today can complete the day: phone only.
-            if (!h.archived && HabitSchedule.isScheduled(h, backend.today()) && backend.checkInsToday(h.id).size < h.timesPerDay.coerceAtLeast(1)) {
+            if (!h.archived && unlockPathOn() && owedToday(h)) {
                 throw WeakenForbidden("a habit that is due today can only be archived on the phone")
             }
             backend.archiveHabit(h.id)
@@ -299,9 +300,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             timedWeakening(existing, h, s)?.let { throw WeakenForbidden(it) }
             // What is still owed today cannot be reduced remotely: that would be a way to complete the day.
             val today = backend.today()
-            val owedToday = HabitSchedule.isScheduled(existing, today) &&
-                backend.checkInsToday(existing.id).size < existing.timesPerDay.coerceAtLeast(1)
-            if (owedToday) {
+            if (unlockPathOn() && owedToday(existing)) {
                 if (h.timesPerDay < existing.timesPerDay) throw WeakenForbidden("times per day can only be raised remotely while the habit is due")
                 existing.targetQuantity?.let { old ->
                     if (h.targetQuantity == null || h.targetQuantity < old) throw WeakenForbidden("the target can only be raised remotely while the habit is due")
@@ -333,11 +332,27 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         }
     }
 
-    /** Whether one more check-in of [h] would make every habit scheduled today complete. */
-    private suspend fun wouldCompleteDay(h: HabitEntity): Boolean {
+    /** True when completing the day would open apps (hard mode, the all-done unlock or the all-done reward). */
+    private suspend fun unlockPathOn(): Boolean {
+        val s = backend.settings()
+        return s.hardMode || s.allDoneUnlock || s.rewardMode == RewardMode.ALL_DONE
+    }
+
+    /** Scheduled today and not complete yet, judged like the app does (units, so quantity habits count by amount). */
+    private suspend fun owedToday(h: HabitEntity): Boolean =
+        HabitSchedule.isScheduled(h, backend.today()) && !HabitProgress.isComplete(h, backend.checkInsToday(h.id))
+
+    /** Whether one more check-in of [h] (with [qty]) would make every habit scheduled today complete. */
+    private suspend fun wouldCompleteDay(h: HabitEntity, qty: Double?): Boolean {
         val today = backend.today()
-        return backend.habits(includeArchived = false).filter { HabitSchedule.isScheduled(it, today) }.all {
-            backend.checkInsToday(it.id).size + (if (it.id == h.id) 1 else 0) >= it.timesPerDay.coerceAtLeast(1)
+        val due = backend.habits(includeArchived = false).filter { HabitSchedule.isScheduled(it, today) }
+        if (due.none { it.id == h.id }) return false
+        return due.all {
+            val list = backend.checkInsToday(it.id)
+            val withNew = if (it.id == h.id) {
+                list + CheckInEntity(habitId = h.id, epochDay = today.toEpochDay(), at = backend.now(), quantity = qty, minutesEarned = 0)
+            } else list
+            HabitProgress.isComplete(it, withNew)
         }
     }
 
@@ -353,7 +368,7 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
         val qty = a.double("qty", QTY_RANGE)
         if (h.targetQuantity != null && qty == null) return fail("amount_required", "This habit needs qty=")
         // The check-in that completes the day would unlock apps: that one is done on the phone.
-        if ((s.hardMode || s.allDoneUnlock || s.rewardMode == RewardMode.ALL_DONE) && wouldCompleteDay(h)) {
+        if (unlockPathOn() && wouldCompleteDay(h, qty)) {
             return fail("forbidden", "The check-in that completes the day can only be done on the phone")
         }
         val c = backend.checkIn(h.id, qty)

@@ -266,8 +266,8 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         if (!isNew) {
             SectionTitle(stringResource(R.string.habits_section_manage))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { launchUi { if (sl.habitService.hardModeBlocks(h)) hardBlocked = true else { sl.habitService.archive(h.id); onDone() } } }) { Text(stringResource(R.string.habits_archive)) }
-                Button(onClick = { launchUi { if (sl.habitService.hardModeBlocks(h)) hardBlocked = true else confirmDelete = true } }) { Text(stringResource(R.string.habits_delete)) }
+                OutlinedButton(onClick = { launchUi { if (sl.habitService.hardModeBlocks(sl.db.habitDao().get(h.id) ?: h)) hardBlocked = true else { sl.habitService.archive(h.id); onDone() } } }) { Text(stringResource(R.string.habits_archive)) }
+                Button(onClick = { launchUi { if (sl.habitService.hardModeBlocks(sl.db.habitDao().get(h.id) ?: h)) hardBlocked = true else confirmDelete = true } }) { Text(stringResource(R.string.habits_delete)) }
             }
         }
         }

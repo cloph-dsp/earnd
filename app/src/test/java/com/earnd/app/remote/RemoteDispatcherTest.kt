@@ -345,6 +345,21 @@ class RemoteDispatcherTest {
         assertTrue(last, last.contains("forbidden"))
     }
 
+    @Test fun aTinyAmountDoesNotMakeAQuantityHabitLooseable() = runTest {
+        val id = b.saveHabit(HabitEntity(name = "w", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, targetQuantity = 10.0))
+        b.saveHabit(HabitEntity(name = "other", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0))
+        assertTrue(d.handle("habits.checkin", mapOf("id" to "$id", "qty" to "0.01")).startsWith("{\"ok\":true"))
+        assertTrue(d.handle("habits.update", mapOf("id" to "$id", "target" to "0.01")).contains("forbidden_weaken"))
+        assertTrue(d.handle("habits.archive", mapOf("id" to "$id")).contains("forbidden_weaken"))
+    }
+
+    @Test fun withoutAnUnlockPathTheGuardsStayOut() = runTest {
+        b.settings = b.settings.copy(allDoneUnlock = false, hardMode = false)
+        val id = b.saveHabit(HabitEntity(name = "w", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, timesPerDay = 3))
+        assertTrue(d.handle("habits.update", mapOf("id" to "$id", "times" to "2")).startsWith("{\"ok\":true"))
+        assertTrue(d.handle("habits.archive", mapOf("id" to "$id")).startsWith("{\"ok\":true"))
+    }
+
     @Test fun whatIsOwedTodayCannotBeLoweredRemotely() = runTest {
         val id = b.saveHabit(HabitEntity(name = "p", iconKey = "x", colorArgb = 0, anchorEpochDay = 0, createdAt = 0, timesPerDay = 3))
         assertTrue(d.handle("habits.update", mapOf("id" to "$id", "times" to "2")).contains("forbidden_weaken"))

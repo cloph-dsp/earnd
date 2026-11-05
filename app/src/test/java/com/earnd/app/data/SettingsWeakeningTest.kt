@@ -42,4 +42,14 @@ class SettingsWeakeningTest {
         clock.nowMs = at + 1
         assertEquals(15, repo.current().unlockCapMin)
     }
+
+    @Test fun aQueueFromTheOldFullSnapshotFormatIsDroppedNotApplied() = runTest {
+        val dao = FakeSettingDao()
+        val legacy = SettingsRepository(dao, clock)
+        legacy.update { it.copy(hardMode = true, unlockCapMin = 15) }
+        dao.put(com.earnd.app.data.entity.SettingEntity("pending.unlockCapMin", ""))
+        dao.put(com.earnd.app.data.entity.SettingEntity("pendingAt", (clock.nowMs - 1).toString()))
+        assertNull(legacy.pendingWeakeningAt())
+        assertEquals(15, legacy.current().unlockCapMin)
+    }
 }

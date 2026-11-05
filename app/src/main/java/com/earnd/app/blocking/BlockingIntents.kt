@@ -15,13 +15,15 @@ object BlockingIntents {
     const val EXTRA_HABIT_ID = "com.earnd.app.extra.HABIT_ID"
     const val EXTRA_TASK_ID = "com.earnd.app.extra.TASK_ID"
 
-    fun checkIn(context: Context, habitId: Long): Intent =
-        Intent(context, MainActivity::class.java).setAction(ACTION_CHECK_IN)
-            .putExtra(EXTRA_HABIT_ID, habitId).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    // Both open the nav deep links (earnd://checkin, earnd://task) that EarndNavHost handles. A custom action
+    // with an extra matched nothing, and without data a PendingIntent for another habit looked identical.
+    fun checkIn(context: Context, habitId: Long): Intent = deepLink(context, "earnd://checkin?habitId=$habitId")
 
-    fun openTask(context: Context, taskId: Long): Intent =
-        Intent(context, MainActivity::class.java).setAction(ACTION_OPEN_TASK)
-            .putExtra(EXTRA_TASK_ID, taskId).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    fun openTask(context: Context, taskId: Long): Intent = deepLink(context, "earnd://task?id=$taskId")
+
+    private fun deepLink(context: Context, uri: String): Intent =
+        Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri)).setPackage(context.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
     fun home(): Intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
