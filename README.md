@@ -21,6 +21,11 @@ account and no analytics: everything stays in a database on the phone.
 > [!NOTE]
 > Early software (v0.1.x), built and used daily on one device: a Nothing Phone 3a.
 
+<div align="center">
+<img src="docs/screenshots/today.jpg" width="240" alt="Today: a 50 minute balance, the unlock buttons and what to do next">&nbsp;
+<img src="docs/screenshots/habits.jpg" width="240" alt="Habits: daily and weekly habits, two done, with streaks">
+</div>
+
 ## Features
 
 **Earn**
