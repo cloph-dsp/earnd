@@ -248,7 +248,9 @@ class TimeBank(
         sessions.update(active.copy(endedAt = endedAt))
         if (active.reason == SessionReason.SPEND && now < active.plannedEndAt) {
             val s = settings.current()
-            val unused = ((active.plannedEndAt - now) / MINUTE).toInt()
+            // Whole minutes left; a pass cancelled within seconds (a mis-tap) is refunded in full, anything longer rounds down.
+            val unused = if (now - active.startedAt < MISTAP_MS) ((active.plannedEndAt - active.startedAt) / MINUTE).toInt()
+            else ((active.plannedEndAt - now) / MINUTE).toInt()
             if (unused > 0 && s.resetPeriod == ResetPeriod.ROLLING) {
                 // Back into the lot the spend drew from; gone if that lot has expired in the meantime.
                 val exp = ExpiryLedger.refundExpiry(ledger.lastSpend()?.expiresAt, now)
@@ -360,6 +362,7 @@ class TimeBank(
 
     companion object {
         const val MINUTE = 60_000L
+        private const val MISTAP_MS = 5_000L
         const val HOUR = 3_600_000L
         private const val TICK_MS = 30_000L
         private const val LAST_PERIOD_KEY = "bank.lastPeriodKey"

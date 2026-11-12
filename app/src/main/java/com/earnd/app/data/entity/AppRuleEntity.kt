@@ -10,6 +10,6 @@ data class AppRuleEntity(
     val rule: AppRule,
     val isWebsite: Boolean = false,
     val label: String,
-    /** Charging rate, percent of foreground time: 0/25/50/100. Every leisure rule is metered; null (legacy FULL) means 100. */
+    /** Charging rate, percent of foreground time: 0/25/50/75/100. Every leisure rule is metered; null (legacy FULL) means 100. */
     val meterPct: Int? = 100,
 )

@@ -77,6 +77,7 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
     var habit by remember { mutableStateOf<HabitEntity?>(null) }
     var history by remember { mutableStateOf<List<CheckInEntity>>(emptyList()) }
     var streak by remember { mutableIntStateOf(0) }
+    var activeDays by remember { mutableIntStateOf(0) }
     var best by remember { mutableIntStateOf(0) }
     var perfect by remember { mutableIntStateOf(0) }
     var year by remember { mutableStateOf<List<CheckInEntity>>(emptyList()) }
@@ -91,6 +92,7 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
         val start = today.minusWeeks(WEEKS.toLong()).minusDays(6)
         history = sl.habitService.history(habitId, start, today)
         streak = sl.habitService.streak(habitId, today)
+        activeDays = sl.habitService.activeStreak(habitId, today)
         val yearStart = today.minusDays(365)
         year = sl.habitService.history(habitId, yearStart, today)
         habit?.let { hh ->
@@ -129,7 +131,11 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
             dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text(stringResource(R.string.habits_cancel)) } },
         )
         Text(
-            if (streak == 0) stringResource(R.string.habits_streak_zero) else Str.plural(R.plurals.habits_streak_days, streak),
+            when {
+                streak > 0 -> Str.plural(R.plurals.habits_streak_days, streak)
+                activeDays > 0 -> Str.plural(R.plurals.habits_active_days, activeDays)
+                else -> stringResource(R.string.habits_streak_zero)
+            },
             style = MaterialTheme.typography.titleMedium,
         )
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

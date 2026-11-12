@@ -52,4 +52,6 @@ data class HabitEntity(
     val stopwatchCapMin: Int? = null,
     /** True (default): check-ins beyond [timesPerDay] earn up to +50%. False: they are recorded but earn 0. */
     @ColumnInfo(defaultValue = "1") val overTargetReward: Boolean = true,
+    /** A bonus habit earns like any other but is not needed to close the day (all-done unlock, progress). */
+    @ColumnInfo(defaultValue = "0") val bonus: Boolean = false,
 )

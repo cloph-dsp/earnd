@@ -168,4 +168,24 @@ class RRuleTest {
         val short = listOf(d(2026, 3, 2), d(2026, 3, 10)).associate { it.toEpochDay() to 1 }
         assertEquals(1, HabitSchedule.streak(h, d(2026, 3, 12), short))
     }
+
+    @Test fun activeStreakCountsDaysWithAnyCheckIn() {
+        // Ten a day: 3 glasses a day never reach the target, so the strict streak is 0 but the run of active days is not.
+        val water = habit(ScheduleKind.DAILY).copy(timesPerDay = 10)
+        val counts = (2L..5L).associate { d(2026, 3, it.toInt()).toEpochDay() to 3 }
+        assertEquals(0, HabitSchedule.streak(water, d(2026, 3, 5), counts))
+        assertEquals(4, HabitSchedule.activeStreak(water, d(2026, 3, 5), counts))
+        // Nothing yet today does not break the run; a gap yesterday does.
+        assertEquals(4, HabitSchedule.activeStreak(water, d(2026, 3, 6), counts))
+        assertEquals(0, HabitSchedule.activeStreak(water, d(2026, 3, 7), counts))
+        // Vacation days are skipped, and days before the habit existed end the run.
+        assertEquals(4, HabitSchedule.activeStreak(water, d(2026, 3, 7), counts, skip = { it == d(2026, 3, 6) || it == d(2026, 3, 7) }))
+        assertEquals(4, HabitSchedule.activeStreak(water, d(2026, 3, 5), counts + (d(2026, 3, 1).toEpochDay() to 3)))
+    }
+
+    @Test fun activeStreakOfAFlexibleWeeklyHabitSurvivesMetWeeks() {
+        val h = habit(ScheduleKind.TIMES_PER_WEEK, perWeek = 2)
+        val counts = listOf(d(2026, 3, 2), d(2026, 3, 5), d(2026, 3, 10)).associate { it.toEpochDay() to 1 }
+        assertEquals(3, HabitSchedule.activeStreak(h, d(2026, 3, 12), counts))
+    }
 }

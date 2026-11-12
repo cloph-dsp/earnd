@@ -77,4 +77,8 @@
     <string name="home_puzzle_sentence_5">A short walk would feel better than another hour of scrolling.</string>
     <string name="home_puzzle_sentence_6">I am loosening a rule I set for myself on a calmer day.</string>
     <string name="home_bank_debt">%1$d min owed from undone check-ins</string>
+    <string name="health_missing_title">Something is switched off</string>
+    <string name="health_missing_tap">Tap to review the permissions.</string>
+    <string name="health_alarm_muted_title">Alarm volume is at zero</string>
+    <string name="health_alarm_muted_body">Alarms will ring silently. Tap to open the sound settings.</string>
 </resources>

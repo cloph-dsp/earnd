@@ -340,14 +340,20 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
 
     /** Scheduled today and not complete yet, judged like the app does (units, so quantity habits count by amount). */
     private suspend fun owedToday(h: HabitEntity): Boolean =
-        HabitSchedule.isScheduled(h, backend.today()) && !HabitProgress.isComplete(h, backend.checkInsToday(h.id))
+        dueToday(h) && !HabitProgress.isComplete(h, backend.checkInsToday(h.id))
+
+    /** Due today the way the Today list sees it: an "N times a week" habit whose quota is already met is not. */
+    private suspend fun dueToday(h: HabitEntity): Boolean =
+        HabitSchedule.isDueOn(h, backend.today(), backend.weekCompleteDaysBefore(h))
 
     /** Whether one more check-in of [h] (with [qty]) would make every habit scheduled today complete. */
     private suspend fun wouldCompleteDay(h: HabitEntity, qty: Double?): Boolean {
         val today = backend.today()
-        val due = backend.habits(includeArchived = false).filter { HabitSchedule.isScheduled(it, today) }
+        val due = backend.habits(includeArchived = false).filter { dueToday(it) }
         if (due.none { it.id == h.id }) return false
-        return due.all {
+        // Same rule as HabitService.allDone: bonus habits are not needed to close the day (except in the lump-sum mode).
+        val core = if (backend.settings().rewardMode == RewardMode.ALL_DONE) due else due.filter { !it.bonus || it.id == h.id }
+        return core.all {
             val list = backend.checkInsToday(it.id)
             val withNew = if (it.id == h.id) {
                 list + CheckInEntity(habitId = h.id, epochDay = today.toEpochDay(), at = backend.now(), quantity = qty, minutesEarned = 0)
@@ -560,8 +566,8 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
     /** Charging may only get stricter remotely: a higher rate. */
     private suspend fun setCharging(a: RemoteArgs): Map<String, Any?> {
         val pkg = a.text("pkg") ?: bad("missing pkg")
-        val raw = a.str("rate") ?: bad("missing rate (0, 25, 50 or 100)")
-        val rate = Charging.parse(raw) ?: bad("bad rate: $raw (0, 25, 50 or 100)")
+        val raw = a.str("rate") ?: bad("missing rate (0, 25, 50, 75 or 100)")
+        val rate = Charging.parse(raw) ?: bad("bad rate: $raw (0, 25, 50, 75 or 100)")
         val cur = backend.appRules().firstOrNull { it.rule == AppRule.LEISURE && !it.isWebsite && it.key == pkg }
             ?: throw NotFound("blocked app $pkg")
         if (Charging.loosens(cur.meterPct, rate.pct)) {

@@ -42,6 +42,7 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
     private var collapsed = false
     private var showLabelUntil = 0L
     private var createdAt = 0L
+    private var nudge: String? = null
 
     val shown: Boolean get() = view != null
 
@@ -55,6 +56,15 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
         text = OverlayMath.text(remainingMs, ratePct)
         low = OverlayMath.isLow(remainingMs)
         render()
+    }
+
+    /** Flashes [message] next to the counter for a few seconds (continuous use). */
+    fun nudge(message: String) {
+        if (view == null) return
+        nudge = message
+        showLabelUntil = System.currentTimeMillis() + 5000
+        render()
+        handler.postDelayed({ nudge = null; render() }, 5100)
     }
 
     fun hide() {
@@ -117,7 +127,7 @@ class MeterOverlay(private val context: Context, private val wm: WindowManager) 
             tv.setPadding(0, 0, 0, 0)
             tv.layoutParams?.let { it.width = px(12); it.height = px(12) }
         } else {
-            tv.text = if (showName) "$label $text" else text
+            tv.text = if (showName) "${nudge ?: label} $text" else text
             tv.minWidth = 0; tv.minHeight = px(22)
             tv.setPadding(px(8), 0, px(8), 0)
             tv.layoutParams?.let { it.width = WindowManager.LayoutParams.WRAP_CONTENT; it.height = WindowManager.LayoutParams.WRAP_CONTENT }

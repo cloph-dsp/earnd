@@ -181,16 +181,23 @@ class HabitService(
         }
     }
 
-    /** True when at least one habit is scheduled on [day] and every scheduled one is complete. */
+    /**
+     * The habits that have to be done to close a day: all of them, minus the ones flagged as bonus. The lump-sum
+     * "only when everything is done" reward mode keeps counting every habit, so its payout stays whole.
+     */
+    private suspend fun core(summary: List<HabitDay>): List<HabitDay> =
+        if (settingsNow().rewardMode == RewardMode.ALL_DONE) summary else summary.filterNot { it.habit.bonus }
+
+    /** True when at least one core habit is scheduled on [day] and every core habit is complete. */
     suspend fun allDone(day: LocalDate): Boolean {
-        val summary = daySummary(day)
+        val summary = core(daySummary(day))
         return summary.isNotEmpty() && summary.all { it.complete }
     }
 
     /** True when [segment] has at least one habit scheduled on [day] and all of them are complete. */
     suspend fun segmentDone(day: LocalDate, segment: DaySegment): Boolean {
         if (segment == DaySegment.NONE) return false
-        val inSegment = daySummary(day).filter { it.habit.segment == segment }
+        val inSegment = core(daySummary(day)).filter { it.habit.segment == segment }
         return inSegment.isNotEmpty() && inSegment.all { it.complete }
     }
 
@@ -213,6 +220,15 @@ class HabitService(
         return HabitSchedule.streak(h, today, counts, skip = { s.onVacation(it.toEpochDay()) })
     }
 
+    /** Consecutive scheduled days with any check-in, even short of the daily target; vacation days are skipped. */
+    suspend fun activeStreak(habitId: Long, today: LocalDate): Int {
+        val h = habits.get(habitId) ?: return 0
+        val s = settingsNow()
+        val counts = checkIns.forHabitBetween(habitId, today.minusDays(366).toEpochDay(), today.toEpochDay())
+            .groupingBy { it.epochDay }.eachCount()
+        return HabitSchedule.activeStreak(h, today, counts, skip = { s.onVacation(it.toEpochDay()) })
+    }
+
     /** Best streak over the last [days] days; vacation days are skipped. */
     suspend fun bestStreak(habitId: Long, today: LocalDate, days: Long = 3 * 366L): Int {
         val h = habits.get(habitId) ?: return 0
@@ -233,7 +249,7 @@ class HabitService(
         var day = from
         while (!day.isAfter(to)) {
             val epochDay = day.toEpochDay()
-            val scheduled = hs.filter { HabitSchedule.anchorOf(it) <= epochDay && isScheduled(it, day) }
+            val scheduled = hs.filter { (!it.bonus || s.rewardMode == RewardMode.ALL_DONE) && HabitSchedule.anchorOf(it) <= epochDay && isScheduled(it, day) }
             if (scheduled.isNotEmpty() && !s.onVacation(epochDay)) {
                 val byHabit = byDay[epochDay].orEmpty().groupBy { it.habitId }
                 if (scheduled.all { HabitProgress.isComplete(it, byHabit[it.id].orEmpty()) }) out += day
@@ -283,7 +299,8 @@ class HabitService(
     suspend fun hardModeBlocksEdit(old: HabitEntity, new: HabitEntity): Boolean {
         if (!hardModeBlocks(old)) return false
         val lowerTarget = old.targetQuantity?.let { q -> new.targetQuantity == null || new.targetQuantity < q } == true
-        return new.timesPerDay < old.timesPerDay || lowerTarget || !isScheduled(new, clock.today())
+        // Making a habit a bonus one lowers what closes the day, so it counts as making it easier.
+        return new.timesPerDay < old.timesPerDay || lowerTarget || !isScheduled(new, clock.today()) || (!old.bonus && new.bonus)
     }
 
     /** The flow a check-in of [h] must go through; notification, alarm, lock screen and widget all use this. */

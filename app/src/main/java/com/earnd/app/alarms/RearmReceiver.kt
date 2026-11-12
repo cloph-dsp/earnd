@@ -14,6 +14,8 @@ class RearmReceiver : BroadcastReceiver() {
             AlarmPermissions.refresh(context)
             AlarmsModule.resync()
             com.earnd.app.blocking.GuardWatch.check(context)
+            // A new day (or a clock change): daily progress on the widgets starts from zero.
+            runCatching { com.earnd.app.widgets.WidgetRefresher.updateAll(context) }
         }
     }
 
@@ -23,6 +25,7 @@ class RearmReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_DATE_CHANGED,
             AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
         )
     }

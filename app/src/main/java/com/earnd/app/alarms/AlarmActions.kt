@@ -39,6 +39,8 @@ class AlarmActions(private val context: Context) {
     /** Nag alarm or heartbeat: bump due items, ring full-screen ones, refresh the notification. */
     suspend fun nagPass() = passLock.withLock {
         housekeeping()
+        // Reconcile first: anything finished elsewhere must not be bumped (and rung) one last time.
+        runCatching { AlarmsModule.planner.rearmAll() }
         val now = clock.now()
         val before = db.nagStateDao().all().associate { (it.ownerKind to it.ownerId) to it.nagCount }
         nag.onFired(now)
@@ -88,6 +90,29 @@ class AlarmActions(private val context: Context) {
             }
         }.isSuccess
         if (!saved) return refreshed(false)
+        return finishDone(kind, id)
+    }
+
+    /**
+     * "Done" for a habit that asks for a number: an amount in its unit, or the minutes spent for a timed one (the
+     * reward follows the minutes, as a focus session would). Returns false when the save failed.
+     */
+    suspend fun doneWithAmount(id: Long, amount: Double): Boolean {
+        val h = runCatching { db.habitDao().get(id) }.getOrNull()?.takeIf { !it.archived } ?: return false
+        val s = runCatching { ServiceLocator.settings.current() }.getOrNull() ?: return false
+        val saved = runCatching {
+            if (com.earnd.app.domain.TimedHabit.isTimed(h)) {
+                val min = amount.toInt().coerceIn(1, 1440)
+                val reward = if (h.stopwatch) com.earnd.app.domain.TimedHabit.stopwatchReward(h, min * 60_000L) ?: 0
+                else com.earnd.app.domain.TimedHabit.linearReward(h, s, min)
+                ServiceLocator.habitService.checkInWithBonus(id, quantity = min.toDouble(), rewardOverride = reward)
+            } else ServiceLocator.habitService.checkIn(id, quantity = amount)
+        }.onFailure { android.util.Log.e("Earnd", "Done with amount failed", it) }.isSuccess
+        if (!saved) return refreshed(false)
+        return finishDone(OwnerKind.HABIT, id)
+    }
+
+    private suspend fun finishDone(kind: OwnerKind, id: Long): Boolean {
         nag.resolve(kind, id)
         Ringing.dismiss(context, kind, id)
         UpcomingNotifier.cancel(context, kind, id)

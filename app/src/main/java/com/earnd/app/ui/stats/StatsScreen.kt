@@ -93,6 +93,8 @@ fun StatsScreen() {
         SectionTitle(stringResource(R.string.stats_section_done_per_day))
         DayGrid(days, today, listOf(stringResource(R.string.stats_row_check_ins) to checkIns, stringResource(R.string.stats_row_tasks) to tasksByDay))
 
+        MeterSection(DAYS)
+
         HorizontalDivider(Modifier.padding(top = 20.dp), color = p.divider)
         ScreenTimeSection()
         Spacer(Modifier.height(24.dp))

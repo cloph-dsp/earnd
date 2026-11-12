@@ -268,7 +268,7 @@ class BlockPolicy(rules: AppRuleDao, sessions: SessionDao, habits: HabitService,
 Decision order: blocking disabled / vacation -> Allow; essential pkg -> Allow; not leisure (pkg nor url host) -> Allow;
 bedtime window (outside one-off grace) -> Block(BEDTIME); active session -> Allow; all-done unlock -> Allow;
 nothing scheduled today -> Allow; otherwise Block(NO_BALANCE).
-Metering (default model for every leisure app/site): `AppRuleEntity.meterPct` (0/25/50/100, null = 100; db v10
+Metering (default model for every leisure app/site): `AppRuleEntity.meterPct` (0/25/50/75/100, null = 100; db v10
 migrates FULL rows to 100). `BlockRules.leisureRule` matches the rule (site host preferred, then package);
 free unlocks (session, all-done, segment, nothing scheduled) are checked before metering; metered with balance > 0
 gives `BlockDecision.Metered(rate, key)`; hard mode disables it. `GuardAccessibilityService.recheck` (events:

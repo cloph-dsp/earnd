@@ -250,4 +250,12 @@
     <string name="rrule_check_values">Check the values above.</string>
     <string name="habits_hard_mode_blocked">Hard mode is on and this habit is due today. It can be removed or made easier once it is done, or tomorrow.</string>
     <string name="habits_hard_mode_ok">OK</string>
+    <string name="habits_active_short">active %1$dd</string>
+    <plurals name="habits_active_days">
+        <item quantity="one">Active %1$d day in a row (daily target not met yet).</item>
+        <item quantity="other">Active %1$d days in a row (daily target not met yet).</item>
+    </plurals>
+    <string name="habits_bonus">Bonus habit</string>
+    <string name="habits_bonus_hint">Earns as usual but is not needed to close the day or to unlock with everything done.</string>
+    <string name="habits_bonus_tag">bonus</string>
 </resources>

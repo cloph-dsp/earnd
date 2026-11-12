@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.foundation.shape.CircleShape
@@ -111,7 +113,7 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         },
     ) { pad ->
     androidx.compose.foundation.layout.Column(
-        Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad).imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         OutlinedTextField(h.name, { set(h.copy(name = it)) }, label = { Text(stringResource(R.string.habits_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
 
@@ -246,6 +248,10 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
         SwitchRow(
             stringResource(R.string.habits_reward_beyond), h.overTargetReward, { on -> set(h.copy(overTargetReward = on)) },
             hint = stringResource(if (h.overTargetReward) R.string.habits_reward_beyond_on_hint else R.string.habits_reward_beyond_off_hint),
+        )
+        SwitchRow(
+            stringResource(R.string.habits_bonus), h.bonus, { on -> set(h.copy(bonus = on)) },
+            hint = stringResource(R.string.habits_bonus_hint),
         )
         Text(stringResource(R.string.habits_check_in_with), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
         ChoiceChips(listOf(null, true, false), h.photoRequired, {

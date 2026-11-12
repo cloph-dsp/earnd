@@ -61,6 +61,8 @@ class GuardAccessibilityService : AccessibilityService() {
     private var label = ""
     private var expiryAt: Long? = null
     private var prevRemaining: Long? = null
+    private var prevKey: String? = null
+    private var prevElapsed: Long? = null
     private var lastTickAdvance = 0L
     private var lastExtraLockAt = 0L
     private var screenReceiver: BroadcastReceiver? = null
@@ -337,9 +339,17 @@ class GuardAccessibilityService : AccessibilityService() {
         if (OverlayMath.crossedVibrate(prevRemaining, rem)) vibrate()
         prevRemaining = rem
         overlay?.show(a.pkg, label, rem, a.ratePct)
+        // Unbroken use of the same app: a gentle buzz and a note every 20 minutes.
+        val elapsed = now - a.since
+        OverlayMath.crossedStreak(prevElapsed.takeIf { prevKey == a.key }, elapsed)?.let { min ->
+            vibrate()
+            overlay?.nudge(getString(com.earnd.app.R.string.meter_streak_note, min))
+        }
+        prevKey = a.key
+        prevElapsed = elapsed
     }
 
-    private fun hideOverlay() { overlay?.hide(); prevRemaining = null }
+    private fun hideOverlay() { overlay?.hide(); prevRemaining = null; prevKey = null; prevElapsed = null }
 
     private fun vibrate() {
         runCatching {

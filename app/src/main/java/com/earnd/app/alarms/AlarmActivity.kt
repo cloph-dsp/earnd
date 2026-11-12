@@ -53,6 +53,8 @@ class AlarmActivity : ComponentActivity() {
         var left by mutableStateOf(0)
         var ignored by mutableStateOf(0)
         var reward by mutableStateOf(0)
+        // A habit that needs a number (amount or minutes): asked in a second pop-up after Done.
+        var asking by mutableStateOf<com.earnd.app.data.entity.HabitEntity?>(null)
         // Show Stop immediately; label and snoozes fill in after the DB read.
         setContent {
             EarndTheme {
@@ -63,8 +65,31 @@ class AlarmActivity : ComponentActivity() {
                     rewardMinutes = reward,
                     onStop = { act { actions.stop(o.first, o.second) } },
                     onSnooze = { minutes -> act { actions.snooze(o.first, o.second, minutes) } },
-                    onDone = { act { if (!actions.done(o.first, o.second) && actions.needsApp(o.first, o.second)) startActivity(com.earnd.app.blocking.BlockingIntents.checkIn(this@AlarmActivity, o.second)) } },
+                    onDone = {
+                        lifecycleScope.launch {
+                            val h = if (o.first == OwnerKind.HABIT) runCatching { ServiceLocator.db.habitDao().get(o.second) }.getOrNull()?.takeIf { !it.archived } else null
+                            val kind = h?.let { runCatching { ServiceLocator.habitService.checkInKind(it, ServiceLocator.settings.current()) }.getOrNull() }
+                            when (kind) {
+                                com.earnd.app.domain.HabitService.CheckInKind.AMOUNT, com.earnd.app.domain.HabitService.CheckInKind.FOCUS -> {
+                                    AlarmRingService.silence() // quiet while typing; the item is not resolved yet
+                                    asking = h
+                                }
+                                com.earnd.app.domain.HabitService.CheckInKind.PHOTO -> {
+                                    act(null)
+                                    startActivity(com.earnd.app.blocking.BlockingIntents.checkIn(this@AlarmActivity, o.second))
+                                }
+                                else -> act { actions.done(o.first, o.second) }
+                            }
+                        }
+                    },
                 )
+                asking?.let { h ->
+                    val timed = com.earnd.app.domain.TimedHabit.isTimed(h)
+                    com.earnd.app.ui.habits.AmountDialog(
+                        if (timed) h.copy(unit = getString(com.earnd.app.R.string.alarms_ring_minutes_unit)) else h,
+                        onDismiss = { asking = null },
+                    ) { amount -> asking = null; act { actions.doneWithAmount(h.id, amount) } }
+                }
             }
         }
         lifecycleScope.launch {
@@ -86,11 +111,14 @@ class AlarmActivity : ComponentActivity() {
     /** Always silences first (even if the follow-up DB work fails), then finishes. */
     private fun act(block: (suspend () -> Unit)?) {
         Ringing.stopAll(this)
-        if (block == null) return finish()
-        lifecycleScope.launch {
-            runCatching { block() }
-            finish()
+        // The work must outlive this screen: finishing cancels lifecycleScope, which used to cut the save/silence/snooze
+        // off half-way (done not recorded, silence not kept, snooze lost).
+        if (block != null) actScope.launch {
+            try { block() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Throwable) {
+                android.util.Log.e("Earnd", "Alarm action failed", e)
+            }
         }
+        finish()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -110,6 +138,7 @@ class AlarmActivity : ComponentActivity() {
 
     companion object {
         @Volatile private var current: WeakReference<AlarmActivity>? = null
+        private val actScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default)
 
         fun intent(context: Context, kind: OwnerKind, id: Long): Intent =
             Intent(context, AlarmActivity::class.java).setAction(AlarmKeys.ACTION_OPEN_RING)

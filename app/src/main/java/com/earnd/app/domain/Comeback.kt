@@ -38,7 +38,9 @@ object Comeback {
             var n = 0
             var w = mon.minusWeeks(1)
             repeat(LOOKBACK_WEEKS) {
-                if (w.toEpochDay() < anchor || h.archived) return n
+                // Reached the day the habit began without ever having been active: nothing to come back from.
+                if (h.archived) return n
+                if (w.plusDays(6).toEpochDay() < anchor) return 0
                 if ((0L..6L).any { w.plusDays(it).toEpochDay() in activeDays }) return n
                 if ((0L..6L).none { skip(w.plusDays(it)) }) n++
                 w = w.minusWeeks(1)
@@ -49,7 +51,7 @@ object Comeback {
         var n = 0
         var d = today.minusDays(1)
         repeat(LOOKBACK_DAYS.toInt()) {
-            if (d.toEpochDay() < anchor) return n
+            if (d.toEpochDay() < anchor) return 0 // never active since it began: a first check-in is not a comeback
             if (d.toEpochDay() in activeDays) return n
             if (HabitSchedule.isScheduled(h, d) && !skip(d)) n++
             d = d.minusDays(1)

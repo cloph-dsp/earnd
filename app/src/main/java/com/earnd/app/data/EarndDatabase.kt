@@ -14,9 +14,9 @@ import com.earnd.app.data.entity.*
     entities = [
         HabitEntity::class, CheckInEntity::class, TaskEntity::class, AlarmConfigEntity::class,
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
-        AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class,
+        AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class, MeterUseEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -30,12 +30,21 @@ abstract class EarndDatabase : RoomDatabase() {
     abstract fun appRuleDao(): AppRuleDao
     abstract fun settingDao(): SettingDao
     abstract fun focusDao(): FocusDao
+    abstract fun meterUseDao(): MeterUseDao
 
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .build()
+
+        /** Per-app metered minutes, and the per-habit "bonus" flag (not needed to close the day). */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS meter_use (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, at INTEGER NOT NULL, appKey TEXT NOT NULL, minutes INTEGER NOT NULL)")
+                db.execSQL("ALTER TABLE habit ADD COLUMN bonus INTEGER NOT NULL DEFAULT 0")
+            }
+        }
 
         /** Metering is the default model: former FULL rows (null rate) become METERED at 100 percent. */
         val MIGRATION_9_10 = object : Migration(9, 10) {

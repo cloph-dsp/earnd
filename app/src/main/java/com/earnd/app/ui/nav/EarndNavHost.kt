@@ -107,6 +107,7 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                     onAddHabit = { nav.navigate(Routes.habitEdit()) },
                     onPhotoCheckIn = { nav.navigate(Routes.photo(it)) },
                     onOpenTask = { nav.navigate(Routes.taskEdit(it)) },
+                    onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
                 )
             }
             composable(Routes.TASKS) {
@@ -121,7 +122,11 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
             }
             composable(Routes.APPS) { AppsScreen(onBack = back) }
             composable(Routes.HABITS) {
-                HabitsScreen(onOpenHabit = { nav.navigate(Routes.habitDetail(it)) }, onAddHabit = { nav.navigate(Routes.habitEdit()) })
+                HabitsScreen(
+                    onOpenHabit = { nav.navigate(Routes.habitDetail(it)) },
+                    onAddHabit = { nav.navigate(Routes.habitEdit()) },
+                    onPhotoCheckIn = { nav.navigate(Routes.photo(it)) },
+                )
             }
             composable(
                 Routes.HABIT_EDIT,

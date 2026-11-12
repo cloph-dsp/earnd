@@ -16,6 +16,7 @@ import com.earnd.app.data.entity.AlarmConfigEntity
 import com.earnd.app.data.entity.AlarmStyle
 import com.earnd.app.data.entity.HabitEntity
 import com.earnd.app.data.entity.OwnerKind
+import com.earnd.app.data.entity.ScheduleKind
 import com.earnd.app.domain.Clock
 import com.earnd.app.domain.HabitProgress
 import com.earnd.app.domain.HabitSchedule
@@ -87,9 +88,13 @@ class AlarmPlanner(
             val day = today.plusDays(i)
             if (!HabitSchedule.remindsOn(h, day) || s.onVacation(day.toEpochDay())) continue
             if (i == 0L && habitDone(h, day)) continue
-            for (m in minutes) {
-                val at = AlarmTimes.at(day, DayStart.habitMinute(s, day, m), clock)
-                if (at > now) return at to m
+            if (!quotaOpen(h, day)) continue
+            val todayCount = if (i == 0L && !HabitProgress.isQuantity(h)) checkIns.forHabitDay(h.id, day.toEpochDay()).size else 0
+            val slots = minutes.map { m -> AlarmTimes.at(day, DayStart.habitMinute(s, day, m), clock) to m }.sortedBy { it.first }
+            for ((k, slot) in slots.withIndex()) {
+                // Reminder k+1 of the day is already answered once that many check-ins exist (2 brushings = 2nd reminder done).
+                if (todayCount >= k + 1) continue
+                if (slot.first > now) return slot
             }
         }
         return null
@@ -103,6 +108,10 @@ class AlarmPlanner(
         cancelArmed()
         val uris = planned.map { arm(it) }
         settings.rawPut(KEY_ARMED, uris.joinToString("\n"))
+        // Done elsewhere (app, widget, notification) while it is ringing: stop the ring and close the alarm screen.
+        AlarmRingService.ringingOwner()?.let { (k, id) ->
+            if (nagStates.get(k, id) == null) Ringing.stopAll(context)
+        }
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -120,10 +129,14 @@ class AlarmPlanner(
                 OwnerKind.HABIT -> {
                     val h = habits.get(st.ownerId)
                     h != null && !h.archived && clock.localDate(st.dueAt) == today &&
-                        !habitDone(h, today)
+                        !habitDone(h, today) && quotaOpen(h, today) && !answeredByCount(h, st.dueAt, today, s)
                 }
             }
-            if (!stillPending) nag.resolve(st.ownerKind, st.ownerId)
+            if (!stillPending) { nag.resolve(st.ownerKind, st.ownerId); continue }
+            if (st.ownerKind == OwnerKind.HABIT) {
+                val latest = checkIns.forHabitDay(st.ownerId, today.toEpochDay()).maxOfOrNull { it.at }
+                if (NagSchedule.progressedSinceLastNag(st, latest)) nag.restart(st.ownerKind, st.ownerId, latest!!)
+            }
         }
         val tracked = nagStates.all().associateBy { it.ownerKind to it.ownerId }
         val cfgs = configs.all().associateBy { it.ownerKind to it.ownerId }
@@ -142,11 +155,34 @@ class AlarmPlanner(
                 .lastOrNull { it <= now } ?: continue
             // A newer reminder time replaces an older pending one (fresh counts, rings again).
             if (tracked[OwnerKind.HABIT to h.id]?.dueAt == due) continue
-            if (habitDone(h, today)) continue
+            if (habitDone(h, today) || !quotaOpen(h, today) || answeredByCount(h, due, today, s)) continue
             // A check-in after this reminder answered it; the next reminder time re-triggers.
             if (checkIns.forHabitDay(h.id, today.toEpochDay()).any { it.at >= due }) continue
             nag.onDue(OwnerKind.HABIT, h.id, due)
         }
+    }
+
+    /**
+     * False for an "N times a week" habit whose weekly quota was already met on the days before [day]: it is not due
+     * (the Today list hides it), so it must not remind or nag either.
+     */
+    private suspend fun quotaOpen(h: HabitEntity, day: java.time.LocalDate): Boolean {
+        if (h.scheduleKind != ScheduleKind.TIMES_PER_WEEK) return true
+        val mon = HabitSchedule.weekStart(day)
+        val before = if (mon == day) 0 else checkIns.forHabitBetween(h.id, mon.toEpochDay(), day.toEpochDay() - 1)
+            .groupBy { it.epochDay }.count { (_, cs) -> HabitProgress.isComplete(h, cs) }
+        return HabitSchedule.isDueOn(h, day, before)
+    }
+
+    /**
+     * A counted habit with several reminders a day: reminder number k is answered once k check-ins exist today, even if
+     * they were made before it rang. Quantity habits are answered only by reaching their target.
+     */
+    private suspend fun answeredByCount(h: HabitEntity, dueAt: Long, day: java.time.LocalDate, s: com.earnd.app.data.Settings): Boolean {
+        if (HabitProgress.isQuantity(h)) return false
+        val cfg = configs.get(OwnerKind.HABIT, h.id) ?: return false
+        val k = AlarmTimes.habitInstants(cfg, day, clock) { DayStart.habitMinute(s, day, it) }.count { it <= dueAt }
+        return k > 0 && checkIns.forHabitDay(h.id, day.toEpochDay()).size >= k
     }
 
     private suspend fun habitDone(h: HabitEntity, day: java.time.LocalDate): Boolean =

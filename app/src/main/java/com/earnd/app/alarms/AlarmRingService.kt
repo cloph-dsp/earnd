@@ -46,6 +46,7 @@ class AlarmRingService : Service() {
             return START_NOT_STICKY
         }
         owner = o
+        ringing = o
         label = intent.getStringExtra(AlarmKeys.EXTRA_LABEL).orEmpty()
         AlarmChannels.ensure(this)
         startForeground(AlarmKeys.NOTIF_RING, Ringing.build(this, o.first, o.second, label, snoozesLeft = 0), FGS_TYPE)
@@ -107,6 +108,7 @@ class AlarmRingService : Service() {
 
     private fun shutdown() {
         owner = null
+        ringing = null
         handler.removeCallbacksAndMessages(null)
         AlarmRinger.stop()
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
@@ -128,6 +130,7 @@ class AlarmRingService : Service() {
 
     override fun onDestroy() {
         owner = null
+        ringing = null
         handler.removeCallbacksAndMessages(null)
         AlarmRinger.stop()
         wakeLock?.runCatching { if (isHeld) release() }
@@ -140,6 +143,10 @@ class AlarmRingService : Service() {
         private const val FGS_TYPE = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
         private const val INVISIBLE_TIMEOUT_MS = 20_000L
         private const val MAX_WAKE_MS = 60 * 60_000L
+        @Volatile private var ringing: Pair<OwnerKind, Long>? = null
+
+        /** The item that is ringing right now, if any. */
+        fun ringingOwner(): Pair<OwnerKind, Long>? = ringing
 
         /** Starts ringing. Returns false if the system refused to start the service. */
         fun start(context: Context, kind: OwnerKind, id: Long, label: String, timeoutMs: Long = 0): Boolean = runCatching {

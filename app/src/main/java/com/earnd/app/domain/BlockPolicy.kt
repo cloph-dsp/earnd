@@ -54,6 +54,8 @@ object BlockRules {
         f.allDoneUnlock -> BlockDecision.Allow
         f.segmentUnlock -> BlockDecision.Allow
         f.nothingScheduled -> BlockDecision.Allow
+        // A 0 % rule costs nothing, so it needs neither the gate nor a balance.
+        f.meteredPct == 0 -> BlockDecision.Allow
         f.meteredPct != null && f.balancePositive -> BlockDecision.Metered(f.meteredPct, f.meteredKey)
         else -> BlockDecision.Block(BlockCause.NO_BALANCE, null)
     }

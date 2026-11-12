@@ -82,9 +82,10 @@ object OverlayMath {
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
     }
 
-    /** Short rate mark: nothing at 100 %, a vulgar fraction at 50/25. */
+    /** Short rate mark: nothing at 100 %, a vulgar fraction at 75/50/25. */
     fun rateMark(pct: Int): String = when (pct) {
         100 -> ""
+        75 -> "¾"
         50 -> "½"
         25 -> "¼"
         else -> "$pct%"
@@ -93,6 +94,17 @@ object OverlayMath {
     fun text(ms: Long, pct: Int): String = format(ms) + rateMark(pct).let { if (it.isEmpty()) "" else " $it" }
 
     fun isLow(ms: Long): Boolean = ms <= LOW_MS
+
+    /** Minutes of unbroken use between nudges. */
+    const val STREAK_NUDGE_MIN = 20
+
+    /** Minutes of unbroken use when [elapsedMs] has just crossed a multiple of [STREAK_NUDGE_MIN] since [prevMs], else null. */
+    fun crossedStreak(prevMs: Long?, elapsedMs: Long): Int? {
+        if (prevMs == null || elapsedMs <= 0) return null
+        val step = STREAK_NUDGE_MIN * 60_000L
+        val k = elapsedMs / step
+        return if (k > prevMs / step) (k * STREAK_NUDGE_MIN).toInt() else null
+    }
 
     /** True once as the countdown crosses the last minute. */
     fun crossedVibrate(prevMs: Long?, ms: Long): Boolean = prevMs != null && prevMs > VIBRATE_AT_MS && ms <= VIBRATE_AT_MS

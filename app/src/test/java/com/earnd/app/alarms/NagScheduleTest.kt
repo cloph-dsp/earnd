@@ -29,6 +29,18 @@ class NagScheduleTest {
         assertEquals(last + min(240), NagSchedule.next(st(20, last), null, last, z, quiet))
     }
 
+    @Test fun partialProgressRestartsTheLadder() {
+        val nagged = st(4, due + min(60)).copy(nextNagAt = due + min(100))
+        // A check-in after the last nag is progress; one before it (already nagged about) is not.
+        assertTrue(NagSchedule.progressedSinceLastNag(nagged, due + min(70)))
+        assertFalse(NagSchedule.progressedSinceLastNag(nagged, due + min(50)))
+        assertFalse(NagSchedule.progressedSinceLastNag(nagged, null))
+        // Before the first nag the due time is the reference.
+        assertTrue(NagSchedule.progressedSinceLastNag(st().copy(nextNagAt = due + min(10)), due + min(2)))
+        // Stopped (or out of nags): a check-in must not bring it back.
+        assertFalse(NagSchedule.progressedSinceLastNag(st(4, due + min(60)), due + min(70)))
+    }
+
     @Test fun fixedOffAndMax() {
         val fixed = AlarmConfigEntity(OwnerKind.TASK, 1, nagMode = NagMode.FIXED, nagEveryMin = 20, nagMaxCount = 2)
         assertEquals(due + min(20), NagSchedule.next(st(), fixed, due, z, quiet))

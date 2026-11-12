@@ -88,6 +88,33 @@ object HabitSchedule {
         return streak
     }
 
+    /**
+     * Consecutive scheduled days with at least one check-in, counting back from [today] ([checkInsByDay] = check-ins per
+     * epoch day). Softer than [streak]: a habit with a daily target (10 glasses) still shows its run when the target is
+     * missed. An empty today does not break it; unscheduled and [skip] days are ignored.
+     */
+    fun activeStreak(
+        h: HabitEntity,
+        today: LocalDate,
+        checkInsByDay: Map<Long, Int>,
+        skip: (LocalDate) -> Boolean = { false },
+        maxDays: Int = 366,
+    ): Int {
+        var run = 0
+        var day = today
+        repeat(maxDays) {
+            if (day.toEpochDay() < anchorOf(h)) return run
+            if (isScheduled(h, day) && !skip(day)) {
+                when {
+                    (checkInsByDay[day.toEpochDay()] ?: 0) > 0 -> run++
+                    day != today && missBreaks(h, day, today, checkInsByDay) -> return run
+                }
+            }
+            day = day.minusDays(1)
+        }
+        return run
+    }
+
     /** Whether reminders fire on [day]: a scheduled day that is also in `reminderDays` (0 = all). */
     fun remindsOn(h: HabitEntity, day: LocalDate): Boolean =
         isScheduled(h, day) && (h.reminderDays and 0x7F == 0 || h.reminderDays and (1 shl (day.dayOfWeek.value - 1)) != 0)

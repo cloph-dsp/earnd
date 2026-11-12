@@ -83,7 +83,7 @@ import com.earnd.app.i18n.Str
 private val SEGMENT_ORDER = listOf(DaySegment.MORNING, DaySegment.AFTERNOON, DaySegment.EVENING, DaySegment.NONE)
 
 @Composable
-fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoCheckIn: (Long) -> Unit, onOpenTask: (Long) -> Unit = {}) {
+fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoCheckIn: (Long) -> Unit, onOpenTask: (Long) -> Unit = {}, onOpenPermissions: () -> Unit = {}) {
     val sl = ServiceLocator
     val todayDay by produceState(sl.clock.today().toEpochDay()) { while (true) { value = sl.clock.today().toEpochDay(); delay(30_000) } }
     val loadedHabits by remember { sl.habitService.observeToday() }.collectAsState(initial = null)
@@ -100,7 +100,9 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val minuteNow = sl.clock.minuteOfDay(sl.clock.now())
     val currentSeg = if (settings.segmentMode) Segments.current(minuteNow, settings) else null
 
-    val allDone = habits.isNotEmpty() && habits.all(doneOf)
+    // Bonus habits earn like the rest but are not needed to close the day (the all-done reward mode counts every habit).
+    val core = if (settings.rewardMode == com.earnd.app.data.entity.RewardMode.ALL_DONE) habits else habits.filterNot { it.habit.bonus }
+    val allDone = core.isNotEmpty() && core.all(doneOf)
     val bank = BankState(balance?.minutes ?: 0, session, settings.hardMode, allDone = allDone, allDoneUnlock = settings.allDoneUnlock, unlockCapMin = settings.unlockCapMin,
         loading = balance == null, nextExpiryAt = balance?.nextExpiryAt, debtMin = balance?.debt ?: 0, minutesExpiringNext = balance?.minutesExpiringNext ?: 0)
     val inBedtime = TimeBank.bedtimeWindow(settings)?.contains(System.currentTimeMillis(), sl.clock.zone()) == true
@@ -148,6 +150,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     Spacer(Modifier.width(10.dp))
                     Num(clock, Modifier.weight(1f))
                 }
+                HealthBanner(onOpenPermissions)
                 TimeBankCard(
                     state = bank,
                     onSpend = { m ->
@@ -170,10 +173,11 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             }
             if (habits.isNotEmpty()) {
                 item(key = "progress") {
-                    val done = habits.count(doneOf)
+                    val counted = core.ifEmpty { habits }
+                    val done = counted.count(doneOf)
                     Column(Modifier.padding(top = 28.dp)) {
-                        com.earnd.app.ui.theme.SegmentBar(done, habits.size)
-                        Num(stringResource(R.string.home_progress, done, habits.size), Modifier.padding(top = 8.dp))
+                        com.earnd.app.ui.theme.SegmentBar(done, counted.size)
+                        Num(stringResource(R.string.home_progress, done, counted.size), Modifier.padding(top = 8.dp))
                     }
                 }
             } else if (loadedHabits != null) {
@@ -185,7 +189,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     )
                 }
             }
-            val byIgnored = compareByDescending<HabitDay> { ignored[it.habit.id] ?: 0 }
+            val byIgnored = compareBy<HabitDay> { it.habit.bonus }.thenByDescending { ignored[it.habit.id] ?: 0 }
             val pendingHabits = habits.filterNot(doneOf).sortedWith(byIgnored)
             val doneHabits = habits.filter(doneOf)
             val pendingTasks = tasksToday.filter { it.completedAt == null }
@@ -243,7 +247,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     val list = bySegment[seg].orEmpty()
                     if (habits.any { it.habit.segment == seg }) {
                         item(key = "seg-$seg") {
-                            val all = habits.filter { it.habit.segment == seg }
+                            val all = habits.filter { it.habit.segment == seg }.let { l -> if (core.size == habits.size) l else l.filter { it in core }.ifEmpty { l } }
                             val done = all.count(doneOf)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 SectionTitle(HabitLook.segmentLabel(seg), Modifier.weight(1f))
@@ -330,6 +334,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             } else null
             val parts = buildList {
                 if (hd.required > 1 || hd.done > hd.required) add("${hd.done}/${hd.required}" + if (complete) " ✓" else "")
+                if (h.bonus) add(stringResource(R.string.habits_bonus_tag))
                 if (comebackText != null) add(comebackText)
                 if (h.targetQuantity != null) {
                     add("${fmtQty(HabitRules.quantityDone(todays))}/${fmtQty(h.targetQuantity)} ${h.unit.orEmpty()}".trim())

@@ -81,6 +81,10 @@ class MeteringTest {
         assertFalse(Charging.loosens(25, null))
         assertEquals(Charging.Rate(100), Charging.parse("FULL"))
         assertEquals(Charging.Rate(50), Charging.parse("50%"))
+        assertEquals(Charging.Rate(75), Charging.parse("75%"))
+        assertTrue(Charging.loosens(100, 75))
+        assertFalse(Charging.loosens(75, 100))
+        assertTrue(Charging.loosens(75, 50))
         assertNull(Charging.parse("30"))
         assertNull(Charging.parse(""))
         assertEquals("TIDAL · 50%", Charging.note("TIDAL", 50))
@@ -220,6 +224,8 @@ class MeteringTest {
     @Test fun meteredAppOpensOnlyWithBalance() {
         assertEquals(BlockDecision.Metered(50), BlockRules.decide(locked.copy(meteredPct = 50, balancePositive = true)))
         assertEquals(BlockDecision.Block(BlockCause.NO_BALANCE, null), BlockRules.decide(locked.copy(meteredPct = 50, balancePositive = false)))
+        // A 0 % rule is free: no gate and no balance needed.
+        assertEquals(BlockDecision.Allow, BlockRules.decide(locked.copy(meteredPct = 0, balancePositive = false)))
         assertEquals(BlockDecision.Block(BlockCause.NO_BALANCE, null), BlockRules.decide(locked.copy(balancePositive = true)))
     }
 

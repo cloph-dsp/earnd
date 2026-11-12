@@ -32,6 +32,7 @@
     <string name="alarms_channel_missed">Alarmes perdidos</string>
     <string name="alarms_missed_title">Alarme perdido</string>
     <string name="alarms_ring_done">Feito</string>
+    <string name="alarms_ring_minutes_unit">min</string>
     <string name="alarms_ring_silence">Silenciar</string>
     <string name="alarms_ring_ignored">ignorado %d×</string>
     <string name="alarms_ring_reward">+%d min</string>

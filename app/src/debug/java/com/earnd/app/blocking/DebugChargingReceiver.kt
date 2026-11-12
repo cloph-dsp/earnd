@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * weakening gates; the app is added to the leisure list when it is not there yet.
  * adb shell am broadcast -n com.earnd.app/.blocking.DebugChargingReceiver \
  *   -a com.earnd.app.blocking.DEBUG_SET_CHARGING --es pkg com.aspiro.tidal --es rate 50
- * rate = 0 | 25 | 50 | 100 (full = 100). The result is logged (tag EarndDebug) and returned as the broadcast result data.
+ * rate = 0 | 25 | 50 | 75 | 100 (full = 100). The result is logged (tag EarndDebug) and returned as the broadcast result data.
  */
 class DebugChargingReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

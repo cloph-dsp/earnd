@@ -31,7 +31,7 @@ tier.
 - Blocking is implemented with an AccessibilityService that detects the foreground app (and browser
   address bar for websites) and shows a full-screen "locked" screen listing what can be done to earn
   time, with a one-tap path into check-in. Exit goes to the home screen.
-- Metering is the default charging model for ALL leisure apps and sites: each is metered at 0/25/50/100 %
+- Metering is the default charging model for ALL leisure apps and sites: each is metered at 0/25/50/75/100 %
   (default 100 %; former FULL apps migrated to 100 %). The balance is debited only while that app is in the
   foreground AND the screen is on and unlocked AND no call is in progress (telephony state or in-call /
   in-communication audio mode). Notification shade and keyboard over the app keep counting; a picture-in-picture

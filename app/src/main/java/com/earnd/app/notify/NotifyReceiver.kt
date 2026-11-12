@@ -46,7 +46,10 @@ class NotifyReceiver : BroadcastReceiver() {
     private suspend fun todayLines(): List<HabitLine>? {
         val today = ServiceLocator.clock.today()
         if (ServiceLocator.settings.current().onVacation(today.toEpochDay())) return null
-        return ServiceLocator.habitService.daySummary(today).map { HabitLine(it.habit.name, it.done, it.required) }
+        val lump = ServiceLocator.settings.current().rewardMode == com.earnd.app.data.entity.RewardMode.ALL_DONE
+        // Bonus habits are extras: not listed as missed (the all-done lump-sum mode still counts every habit).
+        return ServiceLocator.habitService.daySummary(today).filter { lump || !it.habit.bonus }
+            .map { HabitLine(it.habit.name, it.done, it.required) }
     }
 
     private suspend fun morning(context: Context) {

@@ -79,6 +79,14 @@ class ServiceRemoteBackend(
     override suspend fun checkInsToday(habitId: Long): List<CheckInEntity> =
         db.checkInDao().forDay(today().toEpochDay()).filter { it.habitId == habitId }
 
+    override suspend fun weekCompleteDaysBefore(h: HabitEntity): Int {
+        val today = today()
+        val mon = HabitSchedule.weekStart(today)
+        if (h.scheduleKind != com.earnd.app.data.entity.ScheduleKind.TIMES_PER_WEEK || mon == today) return 0
+        return db.checkInDao().forHabitBetween(h.id, mon.toEpochDay(), today.toEpochDay() - 1)
+            .groupBy { it.epochDay }.count { (_, cs) -> com.earnd.app.domain.HabitProgress.isComplete(h, cs) }
+    }
+
     override suspend fun streak(habitId: Long) = habitsSvc.streak(habitId, today())
     override suspend fun saveHabit(h: HabitEntity) = habitsSvc.save(h)
     override suspend fun archiveHabit(id: Long) = habitsSvc.archive(id)

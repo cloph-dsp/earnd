@@ -121,6 +121,13 @@ class CountingTest {
         assertEquals("00:00", OverlayMath.format(-5))
         assertEquals("1:05:00", OverlayMath.format(65 * 60_000L))
         assertEquals("23:41 ½", OverlayMath.text(23 * 60_000L + 41_000, 50))
+        assertEquals("23:41 ¾", OverlayMath.text(23 * 60_000L + 41_000, 75))
+        // Continuous-use nudge: once per 20 minutes crossed, never on the first reading or after a switch.
+        assertNull(OverlayMath.crossedStreak(null, 25 * 60_000L))
+        assertNull(OverlayMath.crossedStreak(5 * 60_000L, 19 * 60_000L))
+        assertEquals(20, OverlayMath.crossedStreak(19 * 60_000L, 20 * 60_000L + 1))
+        assertNull(OverlayMath.crossedStreak(20 * 60_000L + 1, 21 * 60_000L))
+        assertEquals(40, OverlayMath.crossedStreak(39 * 60_000L, 40 * 60_000L))
         assertEquals("10:00", OverlayMath.text(600_000, 100))
     }
 

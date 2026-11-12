@@ -250,4 +250,12 @@
     <string name="rrule_check_values">Verificar os valores acima.</string>
     <string name="habits_hard_mode_blocked">O modo rígido está ativo e este hábito é para hoje. Só pode ser removido ou facilitado depois de feito, ou amanhã.</string>
     <string name="habits_hard_mode_ok">OK</string>
+    <string name="habits_active_short">ativo %1$dd</string>
+    <plurals name="habits_active_days">
+        <item quantity="one">Ativo %1$d dia seguido (meta do dia ainda por cumprir).</item>
+        <item quantity="other">Ativo %1$d dias seguidos (meta do dia ainda por cumprir).</item>
+    </plurals>
+    <string name="habits_bonus">Hábito bónus</string>
+    <string name="habits_bonus_hint">Ganha como os outros, mas não é preciso para fechar o dia nem para desbloquear com tudo feito.</string>
+    <string name="habits_bonus_tag">bónus</string>
 </resources>

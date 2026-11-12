@@ -22,6 +22,8 @@ interface RemoteBackend {
     suspend fun habits(includeArchived: Boolean): List<HabitEntity>
     suspend fun habit(id: Long): HabitEntity?
     suspend fun checkInsToday(habitId: Long): List<CheckInEntity>
+    /** Complete days of [h]'s week before today; only an "N times a week" habit needs it. */
+    suspend fun weekCompleteDaysBefore(h: HabitEntity): Int = 0
     suspend fun streak(habitId: Long): Int
     suspend fun saveHabit(h: HabitEntity): Long
     suspend fun archiveHabit(id: Long)

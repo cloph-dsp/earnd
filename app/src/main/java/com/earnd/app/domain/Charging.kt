@@ -6,11 +6,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Default charging model: every leisure app/site is metered at 0/25/50/100 percent of its foreground time
+ * Default charging model: every leisure app/site is metered at 0/25/50/75/100 percent of its foreground time
  * (default 100). A null stored rate (old FULL rows) means [DEFAULT_RATE].
  */
 object Charging {
-    val RATES = listOf(0, 25, 50, 100)
+    val RATES = listOf(0, 25, 50, 75, 100)
     const val DEFAULT_RATE = 100
 
     /** Rate actually applied for a stored value. */
@@ -84,6 +84,8 @@ class MeterEngine(
     private val debit: suspend (minutes: Int) -> Int,
     private val loadCarry: suspend () -> Long,
     private val saveCarry: suspend (Long) -> Unit,
+    /** Called with the rule key, time and whole minutes actually charged; for the per-app summary. */
+    private val record: suspend (key: String, at: Long, minutes: Int) -> Unit = { _, _, _ -> },
 ) {
     private val mutex = Mutex()
     private var lastAt: Long? = null
@@ -124,6 +126,7 @@ class MeterEngine(
         if (step.units <= 0) return 0
         val taken = debit(step.units)
         balance = (balance - taken).coerceAtLeast(0)
+        if (taken > 0) active?.let { runCatching { record(it.key, now, taken) } }
         return taken
     }
 

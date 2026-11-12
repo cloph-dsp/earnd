@@ -52,7 +52,10 @@ class ComebackAndTimedTest {
         val mwf = habit(kind = ScheduleKind.WEEKDAYS, mask = 0b0010101) // Mon, Wed, Fri
         // last active: previous Wednesday (7 days back); missed Fri + Mon
         assertEquals(2, Comeback.missedOccasions(mwf, today, days(7)))
-        assertEquals(2, Comeback.missedOccasions(habit(anchor = today.minusDays(2)), today, emptySet()))
+        // A habit that has never been active has nothing to come back from: its first check-in earns no bonus.
+        assertEquals(0, Comeback.missedOccasions(habit(anchor = today.minusDays(2)), today, emptySet()))
+        // Once it has been active, the days since the anchor-bounded last activity do count.
+        assertEquals(1, Comeback.missedOccasions(habit(anchor = today.minusDays(5)), today, days(2)))
     }
 
     @Test fun flexibleHabitsCountMissedWeeks() {

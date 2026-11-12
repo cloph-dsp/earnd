@@ -74,7 +74,7 @@ Photo habits (`"mode":"PHOTO"`) cannot be checked in remotely (`photo_required`)
 | `rules.blockable_apps` | launchable apps as label + pkg (find the package to block) |
 | `rules.block_app` | `pkg` (e.g. com.instagram.android), optional `label` |
 | `rules.block_site` | `domain` (e.g. reddit.com; URLs are reduced to the host) |
-| `rules.set_charging` | `pkg` (a blocked app), `rate` = 0, 25, 50 or 100 (`full` = 100). Every leisure app/site is metered: it costs that % of its foreground time (screen on, no call) while the balance is above 0, after a confirmation on the phone; background playback is free. Remotely only stricter (a higher rate). Lowering a rate is phone-only (`forbidden_weaken`). `rules.list` shows each app's `charging` |
+| `rules.set_charging` | `pkg` (a blocked app), `rate` = 0, 25, 50, 75 or 100 (`full` = 100). Every leisure app/site is metered: it costs that % of its foreground time (screen on, no call) while the balance is above 0, after a confirmation on the phone; background playback is free. Remotely only stricter (a higher rate). Lowering a rate is phone-only (`forbidden_weaken`). `rules.list` shows each app's `charging` |
 | `settings.get` | all settings plus the list of tightenable keys |
 | `settings.tighten` | `key=value` pairs: unlockCapMin, hardMode, blockingEnabled, allDoneUnlock, resetPeriod (DAILY only; WEEKLY and ROLLING are weakening), weakenCooldownMin, bedtimeEnabled, bedtimeStartMin/EndMin (HH:MM ok), bedtimeGraceMin, rollingExpiryHours (only lower, e.g. 15), defaultTaskRewardMin, defaultHabitRewardMin, rewardMode, photoRequiredDefault, removalPuzzle |
 | `tasks.complete` / `tasks.uncomplete` / `tasks.skip` / `tasks.delete` | `id` (`skip` moves a recurring task to its next occurrence without reward) |

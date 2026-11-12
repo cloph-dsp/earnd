@@ -153,7 +153,7 @@ fun AppsScreen(onBack: () -> Unit) {
     }
 }
 
-/** "Charging" selector of a leisure app: a compact share ("50%") that opens the 0/25/50/100% menu. */
+/** "Charging" selector of a leisure app: a compact share ("50%") that opens the 0/25/50/75/100% menu. */
 @Composable
 private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
     var open by remember { mutableStateOf(false) }

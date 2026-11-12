@@ -63,6 +63,17 @@ class NagEngine(
     suspend fun resolve(ownerKind: OwnerKind, ownerId: Long) = nags.delete(ownerKind, ownerId)
 
     /**
+     * Partial progress on a still-pending item (e.g. 6 of 10 glasses): the escalation starts over from [at], so the next
+     * nag is a first, gentle one instead of the 5th.
+     */
+    suspend fun restart(ownerKind: OwnerKind, ownerId: Long, at: Long) {
+        refreshQuiet()
+        val s = nags.get(ownerKind, ownerId) ?: return
+        val base = s.copy(nagCount = 0, snoozeCount = 0, lastNagAt = at)
+        nags.upsert(base.copy(nextNagAt = nextNagAt(base, configs.get(ownerKind, ownerId), clock.now())))
+    }
+
+    /**
      * Stop: the item stays pending (listed, not done) but stops nagging and ringing until its next
      * due/reminder time creates a fresh state.
      */

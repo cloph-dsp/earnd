@@ -49,4 +49,5 @@
     <string name="blocking_rate_1x">taxa 1×</string>
     <string name="blocking_rate_2x">taxa 2×</string>
     <string name="blocking_rate_pct">taxa %1$d%%</string>
+    <string name="meter_streak_note">%1$d min seguidos</string>
 </resources>

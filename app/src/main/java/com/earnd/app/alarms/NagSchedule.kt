@@ -73,6 +73,13 @@ object NagSchedule {
         }
     }
 
+    /**
+     * True when a check-in at [latestCheckInAt] is progress made after the last nag (or the due time), so the escalation
+     * should start over. A silenced or exhausted item (no next nag) stays as it is: Stop must not be undone by a check-in.
+     */
+    fun progressedSinceLastNag(state: NagStateEntity, latestCheckInAt: Long?): Boolean =
+        latestCheckInAt != null && state.nextNagAt != null && latestCheckInAt > (state.lastNagAt ?: state.dueAt)
+
     /** Snooze exists only on the full-screen alarm and is capped by `snoozeMaxCount`. */
     fun canSnooze(state: NagStateEntity, cfg: AlarmConfigEntity?): Boolean =
         state.snoozeCount < (cfg?.snoozeMaxCount ?: 2)
