@@ -7,15 +7,15 @@
     <string name="alarms_channel_ring">Alarmes</string>
     <string name="alarms_channel_ring_desc">Alarmes em ecrã inteiro que tocam até haver resposta.</string>
 
-    <plurals name="alarms_pending_title">
+    <plurals name="alarms_pending_title"><item quantity="many">%d coisas pendentes</item>
         <item quantity="one">%d coisa pendente</item>
         <item quantity="other">%d coisas pendentes</item>
     </plurals>
-    <plurals name="alarms_digest_title">
+    <plurals name="alarms_digest_title"><item quantity="many">Resumo diário: %d itens antigos</item>
         <item quantity="one">Resumo diário: %d item antigo</item>
         <item quantity="other">Resumo diário: %d itens antigos</item>
     </plurals>
-    <plurals name="alarms_line_nagged">
+    <plurals name="alarms_line_nagged"><item quantity="many">%1$s · lembrado %2$d vezes</item>
         <item quantity="one">%1$s · lembrado %2$d vez</item>
         <item quantity="other">%1$s · lembrado %2$d vezes</item>
     </plurals>
@@ -34,7 +34,7 @@
     <string name="alarms_ring_silence">Silenciar</string>
     <string name="alarms_ring_ignored">ignorado %d×</string>
     <string name="alarms_ring_reward">+%d min</string>
-    <plurals name="alarms_ring_snooze">
+    <plurals name="alarms_ring_snooze"><item quantity="many">Adiar (restam %1$d)</item>
         <item quantity="one">Adiar (resta %1$d)</item>
         <item quantity="other">Adiar (restam %1$d)</item>
     </plurals>

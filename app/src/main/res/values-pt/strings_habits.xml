@@ -36,7 +36,7 @@
     <string name="habits_archive_title">Arquivar %1$s?</string>
     <string name="habits_archive_body">Sai de Hoje e deixa de contar. Pode ser restaurado no separador Hábitos.</string>
     <string name="habits_streak_zero">Novo começo hoje.</string>
-    <plurals name="habits_streak_days">
+    <plurals name="habits_streak_days"><item quantity="many">Feito %1$d dias seguidos.</item>
         <item quantity="one">Feito %1$d dia seguido.</item>
         <item quantity="other">Feito %1$d dias seguidos.</item>
     </plurals>
@@ -192,23 +192,23 @@
         <item quantity="many">%2$s, %1$d vezes</item>
     </plurals>
     <string name="rrule_with_until">%1$s, até %2$s</string>
-    <plurals name="rrule_after_completion_days">
+    <plurals name="rrule_after_completion_days"><item quantity="many">%1$d dias após a conclusão</item>
         <item quantity="one">%1$d dia após a conclusão</item>
         <item quantity="other">%1$d dias após a conclusão</item>
     </plurals>
-    <plurals name="rrule_after_completion_weeks">
+    <plurals name="rrule_after_completion_weeks"><item quantity="many">%1$d semanas após a conclusão</item>
         <item quantity="one">%1$d semana após a conclusão</item>
         <item quantity="other">%1$d semanas após a conclusão</item>
     </plurals>
-    <plurals name="rrule_after_completion_months">
+    <plurals name="rrule_after_completion_months"><item quantity="many">%1$d meses após a conclusão</item>
         <item quantity="one">%1$d mês após a conclusão</item>
         <item quantity="other">%1$d meses após a conclusão</item>
     </plurals>
-    <plurals name="rrule_after_completion_years">
+    <plurals name="rrule_after_completion_years"><item quantity="many">%1$d anos após a conclusão</item>
         <item quantity="one">%1$d ano após a conclusão</item>
         <item quantity="other">%1$d anos após a conclusão</item>
     </plurals>
-    <plurals name="rrule_times_a_week">
+    <plurals name="rrule_times_a_week"><item quantity="many">%1$d vezes por semana</item>
         <item quantity="one">%1$d vez por semana</item>
         <item quantity="other">%1$d vezes por semana</item>
     </plurals>
@@ -271,7 +271,7 @@
     <string name="habits_hard_mode_blocked">O modo rígido está ativo e este hábito é para hoje. Só pode ser removido ou facilitado depois de feito, ou amanhã.</string>
     <string name="habits_hard_mode_ok">OK</string>
     <string name="habits_active_short">ativo %1$dd</string>
-    <plurals name="habits_active_days">
+    <plurals name="habits_active_days"><item quantity="many">Ativo %1$d dias seguidos (meta do dia ainda por cumprir).</item>
         <item quantity="one">Ativo %1$d dia seguido (meta do dia ainda por cumprir).</item>
         <item quantity="other">Ativo %1$d dias seguidos (meta do dia ainda por cumprir).</item>
     </plurals>

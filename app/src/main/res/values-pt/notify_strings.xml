@@ -9,7 +9,7 @@
     <string name="notify_morning_line_5">Fazer agora, aproveitar depois.</string>
     <string name="notify_morning_line_6">Um dia novo, um banco novo.</string>
     <string name="notify_morning_line_7">O eu do futuro agradece desde já.</string>
-    <plurals name="notify_habits_today">
+    <plurals name="notify_habits_today"><item quantity="many">%1$d hábitos hoje</item>
         <item quantity="one">%1$d hábito hoje</item>
         <item quantity="other">%1$d hábitos hoje</item>
     </plurals>
