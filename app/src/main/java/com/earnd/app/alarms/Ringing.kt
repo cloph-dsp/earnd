@@ -61,7 +61,7 @@ internal object Ringing {
         return b.build()
     }
 
-    fun missed(context: Context, kind: OwnerKind, id: Long, label: String) {
+    fun missed(context: Context, label: String) {
         val n = NotificationCompat.Builder(context, AlarmChannels.MISSED)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))

@@ -38,9 +38,9 @@ object ServiceLocator {
     }
     val timeBank: TimeBank by lazy { TimeBank(db.ledgerDao(), db.sessionDao(), settings, clock, changeBus, transactor) }
     val habitService: HabitService by lazy {
-        HabitService(db.habitDao(), db.checkInDao(), timeBank, clock, changeBus, settings)
+        HabitService(db.habitDao(), db.checkInDao(), timeBank, clock, changeBus, settings, transactor)
     }
-    val taskService: TaskService by lazy { TaskService(db.taskDao(), timeBank, settings, clock, changeBus) }
+    val taskService: TaskService by lazy { TaskService(db.taskDao(), timeBank, settings, clock, changeBus, transactor) }
     val photoStore: com.earnd.app.photo.PhotoStore by lazy { com.earnd.app.photo.PhotoStore(appContext) }
     val essentialApps: SystemEssentialApps by lazy { SystemEssentialApps(appContext) }
     val blockPolicy: BlockPolicy by lazy {

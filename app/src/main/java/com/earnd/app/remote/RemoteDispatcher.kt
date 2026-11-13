@@ -299,13 +299,13 @@ class RemoteDispatcher(private val backend: RemoteBackend) {
             }
             timedWeakening(existing, h, s)?.let { throw WeakenForbidden(it) }
             // What is still owed today cannot be reduced remotely: that would be a way to complete the day.
-            val today = backend.today()
+            val day = backend.today()
             if (unlockPathOn() && owedToday(existing)) {
                 if (h.timesPerDay < existing.timesPerDay) throw WeakenForbidden("times per day can only be raised remotely while the habit is due")
                 existing.targetQuantity?.let { old ->
                     if (h.targetQuantity == null || h.targetQuantity < old) throw WeakenForbidden("the target can only be raised remotely while the habit is due")
                 }
-                if (!HabitSchedule.isScheduled(h, today)) throw WeakenForbidden("a habit that is due today cannot be rescheduled away from today remotely")
+                if (!HabitSchedule.isScheduled(h, day)) throw WeakenForbidden("a habit that is due today cannot be rescheduled away from today remotely")
             }
         }
         val id = backend.saveHabit(h)

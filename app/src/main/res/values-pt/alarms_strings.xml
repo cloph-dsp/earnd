@@ -23,12 +23,10 @@
     <string name="alarms_done_action">Feito: %s</string>
     <string name="alarms_upcoming_text">Às %s</string>
 
-    <string name="alarms_ring_kicker">Agora</string>
     <string name="alarms_ring_fallback">Lembrete</string>
     <string name="alarms_ring_text">Tocar para abrir o alarme.</string>
     <string name="alarms_ring_stop">Parar</string>
     <string name="alarms_ring_snooze_short">Adiar %d min</string>
-    <string name="alarms_ring_mark_done">Marcar como feito</string>
     <string name="alarms_channel_missed">Alarmes perdidos</string>
     <string name="alarms_missed_title">Alarme perdido</string>
     <string name="alarms_ring_done">Feito</string>

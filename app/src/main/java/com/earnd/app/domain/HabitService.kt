@@ -36,6 +36,8 @@ class HabitService(
     private val clock: Clock,
     private val bus: ChangeBus,
     private val settings: SettingsRepository? = null,
+    /** Makes a check-in and its ledger entries one unit; share the bank's transactor in production. */
+    private val tx: Transactor = MutexTransactor(),
     /** How often the observed streams re-check the date, so they roll over at midnight. */
     private val dayTickMs: Long = 30_000,
 ) {
@@ -132,7 +134,7 @@ class HabitService(
     suspend fun checkInWithBonus(
         habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true,
         rewardOverride: Int? = null,
-    ): CheckInResult {
+    ): CheckInResult = tx.run {
         val h = requireNotNull(habits.get(habitId)) { "No habit $habitId" }
         val s = settingsNow()
         val now = clock.now()
@@ -154,17 +156,17 @@ class HabitService(
         if (bonus > 0) bank.earn(bonus, LedgerKind.COMEBACK, OwnerKind.HABIT, saved.id)
         if (creditBank && s.rewardMode == RewardMode.ALL_DONE) settleDayBonus(day, s)
         bus.emit(ChangeKind.CHECKINS)
-        return CheckInResult(saved, bonus)
+        CheckInResult(saved, bonus)
     }
 
     /** Removes a check-in and reverses the minutes it earned. Returns its photo path, if any. */
-    suspend fun undoCheckIn(checkInId: Long): String? {
-        val c = checkIns.get(checkInId) ?: return null
+    suspend fun undoCheckIn(checkInId: Long): String? = tx.run {
+        val c = checkIns.get(checkInId) ?: return@run null
         checkIns.deleteById(checkInId)
         bank.reverse(OwnerKind.HABIT, checkInId)
         settleDayBonus(LocalDate.ofEpochDay(c.epochDay), settingsNow())
         bus.emit(ChangeKind.CHECKINS)
-        return c.photoPath
+        c.photoPath
     }
 
     /** Credits or takes back the "all done" lump sum so it matches the day's state. */
@@ -263,11 +265,11 @@ class HabitService(
         checkIns.forHabitBetween(habitId, fromDay.toEpochDay(), toDay.toEpochDay())
 
     /** Saves a habit; new habits go to the end of the list. */
-    suspend fun save(h: HabitEntity): Long {
+    suspend fun save(h: HabitEntity): Long = tx.run {
         val toSave = if (h.id == 0L && h.sortOrder == 0) h.copy(sortOrder = habits.nextSortOrder()) else h
         val id = habits.upsert(toSave)
         bus.emit(ChangeKind.HABITS)
-        return if (h.id != 0L) h.id else id
+        if (h.id != 0L) h.id else id
     }
 
     /** A new habit pre-filled with the global defaults ("I promise to prove it" means photo check-ins). */

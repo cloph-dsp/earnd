@@ -2,7 +2,5 @@
 <resources>
     <color name="earnd_graphite">#121110</color>
     <color name="earnd_paper">#F2EFE8</color>
-    <color name="earnd_amber">#FFB000</color>
-    <color name="earnd_red">#FF4A3D</color>
     <color name="ic_launcher_background">#121110</color>
 </resources>

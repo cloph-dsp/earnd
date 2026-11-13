@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widgets_minutes_short">%1$d min</string>
     <string name="widgets_tasks_name">Tarefas Earnd</string>
     <string name="widgets_tasks_description">Tarefas pendentes, em atraso e de hoje primeiro.</string>
     <string name="widgets_tasks_title">Tarefas</string>

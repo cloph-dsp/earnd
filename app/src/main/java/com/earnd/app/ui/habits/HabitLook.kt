@@ -4,10 +4,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.DirectionsRun
+import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.LocalDrink
-import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Restaurant
@@ -25,8 +25,8 @@ object HabitLook {
     val icons: Map<String, ImageVector> = linkedMapOf(
         "star" to Icons.Outlined.Star,
         "water" to Icons.Outlined.LocalDrink,
-        "move" to Icons.Outlined.DirectionsRun,
-        "read" to Icons.Outlined.MenuBook,
+        "move" to Icons.AutoMirrored.Outlined.DirectionsRun,
+        "read" to Icons.AutoMirrored.Outlined.MenuBook,
         "meds" to Icons.Outlined.Medication,
         "calm" to Icons.Outlined.SelfImprovement,
         "tidy" to Icons.Outlined.CleaningServices,

@@ -17,6 +17,8 @@ class TaskService(
     private val settings: SettingsRepository,
     private val clock: Clock,
     private val bus: ChangeBus,
+    /** Makes the task rows and its ledger entry one unit; share the bank's transactor in production. */
+    private val tx: Transactor = MutexTransactor(),
 ) {
     fun observeBucket(bucket: TaskBucket): Flow<List<TaskEntity>> {
         if (bucket == TaskBucket.COMPLETED) return tasks.observeCompleted(COMPLETED_LIMIT)
@@ -31,7 +33,7 @@ class TaskService(
     suspend fun get(id: Long): TaskEntity? = tasks.get(id)
 
     /** Inserts or updates. New top-level tasks without a reward get the default reward. */
-    suspend fun save(t: TaskEntity): Long {
+    suspend fun save(t: TaskEntity): Long = tx.run {
         var toSave = t
         if (t.repeats && t.repeatAnchorEpochDay == null && t.dueEpochDay != null) {
             toSave = toSave.copy(repeatAnchorEpochDay = t.dueEpochDay)
@@ -44,28 +46,28 @@ class TaskService(
             tasks.upsert(toSave.copy(id = id, seriesId = id))
         }
         bus.emit(ChangeKind.TASKS)
-        return id
+        id
     }
 
     /**
      * Marks done, earns the reward (if any) and, for a recurring task, creates the next
      * occurrence (with fresh copies of its subtasks), which is returned.
      */
-    suspend fun complete(taskId: Long, creditBank: Boolean = true): TaskEntity? {
-        val t = tasks.get(taskId) ?: return null
-        if (t.completedAt != null) return null
+    suspend fun complete(taskId: Long, creditBank: Boolean = true): TaskEntity? = tx.run {
+        val t = tasks.get(taskId) ?: return@run null
+        if (t.completedAt != null) return@run null
         val now = clock.now()
         tasks.upsert(t.copy(completedAt = now))
         t.rewardMinutes?.takeIf { creditBank && it > 0 }?.let { bank.earn(it, LedgerKind.EARN_TASK, OwnerKind.TASK, t.id) }
         val next = if (t.parentId == null) spawnNext(t, clock.localDate(now)) else null
         bus.emit(ChangeKind.TASKS)
-        return next
+        next
     }
 
     /** Reopens a task, reverses its reward and removes the untouched occurrence it spawned. */
-    suspend fun uncomplete(taskId: Long) {
-        val t = tasks.get(taskId) ?: return
-        if (t.completedAt == null) return
+    suspend fun uncomplete(taskId: Long) = tx.run {
+        val t = tasks.get(taskId) ?: return@run
+        if (t.completedAt == null) return@run
         tasks.upsert(t.copy(completedAt = null))
         bank.reverse(OwnerKind.TASK, t.id)
         val series = t.seriesId
@@ -77,23 +79,23 @@ class TaskService(
     }
 
     /** Moves unfinished past occurrences of recurring tasks to their next valid date (>= today). */
-    suspend fun rollForward(today: LocalDate): Int {
+    suspend fun rollForward(today: LocalDate): Int = tx.run {
         val stale = tasks.openRecurringDueBefore(today.toEpochDay())
         stale.forEach { t ->
             val next = Recurrence.rolledForward(t, today) ?: return@forEach
             tasks.upsert(t.copy(dueEpochDay = next.toEpochDay()))
         }
         if (stale.isNotEmpty()) bus.emit(ChangeKind.TASKS)
-        return stale.size
+        stale.size
     }
 
     /**
      * Skips this occurrence of a recurring task without completing it (no reward): it moves to
      * the next occurrence, or is removed when the series has ended. Returns the new due day.
      */
-    suspend fun skip(taskId: Long): LocalDate? {
-        val t = tasks.get(taskId) ?: return null
-        if (t.completedAt != null || t.parentId != null || !t.repeats) return null
+    suspend fun skip(taskId: Long): LocalDate? = tx.run {
+        val t = tasks.get(taskId) ?: return@run null
+        if (t.completedAt != null || t.parentId != null || !t.repeats) return@run null
         val next = Recurrence.following(t, clock.today())
         if (next == null) {
             deleteTree(t.id)
@@ -103,11 +105,11 @@ class TaskService(
             tasks.subtasks(t.id).filter { it.completedAt != null }.forEach { tasks.upsert(it.copy(completedAt = null)) }
         }
         bus.emit(ChangeKind.TASKS)
-        return next
+        next
     }
 
     /** Deletes the task and its subtasks. */
-    suspend fun delete(taskId: Long) {
+    suspend fun delete(taskId: Long) = tx.run {
         deleteTree(taskId)
         bus.emit(ChangeKind.TASKS)
     }

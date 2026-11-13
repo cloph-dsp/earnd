@@ -9,7 +9,6 @@
         <item quantity="one">%d minuto guardado</item>
         <item quantity="other">%d minutos guardados</item>
     </plurals>
-    <string name="blocking_not_yet">Ainda não.</string>
     <string name="blocking_use_time">Gastar tempo guardado</string>
     <string name="blocking_minutes_short">%d min</string>
     <string name="blocking_plus_minutes">+%d min</string>
@@ -28,12 +27,8 @@
     <string name="blocking_try_again">Não funcionou. Tentar novamente.</string>
     <string name="blocking_guard_off_title">Bloqueio desativado</string>
     <string name="blocking_guard_off_text">O Earnd não consegue bloquear apps de lazer neste momento. Tocar para reativar o serviço Earnd nas definições de Acessibilidade.</string>
-    <string name="blocking_gate_badge">Lazer</string>
-    <string name="blocking_gate_left">Restam %1$d min · contabiliza a %2$d%% enquanto aberta</string>
     <string name="blocking_gate_badge_app">%1$s · contabilizado</string>
-    <string name="blocking_gate_line">%1$s · saldo de %2$d min ≈ %3$d min</string>
     <string name="blocking_gate_free">Contabiliza a %1$d%%: livre enquanto aberta</string>
-    <string name="blocking_gate_open">Abrir e começar a contar</string>
     <string name="blocking_gate_pass">Ou usar um passe fixo</string>
     <string name="blocking_need_headline">%1$d min para abrir %2$s</string>
     <string name="blocking_have_headline">Saldo: %1$d min</string>
@@ -44,7 +39,6 @@
     <string name="blocking_checkin_primary_min">Registar: %1$s (+%2$d min)</string>
     <string name="blocking_complete_primary">Feito: %1$s (+%2$d min)</string>
     <string name="blocking_gate_rate_line">%1$s · cerca de %2$d min de uso</string>
-    <string name="blocking_gate_badge_confirm">%1$s · contabilizado</string>
     <string name="blocking_rate_half">taxa ½</string>
     <string name="blocking_rate_1x">taxa 1×</string>
     <string name="blocking_rate_2x">taxa 2×</string>

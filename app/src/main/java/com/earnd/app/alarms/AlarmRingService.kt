@@ -101,7 +101,7 @@ class AlarmRingService : Service() {
     private fun onTimeout() {
         val o = owner ?: return shutdown()
         // Very short rings are deliberate: the item just stays in the consolidated pending notification.
-        if (!shortRing) Ringing.missed(this, o.first, o.second, label)
+        if (!shortRing) Ringing.missed(this, label)
         AlarmActivity.finishCurrent()
         shutdown()
     }
