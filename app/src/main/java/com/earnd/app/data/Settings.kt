@@ -63,7 +63,11 @@ data class Settings(
     val alarmVolumePct: Int = 60,
     /** Volume ramps from 20% of the target to the target over 20 s. */
     val gentleStart: Boolean = true,
+    /** Alarms on this day (epoch day) vibrate instead of playing a sound. */
+    val offDayEpochDay: Long? = null,
 ) {
+    fun onOffDay(epochDay: Long): Boolean = offDayEpochDay == epochDay
+
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false
         val to = vacationToDay ?: return false

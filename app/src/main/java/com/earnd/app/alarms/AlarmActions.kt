@@ -31,7 +31,8 @@ class AlarmActions(private val context: Context) {
     suspend fun onUpcoming(kind: OwnerKind, id: Long, dueAt: Long) {
         val label = labelOf(kind, id)
         if (label.isNotBlank()) {
-            UpcomingNotifier.show(context, kind, id, label, dueAt, silent = styleOf(kind, id) == AlarmStyle.SILENT, needsApp = needsApp(kind, id))
+            UpcomingNotifier.show(context, kind, id, label, dueAt,
+                silent = styleOf(kind, id) == AlarmStyle.SILENT || offDay(), needsApp = needsApp(kind, id))
         }
         AlarmsModule.planner.rearmAll()
     }
@@ -162,6 +163,10 @@ class AlarmActions(private val context: Context) {
         val now = clock.now()
         return DayStart.quietWindow(s, clock.localDate(now)).contains(now, clock.zone())
     }
+
+    /** True when today is an off day: alarms vibrate instead of playing a sound. */
+    private suspend fun offDay(): Boolean =
+        ServiceLocator.settings.current().onOffDay(clock.today().toEpochDay())
 
     private companion object {
         /** Process-wide: receivers, ticker and worker may all run a pass at once. */

@@ -32,9 +32,9 @@ internal object AlarmRinger {
 
     /** Prepares outside the lock (may block), then installs only if [gen] is still current. */
     fun start(context: Context, soundUri: String?, vibrate: Boolean, gen: Long = generation,
-              volume: Float = 1f, ramp: Boolean = false) {
+              volume: Float = 1f, ramp: Boolean = false, playSound: Boolean = true) {
         if (gen != generation) return
-        val mp = listOfNotNull(
+        val mp = if (!playSound) null else listOfNotNull(
             soundUri?.let(Uri::parse),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),

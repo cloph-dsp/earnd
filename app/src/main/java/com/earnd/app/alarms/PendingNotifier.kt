@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import com.earnd.app.R
 import com.earnd.app.ServiceLocator
 import com.earnd.app.alarms.AlarmKeys.putOwner
+import com.earnd.app.domain.today
 
 /**
  * The single consolidated "pending" notification. Replaced in place (one id), removed when
@@ -23,6 +24,7 @@ class PendingNotifier(private val context: Context) {
      */
     suspend fun refresh(alert: Boolean, quiet: Boolean = false) {
         val now = ServiceLocator.clock.now()
+        val offDay = ServiceLocator.settings.current().onOffDay(ServiceLocator.clock.today().toEpochDay())
         val items = ServiceLocator.nagEngine.pending(now)
         val nm = context.getSystemService(NotificationManager::class.java)
         if (items.isEmpty()) {
@@ -33,10 +35,10 @@ class PendingNotifier(private val context: Context) {
         val digest = states.isNotEmpty() && states.filter { it.dueAt <= now }.all { NagSchedule.isDigest(it, now) }
         val needsApp = items.filter { it.ownerKind == com.earnd.app.data.entity.OwnerKind.HABIT && AlarmsModule.actions.needsApp(it.ownerKind, it.ownerId) }
             .map { it.ownerId }.toSet()
-        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest, quiet, needsApp))
+        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest, quiet, needsApp, offDay))
     }
 
-    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean, quiet: Boolean = false, needsApp: Set<Long> = emptySet()): Notification {
+    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean, quiet: Boolean = false, needsApp: Set<Long> = emptySet(), offDay: Boolean = false): Notification {
         AlarmChannels.ensure(context)
         val res = context.resources
         val title = if (digest) res.getQuantityString(R.plurals.alarms_digest_title, items.size, items.size)
@@ -46,7 +48,12 @@ class PendingNotifier(private val context: Context) {
         items.take(MAX_LINES).forEach { inbox.addLine(line(it)) }
         if (items.size > MAX_LINES) inbox.addLine(context.getString(R.string.alarms_more, items.size - MAX_LINES))
 
-        val builder = NotificationCompat.Builder(context, if (quiet) AlarmChannels.PENDING_QUIET else AlarmChannels.PENDING)
+        val channel = when {
+            quiet -> AlarmChannels.PENDING_QUIET
+            offDay -> AlarmChannels.PENDING_VIBRATE
+            else -> AlarmChannels.PENDING
+        }
+        val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(title)

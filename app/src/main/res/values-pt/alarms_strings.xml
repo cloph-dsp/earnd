@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="alarms_channel_pending">Pendentes</string>
+<string name="alarms_channel_pending_vibrate">Pendentes (só vibração)</string>
     <string name="alarms_channel_pending_desc">Um resumo discreto do que continua em aberto, atualizado no local.</string>
     <string name="alarms_channel_quiet">Pendentes (atualizações silenciosas)</string>
     <string name="alarms_channel_upcoming">Em breve</string>
@@ -44,5 +45,6 @@
     <string name="alarms_sound_default">Predefinido</string>
     <string name="alarms_sound_custom">Personalizado</string>
     <string name="alarms_channel_ring_fallback">Alarmes (reserva)</string>
+<string name="alarms_channel_ring_fallback_vibrate">Alarmes (reserva, só vibração)</string>
     <string name="alarms_channel_ring_fallback_desc">Usado quando o alarme em ecrã inteiro não arranca. Toca o som de alarme uma vez.</string>
 </resources>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="alarms_channel_pending">Waiting for you</string>
+<string name="alarms_channel_pending_vibrate">Waiting for you (vibrate only)</string>
     <string name="alarms_channel_pending_desc">One gentle summary of what is still open, updated in place.</string>
     <string name="alarms_channel_quiet">Waiting for you (quiet updates)</string>
     <string name="alarms_channel_upcoming">Coming up</string>
@@ -44,5 +45,6 @@
     <string name="alarms_sound_default">Default</string>
     <string name="alarms_sound_custom">Custom</string>
     <string name="alarms_channel_ring_fallback">Alarms (backup)</string>
+<string name="alarms_channel_ring_fallback_vibrate">Alarms (backup, vibrate only)</string>
     <string name="alarms_channel_ring_fallback_desc">Used when the full-screen alarm cannot start. Plays the alarm sound once.</string>
 </resources>

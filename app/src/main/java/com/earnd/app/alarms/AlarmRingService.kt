@@ -13,6 +13,7 @@ import android.os.PowerManager
 import com.earnd.app.ServiceLocator
 import com.earnd.app.alarms.AlarmKeys.putOwner
 import com.earnd.app.data.entity.OwnerKind
+import com.earnd.app.domain.today
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -67,6 +68,7 @@ class AlarmRingService : Service() {
         ringJob = scope.launch {
             val cfg = runCatching { ServiceLocator.db.alarmConfigDao().get(o.first, o.second) }.getOrNull()
             val st = runCatching { ServiceLocator.settings.current() }.getOrDefault(com.earnd.app.data.Settings())
+            val offDay = st.onOffDay(ServiceLocator.clock.today().toEpochDay())
             val ringMs = RingPolicy.effectiveRingMs(cfg?.ringSec, st.ringSec)
             val volume = RingPolicy.effectiveVolume(cfg?.volumePct, st.alarmVolumePct)
             val ramp = RingPolicy.usesRamp(st.gentleStart, ringMs)
@@ -81,7 +83,7 @@ class AlarmRingService : Service() {
                     .notify(AlarmKeys.NOTIF_RING, Ringing.build(this@AlarmRingService, o.first, o.second, label, left))
             }
             // prepare() on a content URI can block: keep it off the main thread.
-            withContext(Dispatchers.IO) { AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, cfg?.vibrate ?: true, gen, volume, ramp) }
+            withContext(Dispatchers.IO) { AlarmRinger.start(this@AlarmRingService, cfg?.soundUri, (cfg?.vibrate ?: true) || offDay, gen, volume, ramp, playSound = !offDay) }
         }
         return START_NOT_STICKY
     }

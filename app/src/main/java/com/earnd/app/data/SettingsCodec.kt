@@ -52,6 +52,7 @@ internal object SettingsCodec {
         put("ringSec", s.ringSec.toString())
         put("alarmVolumePct", s.alarmVolumePct.toString())
         put("gentleStart", s.gentleStart.toString())
+        put("offDayEpochDay", s.offDayEpochDay?.toString() ?: "")
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -101,6 +102,7 @@ internal object SettingsCodec {
             ringSec = int("ringSec", d.ringSec).coerceIn(1, 600),
             alarmVolumePct = int("alarmVolumePct", d.alarmVolumePct).coerceIn(10, 100),
             gentleStart = bool("gentleStart", d.gentleStart),
+            offDayEpochDay = optLong("offDayEpochDay", d.offDayEpochDay),
         )
     }
 }

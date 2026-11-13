@@ -8,7 +8,9 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.earnd.app.R
 import com.earnd.app.alarms.AlarmKeys.putOwner
+import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.OwnerKind
+import com.earnd.app.domain.today
 
 /**
  * The ringing notification: full-screen intent to [AlarmActivity] (heads-up when the system
@@ -22,8 +24,13 @@ internal object Ringing {
         if (AlarmRingService.start(context, kind, id, label)) return
         // Service refused: a plain heads-up with the same actions (no looping sound to get stuck).
         // It uses a channel that makes its own sound and vibration: the ring channel is silent by design.
-        context.getSystemService(NotificationManager::class.java)
-            .notify(AlarmKeys.NOTIF_RING, build(context, kind, id, label, snoozesLeft = 0, channel = AlarmChannels.RING_FALLBACK))
+        // On an off day the fallback channel is the vibrate-only one.
+        val offDay = ServiceLocator.settings.current().onOffDay(ServiceLocator.clock.today().toEpochDay())
+        context.getSystemService(NotificationManager::class.java).notify(
+            AlarmKeys.NOTIF_RING,
+            build(context, kind, id, label, snoozesLeft = 0,
+                channel = if (offDay) AlarmChannels.RING_FALLBACK_VIBRATE else AlarmChannels.RING_FALLBACK),
+        )
     }
 
     fun openIntent(context: Context, kind: OwnerKind, id: Long): PendingIntent = PendingIntent.getActivity(

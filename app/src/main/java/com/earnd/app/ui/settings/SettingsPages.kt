@@ -27,6 +27,7 @@ import com.earnd.app.data.entity.ThemeMode
 import com.earnd.app.domain.DateFormatPref
 import com.earnd.app.domain.TimeFormatPref
 import com.earnd.app.domain.UnlockCap
+import com.earnd.app.domain.today
 import com.earnd.app.ui.common.ChoiceChips
 import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
@@ -185,6 +186,10 @@ internal fun RemindersPage(cur: Settings, change: Change) {
     }
 
     SectionTitle(stringResource(R.string.settings_rem_ringing_section))
+    val today = com.earnd.app.ServiceLocator.clock.today().toEpochDay()
+    SwitchRow(stringResource(R.string.settings_rem_off_day), cur.onOffDay(today),
+        { on -> change { it.copy(offDayEpochDay = if (on) today else null) } },
+        hint = stringResource(R.string.settings_rem_off_day_hint))
     Label(stringResource(R.string.settings_rem_ring_for))
     com.earnd.app.ui.alarms.RingForPicker(cur.ringSec, withDefault = false) { v -> v?.let { s -> change { it.copy(ringSec = s) } } }
     Label(stringResource(R.string.settings_rem_volume, cur.alarmVolumePct))
