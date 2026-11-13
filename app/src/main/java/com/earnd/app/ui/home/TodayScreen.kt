@@ -1,7 +1,10 @@
 package com.earnd.app.ui.home
 
 import com.earnd.app.data.entity.ListDensity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Undo
+import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -33,6 +37,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Spacer
@@ -150,6 +157,9 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     Wordmark()
                     Spacer(Modifier.width(10.dp))
                     Num(clock, Modifier.weight(1f))
+                    OffDayToggle(settings.onOffDay(todayDay)) { on ->
+                        launchUi { sl.settings.update { it.copy(offDayEpochDay = if (on) todayDay else null) } }
+                    }
                 }
                 HealthBanner(onOpenPermissions)
                 TimeBankCard(
@@ -363,3 +373,26 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
 }
 
 private fun fmtQty(q: Double): String = HabitRules.formatAmount(q)
+
+/** Header switch: today's alarms vibrate instead of playing a sound. */
+@Composable
+private fun OffDayToggle(on: Boolean, onToggle: (Boolean) -> Unit) {
+    val p = Earnd.palette
+    Row(
+        Modifier
+            .heightIn(min = 32.dp)
+            .background(if (on) p.amber else Color.Transparent, RectangleShape)
+            .border(1.dp, if (on) p.amber else p.edge, RectangleShape)
+            .toggleable(value = on, role = Role.Switch, onValueChange = onToggle)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(Icons.Outlined.Vibration, null, tint = if (on) p.onAmber else p.muted, modifier = Modifier.size(14.dp))
+        Text(
+            stringResource(R.string.home_off_day),
+            color = if (on) p.onAmber else p.muted,
+            style = MaterialTheme.typography.labelMedium,
+        )
+    }
+}

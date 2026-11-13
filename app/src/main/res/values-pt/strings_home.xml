@@ -89,4 +89,5 @@
     <string name="health_missing_tap">Toca para rever as permissões.</string>
     <string name="health_alarm_muted_title">O volume do alarme está a zero</string>
     <string name="health_alarm_muted_body">Os alarmes vão tocar sem som. Toca para abrir as definições de som.</string>
+    <string name="home_off_day">Folga</string>
 </resources>

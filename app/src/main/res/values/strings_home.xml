@@ -87,4 +87,5 @@
     <string name="health_missing_tap">Tap to review the permissions.</string>
     <string name="health_alarm_muted_title">Alarm volume is at zero</string>
     <string name="health_alarm_muted_body">Alarms will ring silently. Tap to open the sound settings.</string>
+    <string name="home_off_day">Off day</string>
 </resources>
