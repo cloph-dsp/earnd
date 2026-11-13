@@ -33,8 +33,14 @@
 
     <!-- Today screen -->
     <string name="home_add_habit">Add habit</string>
-    <string name="home_bedtime_grace">Bedtime. Take %1$d minutes to wrap up</string>
-    <string name="home_progress">%1$d of %2$d habits</string>
+    <plurals name="home_bedtime_grace">
+        <item quantity="one">Bedtime. Take %1$d minute to wrap up</item>
+        <item quantity="other">Bedtime. Take %1$d minutes to wrap up</item>
+    </plurals>
+    <plurals name="home_progress">
+        <item quantity="one">%2$d of %1$d habit</item>
+        <item quantity="other">%2$d of %1$d habits</item>
+    </plurals>
     <string name="home_nothing_scheduled">Nothing scheduled today, so nothing is locked. Add a habit when you\'re ready.</string>
     <string name="home_next">Next</string>
     <string name="home_reward_min">+%1$d min</string>

@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.earnd.app.R
@@ -45,7 +46,7 @@ fun BackupSection(snackbar: SnackbarHostState) {
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) launchUi {
             runCatching { store.export(context, uri) }
-                .onSuccess { say(context.getString(R.string.backup_exported, it)) }
+                .onSuccess { say(context.resources.getQuantityString(R.plurals.backup_exported, it, it)) }
                 .onFailure { say(context.getString(R.string.backup_export_failed, it.message)) }
         }
     }
@@ -71,7 +72,7 @@ fun BackupSection(snackbar: SnackbarHostState) {
             onDismissRequest = { toImport = null },
             title = { Text(stringResource(R.string.backup_replace_title)) },
             text = {
-                Text(stringResource(R.string.backup_replace_body, data.rowCount()))
+                Text(pluralStringResource(R.plurals.backup_replace_body, data.rowCount(), data.rowCount()))
             },
             confirmButton = {
                 TextButton(onClick = {

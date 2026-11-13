@@ -35,7 +35,7 @@ object HabitRules {
                 }
             }
             com.earnd.app.data.entity.ScheduleKind.EVERY_N_DAYS ->
-                if (h.everyNDays <= 1) Str.get(R.string.rrule_daily) else Str.get(R.string.rrule_every_days, h.everyNDays)
+                if (h.everyNDays <= 1) Str.get(R.string.rrule_daily) else Str.plural(R.plurals.rrule_every_days, h.everyNDays)
             com.earnd.app.data.entity.ScheduleKind.TIMES_PER_WEEK -> Str.get(R.string.habits_sched_x_week, h.timesPerWeek)
             com.earnd.app.data.entity.ScheduleKind.RULE ->
                 com.earnd.app.domain.RRule.parseOrNull(h.scheduleRule)?.summary(start = java.time.LocalDate.ofEpochDay(h.anchorEpochDay))

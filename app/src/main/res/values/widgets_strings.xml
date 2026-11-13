@@ -17,7 +17,10 @@
     <string name="widgets_habits_pick_save">Save</string>
     <string name="widgets_habits_cell_pending">%1$s, %2$d of %3$d done today</string>
     <string name="widgets_habits_cell_done">%1$s, done, %2$d of %3$d today</string>
-    <string name="widgets_habits_more_desc">%1$d more habits. Open Earnd.</string>
+    <plurals name="widgets_habits_more_desc">
+        <item quantity="one">%1$d more habit. Open Earnd.</item>
+        <item quantity="other">%1$d more habits. Open Earnd.</item>
+    </plurals>
     <string name="widgets_preview_habit_1">Wash</string>
     <string name="widgets_preview_habit_2">Read</string>
     <string name="widgets_preview_habit_3">Workout</string>

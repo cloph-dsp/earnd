@@ -76,6 +76,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.earnd.app.R
 import com.earnd.app.i18n.Str
@@ -168,7 +169,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                             val r = sl.timeBank.startBedtimeGrace()
                             if (r is SpendResult.Refused) snackbar.showSnackbar(refuseText(r.reason))
                         }
-                    }) { Text(stringResource(R.string.home_bedtime_grace, settings.bedtimeGraceMin)) }
+                    }) { Text(pluralStringResource(R.plurals.home_bedtime_grace, settings.bedtimeGraceMin)) }
                 }
             }
             if (habits.isNotEmpty()) {
@@ -177,7 +178,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     val done = counted.count(doneOf)
                     Column(Modifier.padding(top = 28.dp)) {
                         com.earnd.app.ui.theme.SegmentBar(done, counted.size)
-                        Num(stringResource(R.string.home_progress, done, counted.size), Modifier.padding(top = 8.dp))
+                        Num(pluralStringResource(R.plurals.home_progress, counted.size, done), Modifier.padding(top = 8.dp))
                     }
                 }
             } else if (loadedHabits != null) {

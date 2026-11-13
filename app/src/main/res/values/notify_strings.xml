@@ -15,7 +15,10 @@
     </plurals>
     <string name="notify_report_title_empty">Today\'s report</string>
     <string name="notify_report_title_all">All done today: %1$d/%2$d</string>
-    <string name="notify_report_title_partial">Today: %1$d/%2$d habits done</string>
+    <plurals name="notify_report_title_partial">
+        <item quantity="one">Today: %2$d/%1$d habit done</item>
+        <item quantity="other">Today: %2$d/%1$d habits done</item>
+    </plurals>
     <string name="notify_report_done">Done: %1$s</string>
     <string name="notify_report_missed">Missed: %1$s</string>
     <string name="notify_report_leisure">Leisure used: %1$s · earned: %2$s</string>

@@ -9,6 +9,7 @@ import android.content.Intent
 import com.earnd.app.R
 import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.LedgerKind
+import com.earnd.app.data.entity.LedgerEntryEntity
 import com.earnd.app.domain.HabitSchedule
 import com.earnd.app.domain.startOfDay
 import com.earnd.app.domain.today
@@ -45,8 +46,9 @@ class NotifyReceiver : BroadcastReceiver() {
 
     private suspend fun todayLines(): List<HabitLine>? {
         val today = ServiceLocator.clock.today()
-        if (ServiceLocator.settings.current().onVacation(today.toEpochDay())) return null
-        val lump = ServiceLocator.settings.current().rewardMode == com.earnd.app.data.entity.RewardMode.ALL_DONE
+        val settings = ServiceLocator.settings.current()
+        if (settings.onVacation(today.toEpochDay())) return null
+        val lump = settings.rewardMode == com.earnd.app.data.entity.RewardMode.ALL_DONE
         // Bonus habits are extras: not listed as missed (the all-done lump-sum mode still counts every habit).
         return ServiceLocator.habitService.daySummary(today).filter { lump || !it.habit.bonus }
             .map { HabitLine(it.habit.name, it.done, it.required) }
@@ -62,10 +64,9 @@ class NotifyReceiver : BroadcastReceiver() {
         val lines = todayLines() ?: return
         val clock = ServiceLocator.clock
         val since = clock.startOfDay(clock.today())
-        val today = ServiceLocator.db.ledgerDao().observeRecent(LEDGER_SCAN).first().filter { it.at >= since }
-        val used = -today.filter { it.kind == LedgerKind.SPEND }.sumOf { it.minutes }
-        val earned = today.filter { it.kind == LedgerKind.EARN_HABIT || it.kind == LedgerKind.EARN_TASK || it.kind == LedgerKind.COMEBACK || it.kind == LedgerKind.UNDO }
-            .sumOf { it.minutes }
+        val today = ServiceLocator.db.ledgerDao().observeRecent(LEDGER_SCAN).first()
+        val used = usedMinutes(today, since)
+        val earned = earnedMinutes(today, since)
         val msg = NotifyText.report(lines, used, earned) ?: return
         post(context, NotifyChannels.REPORT, NotifyChannels.ID_REPORT, msg)
     }
@@ -94,5 +95,13 @@ class NotifyReceiver : BroadcastReceiver() {
         const val ACTION_REPORT = "com.earnd.app.notify.REPORT"
         private const val LEDGER_SCAN = 1_000
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        private val EARN_KINDS = setOf(LedgerKind.EARN_HABIT, LedgerKind.EARN_TASK, LedgerKind.COMEBACK, LedgerKind.UNDO)
+
+        /** A session spend and metered app use both count as leisure time. */
+        internal fun usedMinutes(entries: List<LedgerEntryEntity>, since: Long): Int =
+            -entries.filter { it.at >= since && (it.kind == LedgerKind.SPEND || it.kind == LedgerKind.METER) }.sumOf { it.minutes }
+
+        internal fun earnedMinutes(entries: List<LedgerEntryEntity>, since: Long): Int =
+            entries.filter { it.at >= since && it.kind in EARN_KINDS }.sumOf { it.minutes }
     }
 }

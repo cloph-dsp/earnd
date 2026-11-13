@@ -154,14 +154,30 @@
     <string name="rrule_daily">Diário</string>
     <string name="rrule_weekdays">Dias úteis</string>
     <string name="rrule_every_day">Todos os dias</string>
-    <string name="rrule_every_days">Cada %1$d dias</string>
+    <plurals name="rrule_every_days">
+        <item quantity="one">Cada %1$d dia</item>
+        <item quantity="other">Cada %1$d dias</item>
+        <item quantity="many">Cada %1$d dias</item>
+    </plurals>
     <string name="rrule_with_days">%1$s: %2$s</string>
     <string name="rrule_weekly_on">Semanal: %1$s</string>
-    <string name="rrule_every_weeks_on">Cada %1$d semanas: %2$s</string>
+    <plurals name="rrule_every_weeks_on">
+        <item quantity="one">Cada %1$d semana: %2$s</item>
+        <item quantity="other">Cada %1$d semanas: %2$s</item>
+        <item quantity="many">Cada %1$d semanas: %2$s</item>
+    </plurals>
     <string name="rrule_monthly_on">Mensal: %1$s</string>
-    <string name="rrule_every_months_on">Cada %1$d meses: %2$s</string>
+    <plurals name="rrule_every_months_on">
+        <item quantity="one">Cada %1$d mês: %2$s</item>
+        <item quantity="other">Cada %1$d meses: %2$s</item>
+        <item quantity="many">Cada %1$d meses: %2$s</item>
+    </plurals>
     <string name="rrule_yearly_on">Anual: %1$s</string>
-    <string name="rrule_every_years_on">Cada %1$d anos: %2$s</string>
+    <plurals name="rrule_every_years_on">
+        <item quantity="one">Cada %1$d ano: %2$s</item>
+        <item quantity="other">Cada %1$d anos: %2$s</item>
+        <item quantity="many">Cada %1$d anos: %2$s</item>
+    </plurals>
     <string name="rrule_same_day">mesmo dia</string>
     <string name="rrule_same_date">mesma data</string>
     <string name="rrule_the">%1$s</string>
@@ -170,7 +186,11 @@
     <string name="rrule_of_months">%1$s de %2$s</string>
     <string name="rrule_month_days">%2$s de %1$s</string>
     <string name="rrule_with_once">%1$s, uma vez</string>
-    <string name="rrule_with_times">%1$s, %2$d vezes</string>
+    <plurals name="rrule_with_times">
+        <item quantity="one">%2$s, %1$d vez</item>
+        <item quantity="other">%2$s, %1$d vezes</item>
+        <item quantity="many">%2$s, %1$d vezes</item>
+    </plurals>
     <string name="rrule_with_until">%1$s, até %2$s</string>
     <plurals name="rrule_after_completion_days">
         <item quantity="one">%1$d dia após a conclusão</item>

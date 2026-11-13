@@ -154,14 +154,26 @@
     <string name="rrule_daily">Daily</string>
     <string name="rrule_weekdays">Weekdays</string>
     <string name="rrule_every_day">Every day</string>
-    <string name="rrule_every_days">Every %1$d days</string>
+    <plurals name="rrule_every_days">
+        <item quantity="one">Every %1$d day</item>
+        <item quantity="other">Every %1$d days</item>
+    </plurals>
     <string name="rrule_with_days">%1$s on %2$s</string>
     <string name="rrule_weekly_on">Weekly on %1$s</string>
-    <string name="rrule_every_weeks_on">Every %1$d weeks on %2$s</string>
+    <plurals name="rrule_every_weeks_on">
+        <item quantity="one">Every %1$d week on %2$s</item>
+        <item quantity="other">Every %1$d weeks on %2$s</item>
+    </plurals>
     <string name="rrule_monthly_on">Monthly on %1$s</string>
-    <string name="rrule_every_months_on">Every %1$d months on %2$s</string>
+    <plurals name="rrule_every_months_on">
+        <item quantity="one">Every %1$d month on %2$s</item>
+        <item quantity="other">Every %1$d months on %2$s</item>
+    </plurals>
     <string name="rrule_yearly_on">Yearly on %1$s</string>
-    <string name="rrule_every_years_on">Every %1$d years on %2$s</string>
+    <plurals name="rrule_every_years_on">
+        <item quantity="one">Every %1$d year on %2$s</item>
+        <item quantity="other">Every %1$d years on %2$s</item>
+    </plurals>
     <string name="rrule_same_day">the same day</string>
     <string name="rrule_same_date">the same date</string>
     <string name="rrule_the">the %1$s</string>
@@ -170,7 +182,10 @@
     <string name="rrule_of_months">%1$s of %2$s</string>
     <string name="rrule_month_days">%1$s %2$s</string>
     <string name="rrule_with_once">%1$s, once</string>
-    <string name="rrule_with_times">%1$s, %2$d times</string>
+    <plurals name="rrule_with_times">
+        <item quantity="one">%2$s, %1$d time</item>
+        <item quantity="other">%2$s, %1$d times</item>
+    </plurals>
     <string name="rrule_with_until">%1$s, until %2$s</string>
     <plurals name="rrule_after_completion_days">
         <item quantity="one">%1$d day after completion</item>

@@ -175,13 +175,19 @@
     <string name="backup_blurb">A JSON file with your habits, tasks, history, time bank, blocked apps and settings. Photos are not included.</string>
     <string name="backup_export">Export</string>
     <string name="backup_import">Import</string>
-    <string name="backup_exported">Exported %1$d rows.</string>
+    <plurals name="backup_exported">
+        <item quantity="one">Exported %1$d row.</item>
+        <item quantity="other">Exported %1$d rows.</item>
+    </plurals>
     <string name="backup_export_failed">Export failed: %1$s</string>
     <string name="backup_cant_import">"Can't import: %1$s"</string>
     <string name="backup_imported">Backup imported.</string>
     <string name="backup_import_failed">Import failed: %1$s</string>
     <string name="backup_replace_title">Replace everything?</string>
-    <string name="backup_replace_body">"This backup has %1$d rows. Everything on this phone is replaced by it. This can't be undone."</string>
+    <plurals name="backup_replace_body">
+        <item quantity="one">"This backup has %1$d row. Everything on this phone is replaced by it. This can't be undone."</item>
+        <item quantity="other">"This backup has %1$d rows. Everything on this phone is replaced by it. This can't be undone."</item>
+    </plurals>
     <string name="backup_replace_confirm">Replace</string>
     <string name="backup_clear_blurb">Deletes habits, tasks, history, saved minutes, blocked apps and settings from this phone.</string>
     <string name="backup_clear_button">Clear all data</string>

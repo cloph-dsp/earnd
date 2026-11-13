@@ -175,13 +175,21 @@
     <string name="backup_blurb">Um ficheiro JSON com hábitos, tarefas, histórico, banco de tempo, apps bloqueadas e definições. As fotos não estão incluídas.</string>
     <string name="backup_export">Exportar</string>
     <string name="backup_import">Importar</string>
-    <string name="backup_exported">%1$d linhas exportadas.</string>
+    <plurals name="backup_exported">
+        <item quantity="one">%1$d linha exportada.</item>
+        <item quantity="other">%1$d linhas exportadas.</item>
+        <item quantity="many">%1$d linhas exportadas.</item>
+    </plurals>
     <string name="backup_export_failed">Falha ao exportar: %1$s</string>
     <string name="backup_cant_import">Não foi possível importar: %1$s</string>
     <string name="backup_imported">Cópia de segurança importada.</string>
     <string name="backup_import_failed">Falha ao importar: %1$s</string>
     <string name="backup_replace_title">Substituir tudo?</string>
-    <string name="backup_replace_body">Esta cópia de segurança tem %1$d linhas. Tudo neste telemóvel é substituído por ela. Esta ação não pode ser anulada.</string>
+    <plurals name="backup_replace_body">
+        <item quantity="one">Esta cópia de segurança tem %1$d linha. Tudo neste telemóvel é substituído por ela. Esta ação não pode ser anulada.</item>
+        <item quantity="other">Esta cópia de segurança tem %1$d linhas. Tudo neste telemóvel é substituído por ela. Esta ação não pode ser anulada.</item>
+        <item quantity="many">Esta cópia de segurança tem %1$d linhas. Tudo neste telemóvel é substituído por ela. Esta ação não pode ser anulada.</item>
+    </plurals>
     <string name="backup_replace_confirm">Substituir</string>
     <string name="backup_clear_blurb">Elimina hábitos, tarefas, histórico, minutos guardados, apps bloqueadas e definições deste telemóvel.</string>
     <string name="backup_clear_button">Eliminar todos os dados</string>

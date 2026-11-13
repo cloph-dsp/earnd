@@ -172,26 +172,26 @@ data class RRule(
             )
         } else when (freq) {
             Freq.DAILY -> {
-                val head = if (interval == 1) Str.get(R.string.rrule_daily) else Str.get(R.string.rrule_every_days, interval)
+                val head = if (interval == 1) Str.get(R.string.rrule_daily) else Str.plural(R.plurals.rrule_every_days, interval)
                 if (byDay.isNotEmpty()) Str.get(R.string.rrule_with_days, head, dayList()) else head
             }
             Freq.WEEKLY -> when {
                 interval == 1 && byDay.map { it.day }.toSet() == WORKDAYS -> Str.get(R.string.rrule_weekdays)
                 else -> {
                     val days = if (byDay.isEmpty()) start?.dayOfWeek?.let(::dayName) ?: Str.get(R.string.rrule_same_day) else dayList()
-                    if (interval == 1) Str.get(R.string.rrule_weekly_on, days) else Str.get(R.string.rrule_every_weeks_on, interval, days)
+                    if (interval == 1) Str.get(R.string.rrule_weekly_on, days) else Str.plural(R.plurals.rrule_every_weeks_on, interval, days)
                 }
             }
             Freq.MONTHLY ->
                 if (interval == 1) Str.get(R.string.rrule_monthly_on, monthPart(start))
-                else Str.get(R.string.rrule_every_months_on, interval, monthPart(start))
+                else Str.plural(R.plurals.rrule_every_months_on, interval, monthPart(start))
             Freq.YEARLY ->
                 if (interval == 1) Str.get(R.string.rrule_yearly_on, yearPart(start))
-                else Str.get(R.string.rrule_every_years_on, interval, yearPart(start))
+                else Str.plural(R.plurals.rrule_every_years_on, interval, yearPart(start))
         }
         return when {
             count == 1 -> Str.get(R.string.rrule_with_once, base)
-            count != null -> Str.get(R.string.rrule_with_times, base, count)
+            count != null -> Str.plural(R.plurals.rrule_with_times, count, base)
             until != null -> Str.get(R.string.rrule_with_until, base, until.toString())
             else -> base
         }

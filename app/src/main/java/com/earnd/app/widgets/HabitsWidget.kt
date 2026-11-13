@@ -181,7 +181,7 @@ class HabitsWidget : GlanceAppWidget() {
     private fun MoreCell(context: Context, modifier: GlanceModifier, hidden: Int) {
         Box(
             modifier = modifier.clickable(actionStartActivity(WidgetLinks.home(context)))
-                .semantics { contentDescription = context.getString(R.string.widgets_habits_more_desc, hidden) },
+                .semantics { contentDescription = context.resources.getQuantityString(R.plurals.widgets_habits_more_desc, hidden, hidden) },
             contentAlignment = Alignment.Center,
         ) {
             Text(

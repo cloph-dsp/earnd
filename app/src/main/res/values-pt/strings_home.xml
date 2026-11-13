@@ -33,8 +33,16 @@
 
     <!-- Today screen -->
     <string name="home_add_habit">Adicionar hábito</string>
-    <string name="home_bedtime_grace">Hora de deitar. Usar %1$d minutos para terminar</string>
-    <string name="home_progress">%1$d de %2$d hábitos</string>
+    <plurals name="home_bedtime_grace">
+        <item quantity="one">Hora de deitar. Usar %1$d minuto para terminar</item>
+        <item quantity="other">Hora de deitar. Usar %1$d minutos para terminar</item>
+        <item quantity="many">Hora de deitar. Usar %1$d minutos para terminar</item>
+    </plurals>
+    <plurals name="home_progress">
+        <item quantity="one">%2$d de %1$d hábito</item>
+        <item quantity="other">%2$d de %1$d hábitos</item>
+        <item quantity="many">%2$d de %1$d hábitos</item>
+    </plurals>
     <string name="home_nothing_scheduled">Nada previsto para hoje, por isso nada fica bloqueado. Adicionar um hábito quando for altura.</string>
     <string name="home_next">Seguinte</string>
     <string name="home_reward_min">+%1$d min</string>

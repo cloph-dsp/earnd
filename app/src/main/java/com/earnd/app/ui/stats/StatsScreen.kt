@@ -67,7 +67,8 @@ fun StatsScreen() {
     }
     val spentByDay = days.associate { d ->
         d.toEpochDay() to -ledger.filter {
-            (it.kind == LedgerKind.SPEND || it.kind == LedgerKind.ADJUST) && sl.clock.localDate(it.at) == d
+            (it.kind == LedgerKind.SPEND || it.kind == LedgerKind.METER || it.kind == LedgerKind.ADJUST) &&
+                sl.clock.localDate(it.at) == d
         }.sumOf { it.minutes }.coerceAtMost(0)
     }
     val tasksByDay = days.associate { d ->

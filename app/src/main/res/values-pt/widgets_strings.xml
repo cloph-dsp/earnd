@@ -17,7 +17,11 @@
     <string name="widgets_habits_pick_save">Guardar</string>
     <string name="widgets_habits_cell_pending">%1$s, %2$d de %3$d feitos hoje</string>
     <string name="widgets_habits_cell_done">%1$s, feito, %2$d de %3$d hoje</string>
-    <string name="widgets_habits_more_desc">Mais %1$d hábitos. Abrir o Earnd.</string>
+    <plurals name="widgets_habits_more_desc">
+        <item quantity="one">Mais %1$d hábito. Abrir o Earnd.</item>
+        <item quantity="other">Mais %1$d hábitos. Abrir o Earnd.</item>
+        <item quantity="many">Mais %1$d hábitos. Abrir o Earnd.</item>
+    </plurals>
     <string name="widgets_preview_habit_1">Lavar</string>
     <string name="widgets_preview_habit_2">Ler</string>
     <string name="widgets_preview_habit_3">Treino</string>

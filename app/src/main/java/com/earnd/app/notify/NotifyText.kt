@@ -44,7 +44,7 @@ object NotifyText {
         val title = when {
             habits.isEmpty() -> Str.get(R.string.notify_report_title_empty)
             missed.isEmpty() -> Str.get(R.string.notify_report_title_all, done.size, habits.size)
-            else -> Str.get(R.string.notify_report_title_partial, done.size, habits.size)
+            else -> Str.plural(R.plurals.notify_report_title_partial, habits.size, done.size)
         }
         val lines = buildList {
             if (done.isNotEmpty()) add(Str.get(R.string.notify_report_done, listNames(done)))
