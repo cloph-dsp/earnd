@@ -179,7 +179,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                             val r = sl.timeBank.startBedtimeGrace()
                             if (r is SpendResult.Refused) snackbar.showSnackbar(refuseText(r.reason))
                         }
-                    }) { Text(pluralStringResource(R.plurals.home_bedtime_grace, settings.bedtimeGraceMin)) }
+                    }) { Text(pluralStringResource(R.plurals.home_bedtime_grace, settings.bedtimeGraceMin, settings.bedtimeGraceMin)) }
                 }
             }
             if (habits.isNotEmpty()) {
@@ -188,7 +188,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     val done = counted.count(doneOf)
                     Column(Modifier.padding(top = 28.dp)) {
                         com.earnd.app.ui.theme.SegmentBar(done, counted.size)
-                        Num(pluralStringResource(R.plurals.home_progress, counted.size, done), Modifier.padding(top = 8.dp))
+                        Num(pluralStringResource(R.plurals.home_progress, counted.size, counted.size, done), Modifier.padding(top = 8.dp))
                     }
                 }
             } else if (loadedHabits != null) {
