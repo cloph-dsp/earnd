@@ -3,8 +3,11 @@ package com.earnd.app.ui.tasks
 import com.earnd.app.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -12,7 +15,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
 import com.earnd.app.ui.theme.Button
 import com.earnd.app.ui.theme.Checkbox
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +44,7 @@ import com.earnd.app.domain.today
 import com.earnd.app.ui.alarms.AlarmConfigEditor
 import com.earnd.app.ui.alarms.AlarmConfigs
 import com.earnd.app.ui.common.ChoiceChips
+import com.earnd.app.ui.common.EarndChip
 import com.earnd.app.ui.common.EditScaffold
 import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
@@ -76,17 +79,23 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
     val subtasks by remember(t.id) { if (t.id > 0) sl.taskService.observeSubtasks(t.id) else flowOf(emptyList()) }
         .collectAsState(initial = emptyList())
 
-    EditScaffold(stringResource(if (isNew) R.string.tasks_edit_new else if (isSub) R.string.tasks_edit_subtask else R.string.tasks_edit_task), onBack = onDone, actions = {
-        TextButton(enabled = t.title.isNotBlank(), onClick = {
-            launchUi {
-                val id = sl.taskService.save(t.copy(title = t.title.trim()))
-                newSubtasks.filter { it.isNotBlank() }.forEachIndexed { i, s ->
-                    sl.taskService.save(TaskEntity(parentId = id, title = s.trim(), sortOrder = subtasks.size + i, createdAt = sl.clock.now()))
-                }
-                AlarmConfigs.apply(OwnerKind.TASK, id, alarm)
-                onDone()
+    val save: () -> Unit = {
+        launchUi {
+            val id = sl.taskService.save(t.copy(title = t.title.trim()))
+            newSubtasks.filter { it.isNotBlank() }.forEachIndexed { i, s ->
+                sl.taskService.save(TaskEntity(parentId = id, title = s.trim(), sortOrder = subtasks.size + i, createdAt = sl.clock.now()))
             }
-        }) { Text(stringResource(R.string.tasks_save)) }
+            AlarmConfigs.apply(OwnerKind.TASK, id, alarm)
+            onDone()
+        }
+    }
+
+    EditScaffold(stringResource(if (isNew) R.string.tasks_edit_new else if (isSub) R.string.tasks_edit_subtask else R.string.tasks_edit_task), onBack = onDone, bottomBar = {
+        Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()) {
+            Button(onClick = save, enabled = t.title.isNotBlank(), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.tasks_save))
+            }
+        }
     }) {
         OutlinedTextField(t.title, { set(t.copy(title = it)) }, label = { Text(stringResource(R.string.tasks_field_title)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(t.notes, { set(t.copy(notes = it)) }, label = { Text(stringResource(R.string.tasks_field_notes)) }, minLines = 2, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -168,9 +177,9 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
 private fun DueEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
     val today = remember { ServiceLocator.clock.today().toEpochDay() }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(t.dueEpochDay == null, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = null, dueMinuteOfDay = null)) }, { Text(stringResource(R.string.tasks_due_no_date)) })
-        FilterChip(t.dueEpochDay == today, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today)) }, { Text(stringResource(R.string.tasks_due_today)) })
-        FilterChip(t.dueEpochDay == today + 1, { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today + 1)) }, { Text(stringResource(R.string.tasks_due_tomorrow)) })
+        EarndChip(t.dueEpochDay == null, stringResource(R.string.tasks_due_no_date)) { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = null, dueMinuteOfDay = null)) }
+        EarndChip(t.dueEpochDay == today, stringResource(R.string.tasks_due_today)) { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today)) }
+        EarndChip(t.dueEpochDay == today + 1, stringResource(R.string.tasks_due_tomorrow)) { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today + 1)) }
     }
     if (t.dueEpochDay != null) {
         var text by remember(t.dueEpochDay) { mutableStateOf(formatDate(t.dueEpochDay)) }

@@ -47,6 +47,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -72,6 +75,9 @@ import com.earnd.app.ui.theme.RowDivider
 import kotlinx.coroutines.launch
 
 private val TABS = listOf(R.string.apps_tab_leisure, R.string.apps_tab_websites, R.string.apps_tab_always_open)
+
+/** Drops the colour out of a launcher icon so third-party branding cannot outshout the palette. */
+private val Desaturate = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -227,15 +233,21 @@ private fun AppList(
             }
             items(shown, key = { it.pkg }) { app ->
                 val isEssential = essentials.isEssential(app.pkg) || app.pkg in allowed
+                val chosen = app.pkg in leisure
                 Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
                     val bmp = remember(app.pkg) { runCatching { app.icon?.toBitmap(96, 96)?.asImageBitmap() }.getOrNull() }
-                    if (bmp != null) Image(bmp, null, Modifier.size(36.dp)) else Box(Modifier.size(36.dp))
+                    // Launcher icons are the only third-party colour on the screen; desaturate the
+                    // unchosen ones so the palette holds and a chosen row is the one that pops.
+                    if (bmp != null) Image(
+                        bmp, null, Modifier.size(36.dp).alpha(if (chosen) 1f else 0.75f),
+                        colorFilter = if (chosen) null else Desaturate,
+                    ) else Box(Modifier.size(36.dp))
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 6.dp)) {
                         Text(app.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                         val ms = usage[app.pkg] ?: 0L
                         if (ms >= 60_000L) Num(stringResource(R.string.apps_usage_today, formatMinutes((ms / 60_000).toInt())), color = Earnd.palette.muted)
                     }
-                    trailing(app, app.pkg in leisure, isEssential)
+                    trailing(app, chosen, isEssential)
                 }
                 RowDivider()
             }

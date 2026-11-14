@@ -73,6 +73,8 @@ fun ScreenTimeSection() {
     }
     val s = summary ?: return
     Text(stringResource(R.string.stats_on_screen_so_far, formatMinutes((s.totalMs / 60_000).toInt())), style = MaterialTheme.typography.bodyMedium)
+    // Nothing recorded yet: the per-app list and the hour chart would be an empty frame under a heading.
+    if (s.totalMs <= 0) return
     val top = s.perApp.take(TOP_APPS)
     val max = (top.firstOrNull()?.second ?: 1L).coerceAtLeast(1L)
     val p = com.earnd.app.ui.theme.Earnd.palette

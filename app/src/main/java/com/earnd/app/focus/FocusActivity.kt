@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
@@ -215,7 +216,7 @@ private fun FocusScreen(
                     style = MaterialTheme.typography.bodySmall, color = p.muted, textAlign = TextAlign.Center,
                 )
             }
-            TextButton(onClick = { onKeepOn(!keepOn) }) {
+            TextButton(onClick = { onKeepOn(!keepOn) }, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(if (keepOn) stringResource(R.string.focus_screen_stays_on) else stringResource(R.string.focus_keep_screen_on), color = if (keepOn) p.amber else p.secondary)
             }
             if (s.stopwatch) {
@@ -232,6 +233,7 @@ private fun FocusScreen(
     if (askFinish && !done) {
         AlertDialog(
             onDismissRequest = { askFinish = false },
+            shape = RectangleShape,
             title = { Text(stringResource(R.string.focus_finish_early_title, minSession)) },
             text = { Text(stringResource(R.string.focus_finish_early_body, minSession)) },
             confirmButton = { TextButton(onClick = { askFinish = false; onFinish() }) { Text(stringResource(R.string.focus_finish_anyway)) } },
@@ -242,6 +244,7 @@ private fun FocusScreen(
     if (askCancel && !done && s.stopwatch) {
         AlertDialog(
             onDismissRequest = { onAskCancel(false) },
+            shape = RectangleShape,
             title = { Text(stringResource(R.string.focus_stop_title)) },
             text = { Text(stringResource(R.string.focus_stop_stopwatch_body)) },
             confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text(stringResource(R.string.focus_stop), color = p.text) } },
@@ -250,6 +253,7 @@ private fun FocusScreen(
     } else if (askCancel && !done) {
         AlertDialog(
             onDismissRequest = { onAskCancel(false) },
+            shape = RectangleShape,
             title = { Text(stringResource(R.string.focus_stop_title)) },
             text = { Text(stringResource(R.string.focus_stop_body)) },
             confirmButton = { TextButton(onClick = { onAskCancel(false); onCancel() }) { Text(stringResource(R.string.focus_stop), color = p.text) } },

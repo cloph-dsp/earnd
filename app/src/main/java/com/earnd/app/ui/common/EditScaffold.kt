@@ -30,6 +30,7 @@ fun EditScaffold(
     title: String,
     onBack: () -> Unit,
     actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(topBar = {
@@ -38,7 +39,7 @@ fun EditScaffold(
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) } },
             actions = actions,
         )
-    }) { pad ->
+    }, bottomBar = bottomBar) { pad ->
         Column(
             Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad).imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             content = content,

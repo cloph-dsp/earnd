@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -62,9 +61,9 @@ fun RecurrencePicker(rule: RRule?, fromCompletion: Boolean, start: LocalDate, on
                 )
                 Preset.CUSTOM -> stringResource(R.string.rrule_custom_ellipsis)
             }
-            FilterChip(selected = p == selected, onClick = {
+            EarndChip(selected = p == selected, text = label) {
                 if (p == Preset.CUSTOM) custom = true else onChange(presets[p], false)
-            }, label = { Text(label) })
+            }
         }
     }
     if (rule != null) {

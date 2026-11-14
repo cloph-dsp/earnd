@@ -58,13 +58,14 @@ fun PermissionCards(modifier: Modifier = Modifier) {
     }
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
     Column(modifier) {
-        AppPermissions.all().forEach { p ->
+        val perms = AppPermissions.all()
+        perms.forEachIndexed { i, p ->
             val granted = remember(tick) { runCatching { p.granted(context) }.getOrDefault(false) }
             run {
                 Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(if (p.optional) stringResource(R.string.onboarding_perm_optional, p.title) else p.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                        if (granted) Text(stringResource(R.string.onboarding_perm_on), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber) else Text(stringResource(R.string.onboarding_perm_off), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.red)
+                        if (granted) Text(stringResource(R.string.onboarding_perm_on), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber) else Text(stringResource(R.string.onboarding_perm_off), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.secondary)
                     }
                     Text(p.why, style = MaterialTheme.typography.bodySmall, color = Earnd.palette.secondary, modifier = Modifier.padding(top = 2.dp))
                     if (!granted) {
@@ -85,7 +86,7 @@ fun PermissionCards(modifier: Modifier = Modifier) {
                     }
                 }
             }
-            RowDivider()
+            if (i < perms.lastIndex) RowDivider()
         }
     }
 }

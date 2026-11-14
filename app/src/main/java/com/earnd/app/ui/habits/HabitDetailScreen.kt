@@ -241,8 +241,10 @@ private fun MonthCalendar(month: YearMonth, today: LocalDate, h: HabitEntity, by
                                 color = when {
                                     done -> if (color.luminance() > 0.5f) Color.Black else Color.White
                                     list.isNotEmpty() -> color
+                                    // Future and off-schedule days recede; a missed day stays readable but dim,
+                                    // so "not earned" never looks like the brightest cell in the month.
                                     faint -> p.done
-                                    else -> p.text
+                                    else -> p.muted
                                 },
                             )
                         }

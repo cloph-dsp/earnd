@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.earnd.app.R
@@ -81,6 +82,7 @@ fun FocusPickerHost() {
     val p = Earnd.palette
     AlertDialog(
         onDismissRequest = { FocusPicker.pending.value = null },
+        shape = RectangleShape,
         title = { Text(r.name.ifBlank { stringResource(R.string.focus_fallback_name) }) },
         text = {
             Column {

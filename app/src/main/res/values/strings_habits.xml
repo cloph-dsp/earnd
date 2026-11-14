@@ -88,11 +88,11 @@
     <string name="habits_days_per_week">Days per week (any days)</string>
     <string name="habits_section_reminder">Reminder</string>
     <string name="habits_remind_some_days">Remind only on some days</string>
-    <string name="habits_remind_every_day_hint">Reminds on every day the habit is scheduled.</string>
+    <string name="habits_remind_every_day_hint">Pick which days get a reminder.</string>
     <string name="habits_reminder_message">Reminder message (optional)</string>
     <string name="habits_reminder_message_hint">Uses the habit name</string>
     <string name="habits_custom_reminder">Custom reminder for this habit</string>
-    <string name="habits_custom_reminder_hint">Uses your default reminder settings.</string>
+    <string name="habits_custom_reminder_hint">Set its own times instead of the defaults.</string>
     <string name="habits_more_options">More options</string>
     <string name="habits_hide">Hide</string>
     <string name="habits_show">Show</string>

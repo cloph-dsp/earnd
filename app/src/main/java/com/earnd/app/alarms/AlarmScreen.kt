@@ -55,6 +55,7 @@ internal fun AlarmScreen(
         Column(
             Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             Spacer(Modifier.height(24.dp))
             Num(time, color = MaterialTheme.colorScheme.onBackground, style = NumberStyle.copy(fontSize = 48.sp, lineHeight = 56.sp))

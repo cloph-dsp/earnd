@@ -2,7 +2,9 @@ package com.earnd.app.ui.onboarding
 
 import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.Wordmark
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -58,25 +60,32 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     var step by rememberSaveable { mutableIntStateOf(0) }
     val finish = { launchUi { Onboarding.markDone(); onFinished() } }
     val lastStep = pages.size + 1
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Spacer(Modifier.height(24.dp))
-        if (step < pages.size) {
-            val p = pages[step]
-            if (step == 0) Wordmark()
-            Text(stringResource(p.titleRes), style = MaterialTheme.typography.headlineMedium)
-            Text(stringResource(p.bodyRes), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
-        } else if (step == pages.size) {
-            Text(stringResource(R.string.onboarding_permissions_title), style = MaterialTheme.typography.headlineMedium)
-            Text(stringResource(R.string.onboarding_permissions_later), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
-            PermissionCards()
-        } else {
-            KeepAliveGuide()
+    val total = lastStep + 1
+    Column(Modifier.fillMaxSize()) {
+        // Progress line: the intro is eight steps long and nothing else says how far in you are.
+        Box(Modifier.fillMaxWidth().height(2.dp).background(Earnd.palette.line)) {
+            Box(Modifier.fillMaxWidth((step + 1f) / total).height(2.dp).background(Earnd.palette.amber))
         }
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Spacer(Modifier.height(24.dp))
+            if (step < pages.size) {
+                val p = pages[step]
+                if (step == 0) Wordmark()
+                Text(stringResource(p.titleRes), style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(p.bodyRes), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
+            } else if (step == pages.size) {
+                Text(stringResource(R.string.onboarding_permissions_title), style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(R.string.onboarding_permissions_later), style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary)
+                PermissionCards()
+            } else {
+                KeepAliveGuide()
+            }
+        }
+        // Pinned: on the long permission and OEM pages the buttons would otherwise sit below the fold.
+        Row(Modifier.fillMaxWidth().padding(24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = { finish() }) { Text(stringResource(R.string.onboarding_skip)) }
             Button(onClick = { if (step < lastStep) step++ else finish() }) {
                 Text(stringResource(if (step < lastStep) R.string.onboarding_next else R.string.onboarding_get_started))

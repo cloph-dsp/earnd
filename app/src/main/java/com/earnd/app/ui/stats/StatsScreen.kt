@@ -30,7 +30,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.earnd.app.ServiceLocator
@@ -88,7 +87,7 @@ fun StatsScreen() {
         }
 
         SectionTitle(stringResource(R.string.stats_section_earned_spent))
-        Legend()
+        Legend(hasEarned = earned > 0, hasSpent = spent > 0)
         PairedBars(days, earnedByDay, spentByDay, today)
 
         SectionTitle(stringResource(R.string.stats_section_done_per_day))
@@ -116,14 +115,19 @@ private fun Figure(value: String, label: String, color: Color, modifier: Modifie
 }
 
 @Composable
-private fun Legend() {
+private fun Legend(hasEarned: Boolean, hasSpent: Boolean) {
+    if (!hasEarned && !hasSpent) return
     val p = Earnd.palette
     Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(10.dp).height(10.dp).background(p.amber))
-        Text(stringResource(R.string.stats_earned), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(start = 4.dp))
-        Spacer(Modifier.width(14.dp))
-        Box(Modifier.width(10.dp).height(10.dp).background(p.muted))
-        Text(stringResource(R.string.stats_spent), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(start = 4.dp))
+        if (hasEarned) {
+            Box(Modifier.width(10.dp).height(10.dp).background(p.amber))
+            Text(stringResource(R.string.stats_earned), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(start = 4.dp))
+        }
+        if (hasEarned && hasSpent) Spacer(Modifier.width(14.dp))
+        if (hasSpent) {
+            Box(Modifier.width(10.dp).height(10.dp).background(p.secondary))
+            Text(stringResource(R.string.stats_spent), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(start = 4.dp))
+        }
     }
 }
 
@@ -141,10 +145,14 @@ private fun PairedBars(days: List<LocalDate>, earned: Map<Long, Int>, spent: Map
                 Modifier.weight(1f).semantics { contentDescription = desc },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Num("$e", color = if (e > 0) p.amber else p.muted, style = NumberStyle.copy(fontSize = 12.sp))
-                Row(Modifier.fillMaxWidth().height(104.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier.weight(1f).height((100f * e / max).dp.coerceAtLeast(2.dp)).background(if (e == 0) p.line else p.amber))
-                    Box(Modifier.weight(1f).height((100f * s / max).dp.coerceAtLeast(2.dp)).background(if (s == 0) p.line else p.muted))
+                Num(if (e > 0) "$e" else "", color = p.amber, style = NumberStyle.copy(fontSize = 12.sp))
+                Column(Modifier.fillMaxWidth()) {
+                    Row(Modifier.fillMaxWidth().height(104.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
+                        Box(Modifier.weight(1f).height((100f * e / max).dp).background(p.amber))
+                        Box(Modifier.weight(1f).height((100f * s / max).dp).background(p.secondary))
+                    }
+                    // One solid baseline instead of a stub per empty day, which read as a dashed axis.
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(p.divider))
                 }
                 Text(
                     dayLabel(d), maxLines = 1, modifier = Modifier.padding(top = 4.dp),
@@ -170,14 +178,14 @@ private fun DayGrid(days: List<LocalDate>, today: LocalDate, rows: List<Pair<Str
             )
         }
     }
-    rows.forEach { (label, values) ->
+    rows.filter { (_, values) -> values.values.any { it > 0 } }.forEach { (label, values) ->
         HorizontalDivider(color = p.divider)
         Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(label, Modifier.width(labelWidth), style = MaterialTheme.typography.bodySmall, color = p.secondary, maxLines = 1)
             days.forEach { d ->
                 val v = values[d.toEpochDay()] ?: 0
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Num(if (v == 0) "·" else "$v", color = if (v == 0) p.muted else p.text)
+                    Num(if (v == 0) "" else "$v", color = p.text)
                 }
             }
         }

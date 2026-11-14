@@ -209,7 +209,8 @@ private fun Header(cause: BlockCause, target: String, until: String?, balance: I
             if (until != null) Text(stringResource(R.string.blocking_bedtime_until, until),
                 style = MaterialTheme.typography.bodyMedium, color = p.secondary)
         } else {
-            Text(pluralStringResource(R.plurals.blocking_balance, balance, balance),
+            // The headline already states the balance when there is enough; only add it when it is the shortfall.
+            if (!enough) Text(pluralStringResource(R.plurals.blocking_balance, balance, balance),
                 style = MaterialTheme.typography.bodyMedium, color = p.secondary)
             DrainRuler(balance, need, Modifier.padding(top = 4.dp))
         }

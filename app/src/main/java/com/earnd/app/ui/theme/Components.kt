@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 
 private val ButtonPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -62,7 +63,7 @@ fun AmberButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boo
         disabledContainerColor = Earnd.palette.line, disabledContentColor = Earnd.palette.muted,
     ), content)
 
-/** Secondary action: chamfered 1dp outline in the line color, text-colored label. */
+/** Secondary action: 1dp outline in the line color, text-colored label. No chamfer: that belongs to filled buttons. */
 @Composable
 fun OutlinedButton(
     onClick: () -> Unit,
@@ -70,13 +71,13 @@ fun OutlinedButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) = androidx.compose.material3.OutlinedButton(
-    onClick, modifier, enabled, shape = Chamfer,
+    onClick, modifier.heightIn(min = 48.dp), enabled, shape = RectangleShape,
     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
     border = BorderStroke(1.dp, if (enabled) Earnd.palette.edge else Earnd.palette.line),
     contentPadding = ButtonPadding, content = content,
 )
 
-/** Quiet action: chamfered 1dp amber outline, amber label, transparent fill; still a 48dp touch target. */
+/** Quiet action: 1dp amber outline, amber label, transparent fill; still a 48dp touch target. */
 @Composable
 fun QuietButton(
     onClick: () -> Unit,
@@ -84,7 +85,7 @@ fun QuietButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) = androidx.compose.material3.OutlinedButton(
-    onClick, modifier.heightIn(min = 48.dp), enabled, shape = Chamfer,
+    onClick, modifier.heightIn(min = 48.dp), enabled, shape = RectangleShape,
     colors = ButtonDefaults.outlinedButtonColors(contentColor = Earnd.palette.amber, disabledContentColor = Earnd.palette.muted),
     border = BorderStroke(1.dp, if (enabled) Earnd.palette.amber else Earnd.palette.line),
     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), content = content,
@@ -146,11 +147,11 @@ fun DrainScale(full: Int, modifier: Modifier = Modifier) {
     }
 }
 
-/** Icon-only add button: a quiet chamfered square, so it never competes with the one red action. */
+/** Icon-only add button: a quiet square, so it never competes with the one red action. */
 @Composable
 fun AddFab(onClick: () -> Unit, description: String, modifier: Modifier = Modifier) {
     val p = Earnd.palette
-    Surface(onClick, modifier.size(56.dp), shape = Chamfer, color = p.raised, border = BorderStroke(1.dp, p.edge)) {
+    Surface(onClick, modifier.size(56.dp), shape = RectangleShape, color = p.raised, border = BorderStroke(1.dp, p.edge)) {
         Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Add, description, tint = p.text) }
     }
 }
@@ -196,6 +197,7 @@ fun Checkbox(
     val p = Earnd.palette
     val edge = when {
         !enabled -> p.done
+        checked && reward -> p.amberFill
         checked -> p.done
         reward -> p.amber
         else -> p.text
@@ -207,8 +209,13 @@ fun Checkbox(
         Box(
             Modifier.size(20.dp)
                 .border(2.dp, edge, RectangleShape)
-                .background(if (checked) p.done else Color.Transparent, RectangleShape),
-        )
+                // A rewarded tick fills amber: the same "progress" fill as the ruler and segment bar.
+                .background(if (checked) edge else Color.Transparent, RectangleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            // A tick, not just a fill: done must be readable without relying on color alone.
+            if (checked) Icon(Icons.Outlined.Check, null, tint = if (reward) p.onAmber else p.text, modifier = Modifier.size(14.dp))
+        }
     }
 }
 

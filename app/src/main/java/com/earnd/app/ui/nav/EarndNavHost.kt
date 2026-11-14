@@ -1,6 +1,7 @@
 package com.earnd.app.ui.nav
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.res.stringResource
 import com.earnd.app.R
@@ -93,7 +94,10 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
         },
     ) { padding ->
         com.earnd.app.focus.FocusPickerHost()
-        NavHost(nav, startDestination = startDestination, modifier = Modifier.padding(padding)) {
+        // The Scaffold above already applied the system bars; without this the inner screens' own
+        // Scaffolds add the status-bar inset a second time and leave a dead band under it.
+        NavHost(nav, startDestination = startDestination,
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding)) {
             val back: () -> Unit = { if (!nav.popBackStack()) nav.navigate(Routes.TODAY) }
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(onFinished = {

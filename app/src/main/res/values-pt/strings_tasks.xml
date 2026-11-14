@@ -52,7 +52,7 @@
     <string name="tasks_repeat_missed_hint">Se um dia falhar, passa automaticamente para o seguinte.</string>
 
     <!-- Stats -->
-    <string name="stats_this_week">Esta semana</string>
+    <string name="stats_this_week">Últimos 7 dias</string>
     <string name="stats_earned">ganho</string>
     <string name="stats_spent">gasto</string>
     <string name="stats_check_ins">registos</string>
@@ -92,5 +92,5 @@
     <string name="apps_no_sites">Ainda sem sites.</string>
     <string name="apps_remove_site">Remover %1$s</string>
     <string name="stats_meter_title">Minutos gastos por app (7 dias)</string>
-    <string name="stats_meter_empty">Ainda nada contado esta semana.</string>
+    <string name="stats_meter_empty">Ainda nada contado.</string>
 </resources>

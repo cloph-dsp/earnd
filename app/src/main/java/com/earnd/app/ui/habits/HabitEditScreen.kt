@@ -166,7 +166,7 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
                 Text(stringResource(R.string.habits_more_options), style = MaterialTheme.typography.titleSmall)
                 if (!more && summary.isNotEmpty()) Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(stringResource(if (more) R.string.habits_hide else R.string.habits_show), style = MaterialTheme.typography.labelLarge, color = Earnd.palette.amber)
+            Text(stringResource(if (more) R.string.habits_hide else R.string.habits_show), style = MaterialTheme.typography.labelLarge, color = Earnd.palette.secondary)
         }
         androidx.compose.animation.AnimatedVisibility(more) {
             androidx.compose.foundation.layout.Column {
@@ -338,14 +338,14 @@ private fun FocusDurations(h: HabitEntity, settings: com.earnd.app.data.Settings
     androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(10, 15, 20, 30, 45, 60).filter { it != h.focusMinutes }.forEach { m ->
             val on = extra.any { it.first == m }
-            androidx.compose.material3.FilterChip(
+            com.earnd.app.ui.common.EarndChip(
                 selected = on,
+                text = "$m min",
                 onClick = {
                     val next = if (on) extra.filterNot { it.first == m }
                     else extra + (m to com.earnd.app.domain.TimedHabit.linearReward(h, settings, m))
                     set(h.copy(focusOptions = com.earnd.app.domain.TimedHabit.format(next)))
                 },
-                label = { Text("$m min") },
             )
         }
     }

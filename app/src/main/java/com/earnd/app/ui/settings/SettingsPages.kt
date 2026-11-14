@@ -69,12 +69,13 @@ internal fun BlockingPage(cur: Settings, change: Change, onOpenApps: () -> Unit)
         })
     }) { v -> change { it.copy(removalPuzzle = v) } }
 
-    SectionTitle(stringResource(R.string.settings_blocking_hard_mode))
-    SwitchRow(
-        stringResource(R.string.settings_blocking_hard_mode), cur.hardMode, { v -> change { it.copy(hardMode = v) } },
-        hint = stringResource(R.string.settings_blocking_hard_mode_hint),
-    )
-    NumberField(stringResource(R.string.settings_blocking_cooldown), cur.weakenCooldownMin,
+    androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.padding(top = 12.dp)) {
+        SwitchRow(
+            stringResource(R.string.settings_blocking_hard_mode), cur.hardMode, { v -> change { it.copy(hardMode = v) } },
+            hint = stringResource(R.string.settings_blocking_hard_mode_hint),
+        )
+    }
+    if (cur.hardMode) NumberField(stringResource(R.string.settings_blocking_cooldown), cur.weakenCooldownMin,
         { v -> change { it.copy(weakenCooldownMin = (v ?: 0).coerceIn(1, 24 * 60)) } }, Modifier.fillMaxWidth())
 }
 

@@ -107,7 +107,10 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
 private fun LazyListScope.taskSection(b: TaskBucket, tasks: List<TaskEntity>, onOpen: (Long) -> Unit) {
     if (tasks.isEmpty()) return
     item(key = "h$b") { SectionTitle(stringResource(bucketLabelRes(b))) }
-    items(tasks, key = { it.id }) { t -> TaskRow(t, onOpen) }
+    items(tasks, key = { it.id }) { t ->
+        TaskRow(t, onOpen)
+        com.earnd.app.ui.theme.RowDivider()
+    }
 }
 
 @Composable
@@ -130,18 +133,18 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
                 t.title,
                 style = MaterialTheme.typography.bodyLarge,
                 textDecoration = if (done) TextDecoration.LineThrough else null,
-                color = when {
-                    done -> Earnd.palette.done
-                    t.priority == Priority.HIGH -> Earnd.palette.red
-                    else -> MaterialTheme.colorScheme.onBackground
-                },
+                color = if (done) Earnd.palette.muted else MaterialTheme.colorScheme.onBackground,
             )
+            val todayDay = remember { ServiceLocator.clock.today().toEpochDay() }
             val meta = buildList {
-                t.dueEpochDay?.let { add(formatDay(it) + (t.dueMinuteOfDay?.let { m -> " " + formatMinuteOfDay(m) } ?: "")) }
+                // A task due today sits under the "Today" heading, so repeating the date is noise.
+                t.dueEpochDay?.takeIf { it != todayDay }?.let { add(formatDay(it) + (t.dueMinuteOfDay?.let { m -> " " + formatMinuteOfDay(m) } ?: "")) }
             }
-            if (meta.isNotEmpty() || t.repeats) Row(verticalAlignment = Alignment.CenterVertically) {
+            if (meta.isNotEmpty() || t.repeats || (t.priority == Priority.HIGH && !done)) Row(verticalAlignment = Alignment.CenterVertically) {
                 if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
                 if (t.repeats) Icon(Icons.Outlined.Repeat, stringResource(R.string.tasks_repeats), tint = Earnd.palette.muted, modifier = Modifier.padding(start = 8.dp).size(14.dp))
+                // High priority is a property, not a lock: red stays reserved for the locked state and the primary action.
+                if (t.priority == Priority.HIGH && !done) Num(stringResource(R.string.tasks_priority_high), Modifier.padding(start = 8.dp), color = Earnd.palette.secondary)
             }
         }
         t.rewardMinutes?.takeIf { it > 0 }?.let {

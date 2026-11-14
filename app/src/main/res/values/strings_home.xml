@@ -21,7 +21,7 @@
     <string name="home_bank_lock_now">Lock now</string>
     <string name="home_bank_locked_balance">LOCKED · BALANCE</string>
     <string name="home_bank_of_scale">of %1$d min</string>
-    <string name="home_bank_expire_at">%1$d min expire at %2$s</string>
+    <string name="home_bank_expire_at">%1$d min expires %2$s</string>
     <string name="home_bank_all_done">Everything for today is done.</string>
     <string name="home_bank_unlock_today">Unlock for today</string>
     <string name="home_bank_hard_mode">Hard mode: apps open once today\'s habits are done.</string>

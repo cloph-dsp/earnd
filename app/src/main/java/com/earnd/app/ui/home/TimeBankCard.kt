@@ -108,8 +108,6 @@ fun TimeBankCard(
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(if (state.loading) "—" else "${state.balance}", style = NumberStyle.copy(fontSize = 64.sp, lineHeight = 64.sp), color = p.amber)
                     Text(" min", Modifier.padding(bottom = 8.dp), style = MaterialTheme.typography.bodyLarge, color = p.secondary)
-                    Spacer(Modifier.weight(1f))
-                    Num(stringResource(R.string.home_bank_of_scale, scale), Modifier.padding(bottom = 8.dp), color = p.secondary)
                 }
                 DrainRuler(state.balance, scale)
                 DrainScale(scale)
@@ -117,7 +115,10 @@ fun TimeBankCard(
                     Num(
                         stringResource(
                             R.string.home_bank_expire_at, state.minutesExpiringNext,
-                            UiFormats.value.formatTime(state.nextExpiryAt, java.time.ZoneId.systemDefault()),
+                            // Weekday included: the rolling window can expire tomorrow, and a bare time reads as past.
+                            java.time.Instant.ofEpochMilli(state.nextExpiryAt)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .format(java.time.format.DateTimeFormatter.ofPattern("EEE HH:mm", java.util.Locale.getDefault())),
                         ),
                         color = p.secondary,
                     )
@@ -156,16 +157,16 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
             val sel = m == pick
             Box(
                 Modifier.weight(1f).heightIn(min = 52.dp)
-                    .background(if (sel) p.amberFill else Color.Transparent)
-                    .border(1.dp, if (sel) p.amberFill else p.edge)
+                    .background(if (sel) p.raised else Color.Transparent)
+                    .border(1.dp, if (sel) p.text else p.edge)
                     .selectable(selected = sel, role = Role.RadioButton, onClick = { pick = m }),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(if (m == balance) stringResource(R.string.home_bank_pick_all) else if (m == options.last() && cap != null) stringResource(R.string.home_bank_pick_max, m) else "$m", style = NumberStyle.copy(fontSize = 15.sp, lineHeight = 18.sp), color = if (sel) p.onAmber else p.text)
+                Text(if (m == balance) stringResource(R.string.home_bank_pick_all) else if (m == options.last() && cap != null) stringResource(R.string.home_bank_pick_max, m) else "$m", style = NumberStyle.copy(fontSize = 15.sp, lineHeight = 18.sp), color = if (sel) p.text else p.secondary)
             }
         }
     }
-    QuietButton(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+    Button(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
         Text(stringResource(R.string.home_bank_unlock_until, formatMinutes(pick), UiFormats.value.formatTime(now + pick * 60_000L, java.time.ZoneId.systemDefault())), style = MaterialTheme.typography.labelLarge)
     }
 }

@@ -88,11 +88,11 @@
     <string name="habits_days_per_week">Dias por semana (quaisquer)</string>
     <string name="habits_section_reminder">Lembrete</string>
     <string name="habits_remind_some_days">Lembrar apenas em alguns dias</string>
-    <string name="habits_remind_every_day_hint">Lembra em todos os dias em que o hábito está previsto.</string>
+    <string name="habits_remind_every_day_hint">Escolhe em que dias recebes lembrete.</string>
     <string name="habits_reminder_message">Mensagem do lembrete (opcional)</string>
     <string name="habits_reminder_message_hint">Usa o nome do hábito</string>
     <string name="habits_custom_reminder">Lembrete personalizado para este hábito</string>
-    <string name="habits_custom_reminder_hint">Usa as definições de lembrete predefinidas.</string>
+    <string name="habits_custom_reminder_hint">Define horas próprias em vez das predefinidas.</string>
     <string name="habits_more_options">Mais opções</string>
     <string name="habits_hide">Ocultar</string>
     <string name="habits_show">Mostrar</string>

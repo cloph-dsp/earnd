@@ -21,7 +21,7 @@
     <string name="home_bank_lock_now">Bloquear agora</string>
     <string name="home_bank_locked_balance">BLOQUEADAS · SALDO</string>
     <string name="home_bank_of_scale">de %1$d min</string>
-    <string name="home_bank_expire_at">%1$d min expiram às %2$s</string>
+    <string name="home_bank_expire_at">%1$d min expira %2$s</string>
     <string name="home_bank_all_done">Tudo feito por hoje.</string>
     <string name="home_bank_unlock_today">Desbloquear por hoje</string>
     <string name="home_bank_hard_mode">Modo rígido: as apps abrem quando os hábitos de hoje estiverem feitos.</string>

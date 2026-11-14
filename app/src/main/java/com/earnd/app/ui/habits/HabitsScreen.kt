@@ -141,6 +141,7 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChe
                 items(list.orEmpty(), key = { "h${it.first.habit.id}" }) { (d, due) ->
                     HabitOverviewRow(d, due, streaks[d.habit.id] ?: 0, actives[d.habit.id] ?: 0, onOpen = { onOpenHabit(d.habit.id) },
                         onCheck = { doCheck(d) }, onUndo = { doUndo(d) })
+                    RowDivider()
                 }
             }
             if (archived.isNotEmpty()) {
@@ -177,7 +178,8 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, activeDays:
             modifier = Modifier.offset(x = (-17).dp),
         ) else Spacer(Modifier.size(48.dp).offset(x = (-17).dp))
         Column(Modifier.weight(1f).offset(x = (-17).dp).padding(end = 12.dp, top = 6.dp, bottom = 6.dp)) {
-            Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (d.complete) p.done else p.text,
+            // A done name stays one step above its own subtitle: muted here made the habit dimmer than "Daily".
+            Text(h.name, style = MaterialTheme.typography.bodyLarge, color = if (d.complete) p.secondary else p.text,
                 textDecoration = if (d.complete) androidx.compose.ui.text.style.TextDecoration.LineThrough else null)
             val focusing = com.earnd.app.focus.focusLabel(h.id)
             if (focusing != null) com.earnd.app.ui.theme.Num(focusing, color = p.amber)
@@ -214,7 +216,8 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, activeDays:
                 !due -> stringResource(R.string.habits_today_rest)
                 else -> "${d.done}/${d.required}"
             }
-            Num(today, color = if (d.complete) p.amber else if (due) p.secondary else p.muted)
+            // The tick already says "done"; repeating it in amber made the status louder than the habit name.
+            Num(today, color = if (due && !d.complete) p.secondary else p.muted)
             val small = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 12.sp)
             if (streak > 0) Num(stringResource(R.string.habits_streak_short, streak), color = p.muted, style = small)
             else if (activeDays > 0) Num(stringResource(R.string.habits_active_short, activeDays), color = p.muted, style = small)

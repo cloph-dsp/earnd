@@ -5,3 +5,6 @@ local.properties
 *.keystore
 *.jks
 .idea/
+
+# gauntlet working evidence
+.gauntlet/

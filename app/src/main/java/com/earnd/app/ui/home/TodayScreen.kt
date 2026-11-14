@@ -27,10 +27,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -147,9 +149,6 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = {
-            com.earnd.app.ui.theme.AddFab(onClick = onAddHabit, description = stringResource(R.string.home_add_habit))
-        },
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
             item {
@@ -160,6 +159,8 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     OffDayToggle(settings.onOffDay(todayDay)) { on ->
                         launchUi { sl.settings.update { it.copy(offDayEpochDay = if (on) todayDay else null) } }
                     }
+                    Spacer(Modifier.width(8.dp))
+                    AddButton(onClick = onAddHabit, description = stringResource(R.string.home_add_habit))
                 }
                 HealthBanner(onOpenPermissions)
                 TimeBankCard(
@@ -237,7 +238,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                                     h.targetQuantity != null -> stringResource(R.string.home_action_add)
                                     else -> stringResource(R.string.home_action_check_in)
                                 }
-                                com.earnd.app.ui.theme.Button(onClick = { doCheck(nextHabit) }, Modifier.heightIn(min = 52.dp)) { Text(label) }
+                                com.earnd.app.ui.theme.QuietButton(onClick = { doCheck(nextHabit) }, Modifier.heightIn(min = 52.dp)) { Text(label) }
                             }
                         } else if (nextTask != null) {
                             Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -246,7 +247,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                                     Num(stringResource(R.string.home_task), color = p.secondary)
                                 }
                                 Spacer(Modifier.width(12.dp))
-                                com.earnd.app.ui.theme.Button(onClick = { launchUi { sl.taskService.complete(nextTask.id) } }, Modifier.heightIn(min = 52.dp)) { Text(stringResource(R.string.common_done)) }
+                                com.earnd.app.ui.theme.QuietButton(onClick = { launchUi { sl.taskService.complete(nextTask.id) } }, Modifier.heightIn(min = 52.dp)) { Text(stringResource(R.string.common_done)) }
                             }
                         }
                     }
@@ -374,25 +375,49 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
 
 private fun fmtQty(q: Double): String = HabitRules.formatAmount(q)
 
+/** Header add button: a quiet 32dp square that matches the off-day chip, so it never competes with the one red action. */
+@Composable
+private fun AddButton(onClick: () -> Unit, description: String) {
+    val p = Earnd.palette
+    Surface(
+        onClick,
+        Modifier.size(32.dp),
+        shape = RectangleShape,
+        color = Color.Transparent,
+        border = androidx.compose.foundation.BorderStroke(1.dp, p.edge),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.Add, description, tint = p.secondary, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
 /** Header switch: today's alarms vibrate instead of playing a sound. */
 @Composable
 private fun OffDayToggle(on: Boolean, onToggle: (Boolean) -> Unit) {
     val p = Earnd.palette
-    Row(
+    // 48dp touch target around the 32dp chip.
+    Box(
         Modifier
-            .heightIn(min = 32.dp)
-            .background(if (on) p.amber else Color.Transparent, RectangleShape)
-            .border(1.dp, if (on) p.amber else p.edge, RectangleShape)
-            .toggleable(value = on, role = Role.Switch, onValueChange = onToggle)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .minimumInteractiveComponentSize()
+            .toggleable(value = on, role = Role.Switch, onValueChange = onToggle),
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Outlined.Vibration, null, tint = if (on) p.onAmber else p.muted, modifier = Modifier.size(14.dp))
-        Text(
-            stringResource(R.string.home_off_day),
-            color = if (on) p.onAmber else p.muted,
-            style = MaterialTheme.typography.labelMedium,
-        )
+        Row(
+            Modifier
+                .heightIn(min = 32.dp)
+                .background(if (on) p.amber else Color.Transparent, RectangleShape)
+                .border(1.dp, if (on) p.amber else p.edge, RectangleShape)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(Icons.Outlined.Vibration, null, tint = if (on) p.onAmber else p.muted, modifier = Modifier.size(14.dp))
+            Text(
+                stringResource(R.string.home_off_day),
+                color = if (on) p.onAmber else p.muted,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
     }
 }

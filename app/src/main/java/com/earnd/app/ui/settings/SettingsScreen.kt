@@ -157,9 +157,9 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
                 banner()
                 var remoteOn by remember { mutableStateOf(false) }
                 LaunchedEffect(page) { remoteOn = RemoteSettings.isEnabled(sl.settings) }
-                Page.entries.forEach { pg ->
+                Page.entries.forEachIndexed { i, pg ->
                     CategoryRow(stringResource(pg.titleRes), summary(pg, cur, remoteOn)) { page = pg }
-                    RowDivider()
+                    if (i < Page.entries.lastIndex) RowDivider()
                 }
                 Spacer(Modifier.height(24.dp))
             }
