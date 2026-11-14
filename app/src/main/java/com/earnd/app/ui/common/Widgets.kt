@@ -99,6 +99,7 @@ internal fun EarndChip(selected: Boolean, text: String, onClick: () -> Unit) {
         selected = selected,
         onClick = onClick,
         label = { Text(text) },
+        modifier = Modifier.minimumInteractiveComponentSize(),
         shape = RectangleShape,
         colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
             containerColor = Color.Transparent,

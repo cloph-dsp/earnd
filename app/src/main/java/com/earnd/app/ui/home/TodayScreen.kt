@@ -339,7 +339,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
                 Text(
                     h.name, Modifier.weight(1f, fill = false),
                     style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
-                    color = if (complete) p.done else p.text,
+                    color = if (complete) p.muted else p.text,
                     textDecoration = if (complete) TextDecoration.LineThrough else null,
                 )
             }
@@ -357,12 +357,12 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             val focusing = com.earnd.app.focus.focusLabel(h.id)
             if (focusing != null) Num(focusing, color = p.amber)
             else Row {
-                if (parts.isNotEmpty()) Num(parts.joinToString("  "), color = if (complete) p.done else p.secondary)
+                if (parts.isNotEmpty()) Num(parts.joinToString("  "), color = if (complete) p.muted else p.secondary)
                 if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) " · " else "") + stringResource(R.string.home_ignored, ignored), color = p.red)
             }
         }
         val rewardMin = HabitRules.rewardMinutes(h, settings)
-        if (rewardMin > 0) Num("+$rewardMin", Modifier.padding(horizontal = 8.dp), color = if (complete) p.done else p.amber)
+        if (rewardMin > 0) Num("+$rewardMin", Modifier.padding(horizontal = 8.dp), color = if (complete) p.muted else p.amber)
         when {
             complete && !com.earnd.app.domain.HabitProgress.isQuantity(h) ->
                 IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.secondary) }

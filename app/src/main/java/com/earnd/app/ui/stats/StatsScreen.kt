@@ -78,7 +78,8 @@ fun StatsScreen() {
     val spent = spentByDay.values.sum()
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-        Text(stringResource(R.string.stats_this_week), style = com.earnd.app.ui.theme.ScreenTitleStyle, modifier = Modifier.padding(top = 16.dp))
+        Text(stringResource(R.string.home_tab_stats), style = com.earnd.app.ui.theme.ScreenTitleStyle, modifier = Modifier.padding(top = 16.dp))
+        Text(stringResource(R.string.stats_this_week), style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 2.dp))
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Figure(formatMinutes(earned), stringResource(R.string.stats_earned), p.amber, Modifier.weight(1f))
             Figure(formatMinutes(spent), stringResource(R.string.stats_spent), p.text, Modifier.weight(1f))

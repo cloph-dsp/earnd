@@ -140,7 +140,7 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
                 t.dueEpochDay?.takeIf { it != todayDay }?.let { add(formatDay(it) + (t.dueMinuteOfDay?.let { m -> " " + formatMinuteOfDay(m) } ?: "")) }
             }
             if (meta.isNotEmpty() || t.repeats || (t.priority == Priority.HIGH && !done)) Row(verticalAlignment = Alignment.CenterVertically) {
-                if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.done else Earnd.palette.secondary)
+                if (meta.isNotEmpty()) Num(meta.joinToString("  "), color = if (done) Earnd.palette.muted else Earnd.palette.secondary)
                 if (t.repeats) Icon(Icons.Outlined.Repeat, stringResource(R.string.tasks_repeats), tint = Earnd.palette.muted, modifier = Modifier.padding(start = 8.dp).size(14.dp))
                 // High priority is a property, not a lock: red stays reserved for the locked state and the primary action.
                 if (t.priority == Priority.HIGH && !done) Num(stringResource(R.string.tasks_priority_high), Modifier.padding(start = 8.dp), color = Earnd.palette.secondary)
@@ -148,7 +148,7 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
         }
         t.rewardMinutes?.takeIf { it > 0 }?.let {
             Box(Modifier.padding(start = 8.dp).widthIn(min = 40.dp), contentAlignment = Alignment.CenterEnd) {
-                Num("+$it", color = if (done) Earnd.palette.done else Earnd.palette.amber, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 14.sp))
+                Num("+$it", color = if (done) Earnd.palette.muted else Earnd.palette.amber, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 14.sp))
             }
         }
     }

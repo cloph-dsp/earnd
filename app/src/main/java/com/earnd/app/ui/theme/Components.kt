@@ -69,7 +69,7 @@ fun OutlinedButton(
     contentPadding = ButtonPadding, content = content,
 )
 
-/** Quiet action: 1dp amber outline, amber label, transparent fill; still a 48dp touch target. */
+/** Quiet action: 1dp outline, text label, transparent fill; still a 48dp touch target. */
 @Composable
 fun QuietButton(
     onClick: () -> Unit,
@@ -78,8 +78,8 @@ fun QuietButton(
     content: @Composable RowScope.() -> Unit,
 ) = androidx.compose.material3.OutlinedButton(
     onClick, modifier.heightIn(min = 48.dp), enabled, shape = RectangleShape,
-    colors = ButtonDefaults.outlinedButtonColors(contentColor = Earnd.palette.amber, disabledContentColor = Earnd.palette.muted),
-    border = BorderStroke(1.dp, if (enabled) Earnd.palette.amber else Earnd.palette.line),
+    colors = ButtonDefaults.outlinedButtonColors(contentColor = Earnd.palette.text, disabledContentColor = Earnd.palette.muted),
+    border = BorderStroke(1.dp, if (enabled) Earnd.palette.edge else Earnd.palette.line),
     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), content = content,
 )
 
