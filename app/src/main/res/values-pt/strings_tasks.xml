@@ -47,7 +47,7 @@
     <string name="tasks_due_no_date">Sem data</string>
     <string name="tasks_due_today">Hoje</string>
     <string name="tasks_due_tomorrow">Amanhã</string>
-    <string name="tasks_due_date_label">Data (%1$s)</string>
+    <string name="tasks_due_date_label">Data</string>
     <string name="tasks_due_time_label">Hora (opcional)</string>
     <string name="tasks_repeat_missed_hint">Se um dia falhar, passa automaticamente para o seguinte.</string>
 
@@ -93,4 +93,5 @@
     <string name="apps_remove_site">Remover %1$s</string>
     <string name="stats_meter_title">Minutos gastos por app (7 dias)</string>
     <string name="stats_meter_empty">Ainda nada contado.</string>
+    <string name="tasks_due_pick">Escolher data</string>
 </resources>

@@ -45,16 +45,14 @@ import com.earnd.app.ui.alarms.AlarmConfigEditor
 import com.earnd.app.ui.alarms.AlarmConfigs
 import com.earnd.app.ui.common.ChoiceChips
 import com.earnd.app.ui.common.EarndChip
+import com.earnd.app.ui.common.DateField
 import com.earnd.app.ui.common.EditScaffold
 import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
 import com.earnd.app.ui.common.WeekdayPicker
-import com.earnd.app.ui.common.formatDate
-import com.earnd.app.ui.common.dateHint
 import com.earnd.app.ui.common.launchUi
-import com.earnd.app.ui.common.parseDate
 import kotlinx.coroutines.flow.flowOf
 
 @Composable
@@ -181,15 +179,15 @@ private fun DueEditor(t: TaskEntity, set: (TaskEntity) -> Unit) {
         EarndChip(t.dueEpochDay == today, stringResource(R.string.tasks_due_today)) { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today)) }
         EarndChip(t.dueEpochDay == today + 1, stringResource(R.string.tasks_due_tomorrow)) { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = today + 1)) }
     }
-    if (t.dueEpochDay != null) {
-        var text by remember(t.dueEpochDay) { mutableStateOf(formatDate(t.dueEpochDay)) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { s -> text = s; parseDate(s)?.let { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = it)) } },
-                label = { Text(stringResource(R.string.tasks_due_date_label, dateHint())) }, singleLine = true,
-                isError = parseDate(text) == null, modifier = Modifier.weight(1f),
-            )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DateField(
+            stringResource(R.string.tasks_due_date_label),
+            t.dueEpochDay,
+            { set(t.copy(repeatAnchorEpochDay = null, dueEpochDay = it)) },
+            Modifier.weight(1f),
+            placeholder = stringResource(R.string.tasks_due_pick),
+        )
+        if (t.dueEpochDay != null) {
             TimeField(stringResource(R.string.tasks_due_time_label), t.dueMinuteOfDay, { set(t.copy(dueMinuteOfDay = it)) }, Modifier.weight(1f))
         }
     }

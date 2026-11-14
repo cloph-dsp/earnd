@@ -47,7 +47,7 @@
     <string name="tasks_due_no_date">No date</string>
     <string name="tasks_due_today">Today</string>
     <string name="tasks_due_tomorrow">Tomorrow</string>
-    <string name="tasks_due_date_label">Date (%1$s)</string>
+    <string name="tasks_due_date_label">Date</string>
     <string name="tasks_due_time_label">Time (optional)</string>
     <string name="tasks_repeat_missed_hint">If a day is missed, it moves on to the next one by itself.</string>
 
@@ -93,4 +93,5 @@
     <string name="apps_remove_site">Remove %1$s</string>
     <string name="stats_meter_title">Minutes spent per app (7 days)</string>
     <string name="stats_meter_empty">Nothing counted yet.</string>
+    <string name="tasks_due_pick">Pick a date</string>
 </resources>
