@@ -153,7 +153,7 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
         val p = page
         if (p == null) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-                Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                Text(stringResource(R.string.settings_title), style = com.earnd.app.ui.theme.ScreenTitleStyle, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 banner()
                 var remoteOn by remember { mutableStateOf(false) }
                 LaunchedEffect(page) { remoteOn = RemoteSettings.isEnabled(sl.settings) }

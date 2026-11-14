@@ -176,7 +176,7 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
                 val on = key == h.iconKey
                 Box(
                     Modifier.size(40.dp)
-                        .border(1.dp, if (on) Earnd.palette.amber else Earnd.palette.line, RectangleShape)
+                        .border(1.dp, if (on) Earnd.palette.text else Earnd.palette.line, RectangleShape)
                         .clickable { set(h.copy(iconKey = key)) },
                     contentAlignment = Alignment.Center,
                 ) { Icon(icon, HabitLook.iconLabel(key), tint = if (on) Color(h.colorArgb) else Earnd.palette.muted, modifier = Modifier.size(20.dp)) }

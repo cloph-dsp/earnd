@@ -341,6 +341,6 @@
     <string name="alarmsui_sound_play">Reproduzir</string>
     <string name="settings_app_language">Idioma</string>
     <string name="backup_err_hard_mode">O modo rígido está ativo, por isso os dados não podem ser substituídos nem eliminados.</string>
-    <string name="settings_rem_off_day">Dia de folga (só vibração)</string>
+    <string name="settings_rem_off_day">Dia de folga</string>
     <string name="settings_rem_off_day_hint">Hoje os alarmes vibram em vez de tocar. Termina à meia-noite.</string>
 </resources>

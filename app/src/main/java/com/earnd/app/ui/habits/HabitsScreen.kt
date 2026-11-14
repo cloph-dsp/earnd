@@ -118,7 +118,7 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChe
         LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.habits_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.habits_title), style = com.earnd.app.ui.theme.ScreenTitleStyle, modifier = Modifier.weight(1f))
                     if (reorder) TextButton(onClick = { reorder = false }) { Text(stringResource(R.string.habits_done)) }
                     else IconButton(onClick = { reorder = true }, enabled = order.size > 1) {
                         Icon(Icons.Outlined.SwapVert, stringResource(R.string.habits_reorder), tint = p.secondary)
@@ -203,7 +203,7 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, activeDays:
         if (due && !d.complete && com.earnd.app.domain.TimedHabit.isTimed(h) && !h.archived) {
             val context = androidx.compose.ui.platform.LocalContext.current
             androidx.compose.material3.TextButton(onClick = { com.earnd.app.ui.common.launchUi { com.earnd.app.focus.startFocus(context, h.id) } }) {
-                Text(com.earnd.app.focus.startLabel(h, settings), color = p.amber)
+                Text(com.earnd.app.focus.startLabel(h, settings), color = p.secondary)
             }
         }
         // Partway through a multi-check-in habit (6 of 10): the tick adds one, this takes the last one back.

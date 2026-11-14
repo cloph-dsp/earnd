@@ -188,8 +188,10 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     val counted = core.ifEmpty { habits }
                     val done = counted.count(doneOf)
                     Column(Modifier.padding(top = 28.dp)) {
+                        // Caption above the bar: below it, the bar read as a second balance bar
+                        // belonging to the card above.
+                        Num(pluralStringResource(R.plurals.home_progress, counted.size, counted.size, done), Modifier.padding(bottom = 6.dp))
                         com.earnd.app.ui.theme.SegmentBar(done, counted.size)
-                        Num(pluralStringResource(R.plurals.home_progress, counted.size, counted.size, done), Modifier.padding(top = 8.dp))
                     }
                 }
             } else if (loadedHabits != null) {
@@ -264,7 +266,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 SectionTitle(HabitLook.segmentLabel(seg), Modifier.weight(1f))
                                 if (seg == currentSeg) {
-                                    Text(stringResource(R.string.home_now), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.amber,
+                                    Text(stringResource(R.string.home_now), style = MaterialTheme.typography.labelMedium, color = Earnd.palette.secondary,
                                         modifier = Modifier.padding(top = 28.dp, end = 8.dp))
                                 }
                                 Num("$done/${all.size}", Modifier.padding(top = 28.dp))
@@ -363,9 +365,9 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
         if (rewardMin > 0) Num("+$rewardMin", Modifier.padding(horizontal = 8.dp), color = if (complete) p.done else p.amber)
         when {
             complete && !com.earnd.app.domain.HabitProgress.isQuantity(h) ->
-                IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.amber) }
+                IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.secondary) }
             complete -> Unit
-            com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onCheck) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.amber) }
+            com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onCheck) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.secondary) }
             HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, stringResource(R.string.home_photo_needed), tint = p.muted, modifier = Modifier.size(16.dp))
             h.targetQuantity != null -> Icon(Icons.Outlined.Add, stringResource(R.string.home_add_amount), tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Unit
@@ -406,16 +408,16 @@ private fun OffDayToggle(on: Boolean, onToggle: (Boolean) -> Unit) {
         Row(
             Modifier
                 .heightIn(min = 32.dp)
-                .background(if (on) p.amber else Color.Transparent, RectangleShape)
-                .border(1.dp, if (on) p.amber else p.edge, RectangleShape)
+                .background(if (on) p.text else Color.Transparent, RectangleShape)
+                .border(1.dp, if (on) p.text else p.edge, RectangleShape)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(Icons.Outlined.Vibration, null, tint = if (on) p.onAmber else p.muted, modifier = Modifier.size(14.dp))
+            Icon(Icons.Outlined.Vibration, null, tint = if (on) p.bg else p.muted, modifier = Modifier.size(14.dp))
             Text(
                 stringResource(R.string.home_off_day),
-                color = if (on) p.onAmber else p.muted,
+                color = if (on) p.bg else p.muted,
                 style = MaterialTheme.typography.labelMedium,
             )
         }

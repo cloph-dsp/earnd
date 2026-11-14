@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.outlined.Repeat
 import com.earnd.app.ui.theme.Checkbox
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -84,7 +83,7 @@ fun TasksScreen(onOpenTask: (Long) -> Unit, onNewTask: () -> Unit) {
     LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
         item {
             Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.tasks_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.tasks_title), style = com.earnd.app.ui.theme.ScreenTitleStyle, modifier = Modifier.weight(1f))
             }
         }
         if (lists.values.all { it.isEmpty() }) {

@@ -30,9 +30,11 @@ private val EarndShapes = Shapes(
 private fun EarndPalette.scheme(dark: Boolean): ColorScheme {
     val base = if (dark) darkColorScheme() else lightColorScheme()
     return base.copy(
-        primary = amber, onPrimary = onAmber,
+        // Neutral on purpose: stock Material components (tab indicator, slider, text-field focus)
+        // must not paint themselves amber, or amber stops meaning "earned time".
+        primary = text, onPrimary = bg,
         primaryContainer = raised, onPrimaryContainer = text,
-        inversePrimary = amber,
+        inversePrimary = bg,
         secondary = secondary, onSecondary = bg,
         secondaryContainer = line, onSecondaryContainer = text,
         tertiary = red, onTertiary = onRed,

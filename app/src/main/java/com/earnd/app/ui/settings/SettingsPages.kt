@@ -1,9 +1,12 @@
 package com.earnd.app.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -12,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -33,6 +37,7 @@ import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
+import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.OutlinedButton
 import java.time.DayOfWeek
 import java.time.format.TextStyle
@@ -172,6 +177,7 @@ internal fun SchedulePage(cur: Settings, change: Change) {
     VacationEditor(cur, change)
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 internal fun RemindersPage(cur: Settings, change: Change) {
     SectionTitle(stringResource(R.string.settings_rem_nudges_section))
@@ -199,6 +205,7 @@ internal fun RemindersPage(cur: Settings, change: Change) {
         value = vol, onValueChange = { vol = it },
         onValueChangeFinished = { val p = vol.toInt(); change { it.copy(alarmVolumePct = p) } },
         valueRange = 10f..100f,
+        thumb = { EarndSliderThumb() },
     )
     Helper(stringResource(R.string.settings_rem_volume_helper))
     SwitchRow(stringResource(R.string.settings_rem_gentle), cur.gentleStart, { v -> change { it.copy(gentleStart = v) } },
@@ -275,6 +282,7 @@ internal fun AboutPage() {
 
 
 /** Hour slider; the value is committed on release so hard-mode/puzzle gates run once, not per step. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun ExpiryHoursSlider(current: Int, onCommit: (Int) -> Unit) {
     var v by androidx.compose.runtime.remember(current) {
@@ -287,7 +295,14 @@ private fun ExpiryHoursSlider(current: Int, onCommit: (Int) -> Unit) {
         valueRange = MIN_EXPIRY_H.toFloat()..MAX_EXPIRY_H.toFloat(),
         steps = MAX_EXPIRY_H - MIN_EXPIRY_H - 1,
         onValueChangeFinished = { if (v.toInt() != current) onCommit(v.toInt()) },
+        thumb = { EarndSliderThumb() },
     )
+}
+
+/** Square thumb: Material's circle would be the only rounded control in the app. */
+@Composable
+private fun EarndSliderThumb() {
+    Box(Modifier.size(16.dp).background(Earnd.palette.text, RectangleShape))
 }
 
 private const val MIN_EXPIRY_H = 6

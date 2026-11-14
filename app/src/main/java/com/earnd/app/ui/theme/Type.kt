@@ -22,7 +22,10 @@ private fun ui(size: Int, weight: FontWeight = FontWeight.Medium, line: Int = si
 /** Numbers, times and counters only. */
 val NumberStyle = TextStyle(fontFamily = PlexMono, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 16.sp)
 
-/** Scale with a 13sp floor (small light-on-dark text reads worse): body 15-17sp, labels 13sp, screen titles 22sp. */
+/** Screen titles: 18sp, shared by tab roots and edit screens so they hold one rank. */
+val ScreenTitleStyle = ui(18, FontWeight.SemiBold, 24)
+
+/** Scale with a 13sp floor (small light-on-dark text reads worse): body 15-17sp, labels 13sp, screen titles 18sp. */
 val EarndTypography = Typography(
     displayLarge = ui(22, FontWeight.SemiBold),
     displayMedium = ui(22, FontWeight.SemiBold),

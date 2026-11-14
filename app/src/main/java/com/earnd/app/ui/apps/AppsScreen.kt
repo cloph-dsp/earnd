@@ -119,7 +119,7 @@ fun AppsScreen(onBack: () -> Unit) {
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             TabRow(selectedTabIndex = tab, divider = { RowDivider() }) {
-                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, selectedContentColor = Earnd.palette.amber, unselectedContentColor = Earnd.palette.secondary, text = { Text(stringResource(t), maxLines = 1) }) }
+                TABS.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, selectedContentColor = Earnd.palette.text, unselectedContentColor = Earnd.palette.secondary, text = { Text(stringResource(t), maxLines = 1) }) }
             }
             if (pending.isNotEmpty()) PendingList(pending) { key -> launchUi { PendingRuleChanges.cancel(key); reload++ } }
             when (tab) {
@@ -152,7 +152,7 @@ fun AppsScreen(onBack: () -> Unit) {
                         if (on) gate { launchUi { announce(PendingRuleChanges.allow(app.pkg, app.label)) } }
                         else launchUi { PendingRuleChanges.disallow(app.pkg); reload++ }
                     })
-                    if (isLeisure && !isEssential) Text(stringResource(R.string.apps_leisure_tag), style = MaterialTheme.typography.labelSmall, color = Earnd.palette.amber)
+                    if (isLeisure && !isEssential) Text(stringResource(R.string.apps_leisure_tag), style = MaterialTheme.typography.labelSmall, color = Earnd.palette.secondary)
                 }
             }
         }
@@ -168,7 +168,7 @@ private fun ChargingPicker(current: Int?, onPick: (Int?) -> Unit) {
         Box(
             Modifier.heightIn(min = 48.dp).widthIn(min = 56.dp).clickable { open = true },
             contentAlignment = Alignment.CenterEnd,
-        ) { Num("$rate%", color = Earnd.palette.amber) }
+        ) { Num("$rate%", color = Earnd.palette.text) }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             Charging.RATES.forEach { r ->
                 DropdownMenuItem(

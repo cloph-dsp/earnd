@@ -66,12 +66,13 @@ private fun EarndSwitch(checked: Boolean, onChange: (Boolean) -> Unit, enabled: 
             Modifier
                 .size(44.dp, 24.dp)
                 .alpha(if (enabled) 1f else 0.4f)
-                .background(if (checked) p.amber else Color.Transparent, RectangleShape)
-                .border(1.dp, if (checked) p.amber else p.edge, RectangleShape)
+                // On is a neutral fill: amber means earned time, never "this switch is on".
+                .background(if (checked) p.text else Color.Transparent, RectangleShape)
+                .border(1.dp, if (checked) p.text else p.edge, RectangleShape)
                 .padding(3.dp),
             contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
         ) {
-            Box(Modifier.size(16.dp).background(if (checked) p.onAmber else p.edge, RectangleShape))
+            Box(Modifier.size(16.dp).background(if (checked) p.bg else p.edge, RectangleShape))
         }
     }
 }

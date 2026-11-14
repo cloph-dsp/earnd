@@ -50,7 +50,7 @@ fun MeterSection(days: Int = 7) {
                 Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                 Num(formatMinutes(u.minutes))
             }
-            Box(Modifier.padding(top = 3.dp).fillMaxWidth(u.minutes.toFloat() / max).height(4.dp).background(p.amber))
+            Box(Modifier.padding(top = 3.dp).fillMaxWidth(u.minutes.toFloat() / max).height(4.dp).background(p.secondary))
         }
     }
 }

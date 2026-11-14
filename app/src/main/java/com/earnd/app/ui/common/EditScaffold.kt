@@ -35,7 +35,7 @@ fun EditScaffold(
 ) {
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(title) },
+            title = { Text(title, style = com.earnd.app.ui.theme.ScreenTitleStyle) },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) } },
             actions = actions,
         )

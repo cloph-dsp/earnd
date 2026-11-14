@@ -78,7 +78,7 @@ fun StatsScreen() {
     val spent = spentByDay.values.sum()
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-        Text(stringResource(R.string.stats_this_week), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp))
+        Text(stringResource(R.string.stats_this_week), style = com.earnd.app.ui.theme.ScreenTitleStyle, modifier = Modifier.padding(top = 16.dp))
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Figure(formatMinutes(earned), stringResource(R.string.stats_earned), p.amber, Modifier.weight(1f))
             Figure(formatMinutes(spent), stringResource(R.string.stats_spent), p.text, Modifier.weight(1f))
@@ -116,7 +116,9 @@ private fun Figure(value: String, label: String, color: Color, modifier: Modifie
 
 @Composable
 private fun Legend(hasEarned: Boolean, hasSpent: Boolean) {
-    if (!hasEarned && !hasSpent) return
+    // A legend for one series is decoration: with both present it is the only thing telling the
+    // two bar colours apart, which is when it earns its space.
+    if (!hasEarned || !hasSpent) return
     val p = Earnd.palette
     Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (hasEarned) {

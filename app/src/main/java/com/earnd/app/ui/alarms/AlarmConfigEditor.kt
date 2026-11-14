@@ -67,20 +67,20 @@ fun AlarmConfigEditor(cfg: AlarmConfigEntity, onChange: (AlarmConfigEntity) -> U
                 })
                 Box(
                     Modifier.weight(1f).heightIn(min = 48.dp)
-                        .background(if (on) com.earnd.app.ui.theme.Earnd.palette.amber else androidx.compose.ui.graphics.Color.Transparent)
-                        .border(1.dp, if (on) com.earnd.app.ui.theme.Earnd.palette.amber else com.earnd.app.ui.theme.Earnd.palette.line)
+                        .background(if (on) com.earnd.app.ui.theme.Earnd.palette.raised else androidx.compose.ui.graphics.Color.Transparent)
+                        .border(1.dp, if (on) com.earnd.app.ui.theme.Earnd.palette.text else com.earnd.app.ui.theme.Earnd.palette.line)
                         .selectable(on, role = androidx.compose.ui.semantics.Role.RadioButton) { onChange(cfg.copy(style = st)) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(label, style = MaterialTheme.typography.labelLarge,
-                        color = if (on) com.earnd.app.ui.theme.Earnd.palette.onAmber else MaterialTheme.colorScheme.onBackground)
+                        color = if (on) com.earnd.app.ui.theme.Earnd.palette.text else MaterialTheme.colorScheme.onBackground)
                 }
             }
         }
         var advanced by remember { mutableStateOf(false) }
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { advanced = !advanced }, verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.alarmsui_advanced), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Text(stringResource(if (advanced) R.string.alarmsui_hide else R.string.alarmsui_show), style = MaterialTheme.typography.labelLarge, color = com.earnd.app.ui.theme.Earnd.palette.amber)
+            Text(stringResource(if (advanced) R.string.alarmsui_hide else R.string.alarmsui_show), style = MaterialTheme.typography.labelLarge, color = com.earnd.app.ui.theme.Earnd.palette.secondary)
         }
         AnimatedVisibility(advanced) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

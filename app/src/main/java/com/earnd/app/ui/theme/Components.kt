@@ -55,14 +55,6 @@ fun Button(
     onClick, modifier, enabled, shape = Chamfer, colors = colors, contentPadding = ButtonPadding, content = content,
 )
 
-/** Amber chamfered button for spending or earning time. */
-@Composable
-fun AmberButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, content: @Composable RowScope.() -> Unit) =
-    Button(onClick, modifier, enabled, ButtonDefaults.buttonColors(
-        containerColor = Earnd.palette.amber, contentColor = Earnd.palette.onAmber,
-        disabledContainerColor = Earnd.palette.line, disabledContentColor = Earnd.palette.muted,
-    ), content)
-
 /** Secondary action: 1dp outline in the line color, text-colored label. No chamfer: that belongs to filled buttons. */
 @Composable
 fun OutlinedButton(

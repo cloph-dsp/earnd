@@ -21,6 +21,8 @@ magenta gradients, glows).
 - Signal red #FF4A3D = locked state, the one primary action per screen, "ignored N×". Nothing else.
 - Selection (chips, weekday pickers, unlock amounts) is neutral: raised #1D1B18 fill plus a 1dp text
   border when chosen, a 1dp edge border when not. Amber never means "selected".
+- Interactive state is neutral too: switches, nav selection, tab indicators, sliders and text-field
+  focus draw in text/edge. Material's `primary` is text, not amber, so stock components cannot leak it.
 - Tasks use neutral text-colored checkboxes; amber only when they carry a reward. Priority "High" is
   secondary text, never red.
 - Empty drain segments use drainEmpty #3F392E.
@@ -40,8 +42,8 @@ magenta gradients, glows).
 - Checkbox: 20dp square outline; when done it fills and draws a check glyph in text color. Row is the
   button (≥48dp touch target).
 - Thin 3dp progress bar under the time bank.
-- Today: wordmark + time + off-day chip + add → time-bank card (state, balance, Unlock) → progress →
-  "Do now" (habits, most ignored first) → "Tasks today".
+- Today: wordmark + time + off-day chip + add → time-bank card (state, balance, Unlock) → habits
+  done ("N of M habits") → "Next" (one hero habit, most ignored first) → "Later today" → "Tasks today".
 - Lock screen: red chamfered badge "<App> locked", "Not yet.", earnable rows, quiet "Back to home".
 - Widgets, notifications accent and launcher icon follow this palette (icon: amber chamfered mark on
   graphite).
