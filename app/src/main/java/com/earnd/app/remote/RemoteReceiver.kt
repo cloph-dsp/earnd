@@ -16,7 +16,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * adb-only entry point. The manifest guards it with `android.permission.DUMP`, which only the
  * shell and system hold, and callers must address it by explicit component:
  *
- *   am broadcast -n com.earnd.app/.remote.RemoteReceiver -a com.earnd.app.REMOTE \
+ *   am broadcast -n com.cloph.earnd/.remote.RemoteReceiver -a com.earnd.app.REMOTE \
  *       --es cmd tasks.list
  *
  * On Android 14+ the sender UID is also checked when the platform reports it (see [RemoteCaller]).

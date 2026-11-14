@@ -125,7 +125,7 @@ earnd-cli habits.list all=true   # find archived ids, then: earnd-cli habits.una
 
 ## Debug build only: set charging on the phone (agent setup)
 Bypasses the weakening gates (needs adb shell DUMP). Adds the app to the leisure list if missing:
-`adb shell am broadcast -n com.earnd.app/.blocking.DebugChargingReceiver -a com.earnd.app.blocking.DEBUG_SET_CHARGING --es pkg com.aspiro.tidal --es rate 50`
+`adb shell am broadcast -n com.cloph.earnd/.blocking.DebugChargingReceiver -a com.earnd.app.blocking.DEBUG_SET_CHARGING --es pkg com.aspiro.tidal --es rate 50`
 (rate = 0 | 25 | 50 | 100; packages: AntennaPod `de.danoeh.antennapod`, YouTube `app.morphe.android.youtube`, TIDAL `com.aspiro.tidal`).
 
 ## Pitfalls
@@ -141,5 +141,5 @@ Bypasses the weakening gates (needs adb shell DUMP). Adds the app to the leisure
 After a write, re-read with `tasks.get id=...` or `habits.get id=...` and check the field changed.
 
 Debug build only: print the metering state (what counts, rate, balance, remaining real time, grants, overlay):
-`adb shell am broadcast -n com.earnd.app/.blocking.DebugMeterReceiver -a com.earnd.app.blocking.DEBUG_METER_STATE`
+`adb shell am broadcast -n com.cloph.earnd/.blocking.DebugMeterReceiver -a com.earnd.app.blocking.DEBUG_METER_STATE`
 (result data is returned and logged with tag EarndDebug). Test by opening a leisure app (real one, via `adb shell monkey -p <pkg> 1`).

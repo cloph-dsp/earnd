@@ -9,7 +9,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId 'com.earnd.app'
+        applicationId 'com.cloph.earnd'
         minSdk 29
         targetSdk 34
         versionCode 2

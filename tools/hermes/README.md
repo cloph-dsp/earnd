@@ -21,7 +21,7 @@ tighten them (`settings.tighten`). Remote check-ins and completions never credit
 
 ```
 earnd-cli sounds.list                                  # keys: default, system:<title>, custom:<file>
-earnd-cli sound.push ~/sounds/gong.mp3                 # adb push to /sdcard/Android/media/com.earnd.app/sounds/
+earnd-cli sound.push ~/sounds/gong.mp3                 # adb push to /sdcard/Android/media/com.cloph.earnd/sounds/
 earnd-cli sound.push ~/a.ogg wake-up.ogg               # optional name (sanitized; .mp3 .ogg .wav .m4a only)
 earnd-cli habits.update id=3 sound=custom:gong.mp3
 earnd-cli tasks.create title="Call" due=today time=18:00 sound="system:Argon"

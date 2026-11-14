@@ -1,6 +1,6 @@
 # Earnd architecture
 
-Single Gradle module (`:app`), package `com.earnd.app`. Behavioral source of truth: `REQUIREMENTS.md`.
+Single Gradle module (`:app`), source package `com.earnd.app`, applicationId `com.cloph.earnd`. Behavioral source of truth: `REQUIREMENTS.md`.
 Everything here is an original design; feature agents implement against these contracts and may
 add (not rename) members. Times are epoch millis (`Long`) unless noted; local dates are
 `java.time.LocalDate` stored as `epochDay: Long`; minutes are `Int`.
