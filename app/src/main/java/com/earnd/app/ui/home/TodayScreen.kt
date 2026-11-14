@@ -105,6 +105,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val snackbar = remember { SnackbarHostState() }
     var doneOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
+    var askDuration by remember { mutableStateOf<HabitEntity?>(null) }
     val byHabit = checkIns.groupBy { it.habitId }
     val doneOf = { hd: HabitDay -> hd.complete }
     val minuteNow = sl.clock.minuteOfDay(sl.clock.now())
@@ -127,12 +128,15 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val doCheck: (HabitDay) -> Unit = { hd ->
+        val h = hd.habit
+        val durations = com.earnd.app.domain.TimedHabit.options(h, settings)
         when {
-            com.earnd.app.domain.TimedHabit.isTimed(hd.habit) -> launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
-            HabitRules.needsPhoto(hd.habit, settings) -> onPhotoCheckIn(hd.habit.id)
-            hd.habit.targetQuantity != null -> askAmount = hd.habit
+            // A tick records what was done; only the Start button runs the timer.
+            durations.size > 1 || h.stopwatch -> askDuration = h
+            HabitRules.needsPhoto(h, settings) -> onPhotoCheckIn(h.id)
+            h.targetQuantity != null -> askAmount = h
             else -> launchUi {
-                val r = sl.habitService.checkInWithBonus(hd.habit.id)
+                val r = sl.habitService.checkInWithBonus(h.id, rewardOverride = durations.firstOrNull()?.reward)
                 com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
             }
         }
@@ -143,6 +147,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             hd, last, doneOf(hd), byHabit[hd.habit.id].orEmpty(), settings, ignored[hd.habit.id] ?: 0,
             onOpen = { onOpenHabit(hd.habit.id) },
             onCheck = { doCheck(hd) },
+            onStart = { launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) } },
             onUndo = { c -> launchUi { HabitActions.undo(c.id) } },
         )
     }
@@ -308,6 +313,15 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             launchUi { sl.habitService.checkIn(h.id, quantity = amount) }
         }
     }
+    askDuration?.let { h ->
+        com.earnd.app.ui.habits.DurationDialog(h, com.earnd.app.domain.TimedHabit.options(h, settings), onDismiss = { askDuration = null }) { _, reward ->
+            askDuration = null
+            launchUi {
+                val r = sl.habitService.checkInWithBonus(h.id, rewardOverride = reward)
+                com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
+            }
+        }
+    }
 }
 
 
@@ -320,7 +334,7 @@ fun refuseText(reason: String): String = when (reason) {
 }
 
 @Composable
-private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, todays: List<CheckInEntity>, settings: Settings, ignored: Int, onOpen: () -> Unit, onCheck: () -> Unit, onUndo: (CheckInEntity) -> Unit) {
+private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, todays: List<CheckInEntity>, settings: Settings, ignored: Int, onOpen: () -> Unit, onCheck: () -> Unit, onStart: () -> Unit, onUndo: (CheckInEntity) -> Unit) {
     val h = hd.habit
     val p = Earnd.palette
     val compact = settings.listDensity == ListDensity.COMPACT
@@ -367,7 +381,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             complete && !com.earnd.app.domain.HabitProgress.isQuantity(h) ->
                 IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.secondary) }
             complete -> Unit
-            com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onCheck) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.secondary) }
+            com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onStart) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.secondary) }
             HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, stringResource(R.string.home_photo_needed), tint = p.muted, modifier = Modifier.size(16.dp))
             h.targetQuantity != null -> Icon(Icons.Outlined.Add, stringResource(R.string.home_add_amount), tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Unit

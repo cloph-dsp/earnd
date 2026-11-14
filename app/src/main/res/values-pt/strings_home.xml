@@ -62,6 +62,7 @@
     <string name="home_check_in_again">Registar novamente</string>
     <string name="home_photo_needed">Foto necessária</string>
     <string name="home_add_amount">Adicionar quantidade</string>
+    <string name="home_duration_prompt">Quanto tempo fizeste?</string>
     <string name="home_amount_prompt">Quanto? (%1$s)</string>
     <string name="home_amount_default_unit">quantidade</string>
 

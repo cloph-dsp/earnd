@@ -14,20 +14,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.earnd.app.data.entity.HabitEntity
+import com.earnd.app.domain.FocusOption
 import com.earnd.app.domain.HabitService
+import com.earnd.app.domain.TimedHabit
 import kotlinx.coroutines.launch
 
-/** Target of earnd://checkin?habitId=: tap habits are checked in at once, photo habits open the camera, timed habits start focus. */
+/**
+ * Target of earnd://checkin?habitId=: tap habits are checked in at once, photo habits open the camera,
+ * timed habits ask how long it was. A tick records what was done; only Start runs the timer.
+ */
 @Composable
 fun CheckInRoute(habitId: Long, onNeedsPhoto: () -> Unit, onDone: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
+    var askDuration by remember { mutableStateOf<Pair<HabitEntity, List<FocusOption>>?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(habitId) {
         val h = ServiceLocator.db.habitDao().get(habitId)
         if (h == null || h.archived) return@LaunchedEffect onDone()
-        when (ServiceLocator.habitService.checkInKind(h, ServiceLocator.settings.current())) {
-            HabitService.CheckInKind.FOCUS -> { com.earnd.app.focus.startFocus(context, habitId); onDone() }
+        val s = ServiceLocator.settings.current()
+        when (ServiceLocator.habitService.checkInKind(h, s)) {
+            HabitService.CheckInKind.FOCUS -> askDuration = h to TimedHabit.options(h, s)
             HabitService.CheckInKind.PHOTO -> onNeedsPhoto()
             HabitService.CheckInKind.AMOUNT -> askAmount = h
             HabitService.CheckInKind.TAP -> { ServiceLocator.habitService.checkIn(habitId); onDone() }
@@ -37,6 +43,15 @@ fun CheckInRoute(habitId: Long, onNeedsPhoto: () -> Unit, onDone: () -> Unit) {
         AmountDialog(h, onDismiss = onDone) { amount ->
             askAmount = null
             scope.launch { ServiceLocator.habitService.checkIn(h.id, quantity = amount); onDone() }
+        }
+    }
+    askDuration?.let { (h, opts) ->
+        DurationDialog(h, opts, onDismiss = onDone) { _, reward ->
+            askDuration = null
+            scope.launch {
+                ServiceLocator.habitService.checkInWithBonus(h.id, rewardOverride = reward)
+                onDone()
+            }
         }
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }

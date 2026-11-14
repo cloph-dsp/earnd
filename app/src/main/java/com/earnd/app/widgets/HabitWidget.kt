@@ -158,14 +158,16 @@ class HabitCheckInAction : ActionCallback {
         val id = parameters[HABIT_ID] ?: return
         val habit = ServiceLocator.db.habitDao().get(id)
         if (habit == null || habit.archived) return
+        val s = ServiceLocator.settings.current()
         if (com.earnd.app.domain.TimedHabit.isTimed(habit)) {
-            // Same as "Start N min" in the app; if the system blocks the activity start, the
-            // accessibility guard redirects the launcher to the timer anyway.
-            runCatching { com.earnd.app.focus.startFocus(context, id) }
+            // A widget tick records the check-in like the app's tick does; the timer only runs
+            // from an explicit Start. Several durations can't be asked here, so the habit's own
+            // reward is used.
+            val reward = com.earnd.app.domain.TimedHabit.options(habit, s).firstOrNull()?.reward
+            ServiceLocator.habitService.checkInWithBonus(id, rewardOverride = reward)
             WidgetRefresher.updateAll(context)
             return
         }
-        val s = ServiceLocator.settings.current()
         if (ServiceLocator.habitService.photoRequired(habit, s)) {
             // Background activity starts are blocked on Android 14+: re-render so the next tap
             // uses actionStartActivity for the photo check-in.

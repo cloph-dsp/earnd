@@ -60,6 +60,7 @@
     <string name="home_check_in_again">Check in again</string>
     <string name="home_photo_needed">Photo needed</string>
     <string name="home_add_amount">Add amount</string>
+    <string name="home_duration_prompt">How long did you do it?</string>
     <string name="home_amount_prompt">How much? (%1$s)</string>
     <string name="home_amount_default_unit">amount</string>
 

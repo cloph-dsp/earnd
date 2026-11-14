@@ -71,14 +71,18 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChe
     val settings by remember { sl.settings.settings }.collectAsState(initial = Settings())
     val snackbar = remember { SnackbarHostState() }
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
+    var askDuration by remember { mutableStateOf<HabitEntity?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val doCheck: (HabitDay) -> Unit = { hd ->
+        val h = hd.habit
+        val durations = com.earnd.app.domain.TimedHabit.options(h, settings)
         when {
-            com.earnd.app.domain.TimedHabit.isTimed(hd.habit) -> launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
-            HabitRules.needsPhoto(hd.habit, settings) -> onPhotoCheckIn(hd.habit.id)
-            hd.habit.targetQuantity != null -> askAmount = hd.habit
+            // A tick records what was done; only the Start button runs the timer.
+            durations.size > 1 || h.stopwatch -> askDuration = h
+            HabitRules.needsPhoto(h, settings) -> onPhotoCheckIn(h.id)
+            h.targetQuantity != null -> askAmount = h
             else -> launchUi {
-                val r = sl.habitService.checkInWithBonus(hd.habit.id)
+                val r = sl.habitService.checkInWithBonus(h.id, rewardOverride = durations.firstOrNull()?.reward)
                 com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
             }
         }
@@ -159,6 +163,15 @@ fun HabitsScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChe
         AmountDialog(h, onDismiss = { askAmount = null }) { amount ->
             askAmount = null
             launchUi { sl.habitService.checkIn(h.id, quantity = amount) }
+        }
+    }
+    askDuration?.let { h ->
+        DurationDialog(h, com.earnd.app.domain.TimedHabit.options(h, settings), onDismiss = { askDuration = null }) { _, reward ->
+            askDuration = null
+            launchUi {
+                val r = sl.habitService.checkInWithBonus(h.id, rewardOverride = reward)
+                com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
+            }
         }
     }
 }
