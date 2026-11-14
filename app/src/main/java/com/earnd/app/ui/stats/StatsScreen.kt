@@ -148,11 +148,25 @@ private fun PairedBars(days: List<LocalDate>, earned: Map<Long, Int>, spent: Map
                 Modifier.weight(1f).semantics { contentDescription = desc },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Num(if (e > 0) "$e" else "", color = p.amber, style = NumberStyle.copy(fontSize = 12.sp))
+                // The value label rides the earned slot, so it stays above the bar that carries it.
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Num(if (e > 0) "$e" else "", color = p.amber, style = NumberStyle.copy(fontSize = 12.sp))
+                    }
+                    if (e > 0 && s > 0) Spacer(Modifier.weight(1f))
+                }
                 Column(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth().height(104.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
-                        Box(Modifier.weight(1f).height((100f * e / max).dp).background(p.amber))
-                        Box(Modifier.weight(1f).height((100f * s / max).dp).background(p.secondary))
+                        // A day with one series gives that bar the whole column; splitting it in two
+                        // left the bar sitting under the gap instead of under its own day label.
+                        if (e > 0 && s > 0) {
+                            Box(Modifier.weight(1f).height((100f * e / max).dp).background(p.amber))
+                            Box(Modifier.weight(1f).height((100f * s / max).dp).background(p.secondary))
+                        } else if (e > 0) {
+                            Box(Modifier.fillMaxWidth().height((100f * e / max).dp).background(p.amber))
+                        } else if (s > 0) {
+                            Box(Modifier.fillMaxWidth().height((100f * s / max).dp).background(p.secondary))
+                        }
                     }
                     // One solid baseline instead of a stub per empty day, which read as a dashed axis.
                     Box(Modifier.fillMaxWidth().height(1.dp).background(p.divider))
@@ -188,7 +202,7 @@ private fun DayGrid(days: List<LocalDate>, today: LocalDate, rows: List<Pair<Str
             days.forEach { d ->
                 val v = values[d.toEpochDay()] ?: 0
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Num(if (v == 0) "" else "$v", color = p.text)
+                    Num(if (v == 0) "0" else "$v", color = if (v == 0) p.muted else p.text)
                 }
             }
         }
