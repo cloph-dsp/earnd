@@ -154,6 +154,19 @@ class MeteringTest {
         assertEquals(9, bank.balance().minutes)
     }
 
+    @Test fun recordCarriesChargedMinutesAndRawScreenTime() = runTest {
+        val minutes = mutableListOf<Int>()
+        val raw = mutableListOf<Long>()
+        val e = MeterEngine({ it }, { 0L }, { }) { _, _, m, r -> minutes += m; raw += r }
+        e.switchTo(MeterActive("k", "p", 50, clock.now()), clock.now())
+        repeat(4) { // 4 x 30 s at 50% = 1 charged minute
+            clock.nowMs += 30_000
+            e.advance(clock.now())
+        }
+        assertEquals(listOf(1), minutes)
+        assertEquals(listOf(120_000L), raw)
+    }
+
     @Test fun debitIsFifoAcrossLots() = runTest {
         earn(10, 1)
         clock.advanceMin(60)

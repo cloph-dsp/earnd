@@ -84,14 +84,16 @@ class MeterEngine(
     private val debit: suspend (minutes: Int) -> Int,
     private val loadCarry: suspend () -> Long,
     private val saveCarry: suspend (Long) -> Unit,
-    /** Called with the rule key, time and whole minutes actually charged; for the per-app summary. */
-    private val record: suspend (key: String, at: Long, minutes: Int) -> Unit = { _, _, _ -> },
+    /** Called with the rule key, time, whole minutes actually charged and the raw foreground ms of the same step; for the per-app summary. */
+    private val record: suspend (key: String, at: Long, minutes: Int, rawMs: Long) -> Unit = { _, _, _, _ -> },
 ) {
     private val mutex = Mutex()
     private var lastAt: Long? = null
     private var active: MeterActive? = null
     private var carry: Long? = null
     private var balance = 0
+    /** Raw ms seen since the last charge, recorded with the minutes those ms produced. */
+    private var rawPending = 0L
 
     /** What is being counted now, or null. */
     fun current(): MeterActive? = active
@@ -121,12 +123,18 @@ class MeterEngine(
         if (from == null || r == null || r == 0 || !interactive || now <= from) return 0
         val c = carry ?: loadCarry().also { carry = it }
         val step = MeterMath.accrue(c, now - from, r)
+        // Beyond the cap the service wasn't verifying, so it isn't usage.
+        rawPending += (now - from).coerceIn(0, MeterMath.MAX_STEP_MS)
         carry = step.carry
         if (step.carry != c) saveCarry(step.carry)
         if (step.units <= 0) return 0
         val taken = debit(step.units)
         balance = (balance - taken).coerceAtLeast(0)
-        if (taken > 0) active?.let { runCatching { record(it.key, now, taken) } }
+        if (taken > 0) active?.let {
+            val raw = rawPending
+            rawPending = 0
+            runCatching { record(it.key, now, taken, raw) }
+        }
         return taken
     }
 

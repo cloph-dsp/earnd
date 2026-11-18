@@ -23,6 +23,7 @@
     <string name="notify_report_done">Feito: %1$s</string>
     <string name="notify_report_missed">Em falta: %1$s</string>
     <string name="notify_report_leisure">Lazer usado: %1$s · ganho: %2$s</string>
+    <string name="notify_report_leisure_screen">Lazer usado: %1$s · ganho: %2$s · %3$s em ecrã</string>
     <string name="notify_hours_minutes">%1$d h %2$d min</string>
     <string name="notify_minutes">%1$d min</string>
 </resources>

@@ -22,6 +22,7 @@
     <string name="notify_report_done">Done: %1$s</string>
     <string name="notify_report_missed">Missed: %1$s</string>
     <string name="notify_report_leisure">Leisure used: %1$s · earned: %2$s</string>
+    <string name="notify_report_leisure_screen">Leisure used: %1$s · earned: %2$s · %3$s on screen</string>
     <string name="notify_hours_minutes">%1$d h %2$d min</string>
     <string name="notify_minutes">%1$d min</string>
 </resources>

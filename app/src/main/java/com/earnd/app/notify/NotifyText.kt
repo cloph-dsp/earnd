@@ -37,7 +37,7 @@ object NotifyText {
     }
 
     /** Null when nothing was scheduled and no time was earned or used. */
-    fun report(habits: List<HabitLine>, leisureMinutesUsed: Int, earnedMinutes: Int): NotifyMessage? {
+    fun report(habits: List<HabitLine>, leisureMinutesUsed: Int, earnedMinutes: Int, rawMinutes: Int = 0): NotifyMessage? {
         if (habits.isEmpty() && leisureMinutesUsed <= 0 && earnedMinutes <= 0) return null
         val done = habits.filter { it.complete }
         val missed = habits.filterNot { it.complete }
@@ -49,7 +49,10 @@ object NotifyText {
         val lines = buildList {
             if (done.isNotEmpty()) add(Str.get(R.string.notify_report_done, listNames(done)))
             if (missed.isNotEmpty()) add(Str.get(R.string.notify_report_missed, listNames(missed)))
-            add(Str.get(R.string.notify_report_leisure, minutes(leisureMinutesUsed), minutes(earnedMinutes)))
+            add(
+                if (rawMinutes > 0) Str.get(R.string.notify_report_leisure_screen, minutes(leisureMinutesUsed), minutes(earnedMinutes), minutes(rawMinutes))
+                else Str.get(R.string.notify_report_leisure, minutes(leisureMinutesUsed), minutes(earnedMinutes)),
+            )
         }
         return NotifyMessage(title, lines.joinToString("\n"))
     }

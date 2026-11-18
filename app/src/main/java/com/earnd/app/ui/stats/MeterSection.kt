@@ -48,7 +48,14 @@ fun MeterSection(days: Int = 7) {
         Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-                Num(formatMinutes(u.minutes))
+                if (u.rawMs > 0) {
+                    Text(
+                        stringResource(R.string.stats_meter_charged_screen, formatMinutes(u.minutes), formatMinutes((u.rawMs / 60_000).toInt())),
+                        style = MaterialTheme.typography.bodyMedium, color = p.secondary,
+                    )
+                } else {
+                    Num(formatMinutes(u.minutes))
+                }
             }
             Box(Modifier.padding(top = 3.dp).fillMaxWidth(u.minutes.toFloat() / max).height(4.dp).background(p.secondary))
         }

@@ -67,7 +67,8 @@ class NotifyReceiver : BroadcastReceiver() {
         val today = ServiceLocator.db.ledgerDao().observeRecent(LEDGER_SCAN).first()
         val used = usedMinutes(today, since)
         val earned = earnedMinutes(today, since)
-        val msg = NotifyText.report(lines, used, earned) ?: return
+        val raw = (ServiceLocator.db.meterUseDao().sumRawSince(since) / 60_000).toInt()
+        val msg = NotifyText.report(lines, used, earned, raw) ?: return
         post(context, NotifyChannels.REPORT, NotifyChannels.ID_REPORT, msg)
     }
 

@@ -55,8 +55,8 @@ object ServiceLocator {
             debit = { timeBank.debitMetered(it) },
             loadCarry = { settings.rawGet("meter.carry")?.toLongOrNull() ?: 0L },
             saveCarry = { settings.rawPut("meter.carry", it.toString()) },
-            record = { key, at, minutes ->
-                db.meterUseDao().insert(com.earnd.app.data.entity.MeterUseEntity(at = at, appKey = key, minutes = minutes))
+            record = { key, at, minutes, rawMs ->
+                db.meterUseDao().insert(com.earnd.app.data.entity.MeterUseEntity(at = at, appKey = key, minutes = minutes, rawMs = rawMs))
                 db.meterUseDao().prune(at - 90L * 24 * 60 * 60 * 1000)
             },
         )

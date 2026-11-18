@@ -93,5 +93,6 @@
     <string name="apps_remove_site">Remover %1$s</string>
     <string name="stats_meter_title">Minutos gastos por app (7 dias)</string>
     <string name="stats_meter_empty">Ainda nada contado.</string>
+    <string name="stats_meter_charged_screen">%1$s cobrados · %2$s em ecrã</string>
     <string name="tasks_due_pick">Escolher data</string>
 </resources>
