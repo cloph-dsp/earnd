@@ -26,4 +26,7 @@
     <string name="widgets_preview_habit_3">Workout</string>
     <string name="widgets_preview_habit_4">Water</string>
     <string name="widgets_preview_done">OK</string>
+    <string name="widgets_preview_task_1">Passport</string>
+    <string name="widgets_preview_task_2">Landlord</string>
+    <string name="widgets_preview_task_3">Desk</string>
 </resources>

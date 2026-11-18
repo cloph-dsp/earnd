@@ -53,6 +53,7 @@ import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
 import com.earnd.app.ui.common.WeekdayPicker
 import com.earnd.app.ui.common.launchUi
+import com.earnd.app.ui.theme.OutlinedButton
 import kotlinx.coroutines.flow.flowOf
 
 @Composable
@@ -89,6 +90,7 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
     }
 
     EditScaffold(stringResource(if (isNew) R.string.tasks_edit_new else if (isSub) R.string.tasks_edit_subtask else R.string.tasks_edit_task), onBack = onDone, bottomBar = {
+        // Pinned: this form is long enough that an in-content save lands below the fold.
         Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()) {
             Button(onClick = save, enabled = t.title.isNotBlank(), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.tasks_save))
@@ -147,10 +149,12 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
         }
 
         if (!isNew) {
+            // Outlined, never red: the confirm dialog already guards the act, and red
+            // stays for locked state and the one primary action.
             Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { confirmDelete = true }) { Text(stringResource(R.string.tasks_delete)) }
+                OutlinedButton(onClick = { confirmDelete = true }) { Text(stringResource(R.string.tasks_delete)) }
                 if (t.repeats && !isSub && t.completedAt == null) {
-                    Button(onClick = { launchUi { sl.taskService.skip(t.id); onDone() } }) { Text(stringResource(R.string.tasks_skip_this_one)) }
+                    OutlinedButton(onClick = { launchUi { sl.taskService.skip(t.id); onDone() } }) { Text(stringResource(R.string.tasks_skip_this_one)) }
                 }
             }
         }

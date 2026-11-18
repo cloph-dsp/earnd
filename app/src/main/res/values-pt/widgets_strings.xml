@@ -27,4 +27,7 @@
     <string name="widgets_preview_habit_3">Treino</string>
     <string name="widgets_preview_habit_4">Água</string>
     <string name="widgets_preview_done">OK</string>
+    <string name="widgets_preview_task_1">Passaporte</string>
+    <string name="widgets_preview_task_2">Senhorio</string>
+    <string name="widgets_preview_task_3">Secretária</string>
 </resources>

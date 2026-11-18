@@ -106,11 +106,6 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
                 navigationIcon = { androidx.compose.material3.IconButton(onClick = onDone) { Icon(androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.habits_back)) } },
             )
         },
-        bottomBar = {
-            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()) {
-                Button(onClick = save, enabled = h.name.isNotBlank(), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.habits_save)) }
-            }
-        },
     ) { pad ->
     androidx.compose.foundation.layout.Column(
         Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad).imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -273,8 +268,15 @@ fun HabitEditScreen(habitId: Long, onDone: () -> Unit) {
             SectionTitle(stringResource(R.string.habits_section_manage))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { launchUi { if (sl.habitService.hardModeBlocks(sl.db.habitDao().get(h.id) ?: h)) hardBlocked = true else { sl.habitService.archive(h.id); onDone() } } }) { Text(stringResource(R.string.habits_archive)) }
-                Button(onClick = { launchUi { if (sl.habitService.hardModeBlocks(sl.db.habitDao().get(h.id) ?: h)) hardBlocked = true else confirmDelete = true } }) { Text(stringResource(R.string.habits_delete)) }
+                OutlinedButton(onClick = { launchUi { if (sl.habitService.hardModeBlocks(sl.db.habitDao().get(h.id) ?: h)) hardBlocked = true else confirmDelete = true } }) { Text(stringResource(R.string.habits_delete)) }
             }
+        }
+
+        // The save button ends the form: pinned to the screen's foot it left a
+        // half-blank page on this short form. The ~32dp above it is section
+        // spacing, the same rhythm the form uses between blocks.
+        Box(Modifier.fillMaxWidth().padding(top = 16.dp)) {
+            Button(onClick = save, enabled = h.name.isNotBlank(), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.habits_save)) }
         }
         }
     }

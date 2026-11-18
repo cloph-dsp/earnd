@@ -56,5 +56,8 @@ magenta gradients, glows).
 - Settings category rows are bodyMedium under the 18sp screen title; navigation never matches the
   weight of the title it sits under. The bottom bar boundary uses the stronger line hairline, not
   the list divider.
+- A form's save action ends the form: inline at the foot of a short form's content (the ~32dp above
+  it is section spacing), pinned to the screen foot on long forms where inline would fall below the
+  fold.
 - Widgets, notifications accent and launcher icon follow this palette (icon: amber chamfered mark on
   graphite).
