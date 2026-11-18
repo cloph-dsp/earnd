@@ -289,7 +289,7 @@ private fun EarnRow(title: String, detail: String, minutes: Int, photo: Boolean,
             Icon(Icons.Outlined.CameraAlt, contentDescription = stringResource(R.string.blocking_check_in),
                 tint = p.amber, modifier = Modifier.size(16.dp))
         } else {
-            // Same outline the task lists draw: the amber "+N min" numeral already says this pays.
+            // Same outline the task lists draw: the amber "+N" numeral already says this pays.
             Checkbox(false, null)
         }
     }

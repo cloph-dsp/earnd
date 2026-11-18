@@ -47,7 +47,8 @@ magenta gradients, glows).
 - Lock screen: red chamfered badge "<App> locked", "Not yet.", earnable rows, quiet "Back to home".
 - A ruler always carries its scale caption (Today: the day reference; lock: the minutes needed), so
   the same shape never means two quantities. Earn rows draw the same outline checkbox as the task
-  lists; the amber "+N min" numeral says what it pays.
+  lists; the amber "+N" numeral says what it pays. Row rewards stay bare numerals in a narrow
+  column; the hero balance and start labels carry the "min" unit for the whole screen.
 - A picker with a single option is not drawn: the unlock button already states the amount, and one
   full-width chip reads as a focused input field.
 - Row-end start actions ("Start N min") are outlined quiet chips, not bare text: the affordance has

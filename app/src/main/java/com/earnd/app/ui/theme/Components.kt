@@ -133,10 +133,21 @@ private const val DRAIN_SEGMENTS = 10
 @Composable
 fun DrainScale(full: Int, modifier: Modifier = Modifier) {
     val style = NumberStyle.copy(fontSize = 12.sp)
-    Row(modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Num("0", color = Earnd.palette.muted, style = style)
-        Num("${full / 2}", color = Earnd.palette.muted, style = style)
-        Num("$full", color = Earnd.palette.muted, style = style)
+    Row(modifier.fillMaxWidth().padding(top = 4.dp)) {
+        // Three equal cells put the middle numeral on the ruler's 50% mark,
+        // where the quantity it names actually is; SpaceBetween would centre
+        // it in the leftover space instead.
+        Box(Modifier.weight(1f)) { Num("0", color = Earnd.palette.muted, style = style) }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            // An odd scale has no integer middle: drop the numeral rather than
+            // name 2 for the 2.5 tick.
+            if (full % 2 == 0) Num("${full / 2}", color = Earnd.palette.muted, style = style)
+        }
+        // Only the top end carries the unit: one word makes the numerals a
+        // quantity without turning the caption into a row of labels.
+        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            Num("$full min", color = Earnd.palette.muted, style = style)
+        }
     }
 }
 

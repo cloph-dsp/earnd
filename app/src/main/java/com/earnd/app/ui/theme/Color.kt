@@ -29,8 +29,8 @@ data class EarndPalette(
 val DarkPalette = EarndPalette(
     bg = Color(0xFF121110),
     raised = Color(0xFF1D1B18),
-    line = Color(0xFF2B2824),
-    divider = Color(0xFF24211E),
+    line = Color(0xFF3E3A34),
+    divider = Color(0xFF38342E),
     text = Color(0xFFE9E4DA),
     secondary = Color(0xFFA39C8F),
     muted = Color(0xFF8F887B),
@@ -39,14 +39,15 @@ val DarkPalette = EarndPalette(
     onAmber = Color(0xFF121110),
     red = Color(0xFFFF4A3D),
     onRed = Color(0xFF121110),
-    drainEmpty = Color(0xFF3F392E),
+    drainEmpty = Color(0xFF45413B),
     edge = Color(0xFF7A7368),
     amberFill = Color(0xFFE9A412),
 )
 
 // Light tokens picked with a WCAG contrast script: amber and done clear 4.5:1 on both bg and
 // raised; edge clears 3:1; line/drainEmpty are ~1.7-2:1 so empty tracks and hairlines stay visible
-// on cream instead of dissolving as they did at #D6D0C4/#E2DDD3.
+// on cream instead of dissolving as they did at #D6D0C4/#E2DDD3. The dark hairlines above are
+// tuned the same way (~1.5-1.7:1 on bg/raised) instead of the old 1.17:1 graphite-on-graphite.
 val LightPalette = EarndPalette(
     bg = Color(0xFFF2EFE8),
     raised = Color(0xFFFFFFFF),

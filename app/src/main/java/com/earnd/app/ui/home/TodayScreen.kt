@@ -48,6 +48,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.runtime.LaunchedEffect
 import com.earnd.app.data.entity.OwnerKind
@@ -150,6 +151,8 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             onStart = { launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) } },
             onUndo = { c -> launchUi { HabitActions.undo(c.id) } },
         )
+        // Same flat row chrome as the task lists: one list model across the app.
+        RowDivider()
     }
 
     Scaffold(
@@ -375,8 +378,6 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
                 if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) " · " else "") + stringResource(R.string.home_ignored, ignored), color = p.red)
             }
         }
-        val rewardMin = HabitRules.rewardMinutes(h, settings)
-        if (rewardMin > 0) Num("+$rewardMin", Modifier.padding(horizontal = 8.dp), color = if (complete) p.muted else p.amber)
         when {
             complete && !com.earnd.app.domain.HabitProgress.isQuantity(h) ->
                 IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.secondary) }
@@ -385,6 +386,12 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, stringResource(R.string.home_photo_needed), tint = p.muted, modifier = Modifier.size(16.dp))
             h.targetQuantity != null -> Icon(Icons.Outlined.Add, stringResource(R.string.home_add_amount), tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Unit
+        }
+        val rewardMin = HabitRules.rewardMinutes(h, settings)
+        if (rewardMin > 0) Box(Modifier.padding(start = 8.dp).widthIn(min = 40.dp), contentAlignment = Alignment.CenterEnd) {
+            // The reward owns the row's last slot, the same one task rows use, so the
+            // column holds still whatever action sits before it.
+            Num("+$rewardMin", color = if (complete) p.muted else p.amber)
         }
     }
 }

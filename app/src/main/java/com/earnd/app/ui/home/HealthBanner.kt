@@ -63,12 +63,12 @@ fun HealthBanner(onOpenPermissions: () -> Unit) {
     }
 }
 
-/** One quiet line: a colored square, what is off, and a chevron. The screen keeps its hierarchy. */
+/** One quiet line: a colored square, what is off, and a chevron. Compact look, 48dp tap target. */
 @Composable
 private fun HealthRow(text: String, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val p = Earnd.palette
     Row(
-        modifier.fillMaxWidth().heightIn(min = 40.dp).border(1.dp, p.divider).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        modifier.fillMaxWidth().heightIn(min = 48.dp).border(1.dp, p.edge).clickable(onClick = onClick).padding(horizontal = 10.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
         Box(Modifier.size(6.dp).background(tint))

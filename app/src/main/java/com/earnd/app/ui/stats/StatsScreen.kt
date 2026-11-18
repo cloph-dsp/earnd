@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.earnd.app.ServiceLocator
@@ -134,50 +135,67 @@ private fun Legend(hasEarned: Boolean, hasSpent: Boolean) {
     }
 }
 
+/** The chart and the "Done per day" table share one column model: this leading label width and
+ *  seven equal cells, so a bar sits exactly over the table column it belongs to. */
+private val GridLabelWidth = 72.dp
+
 @Composable
 private fun PairedBars(days: List<LocalDate>, earned: Map<Long, Int>, spent: Map<Long, Int>, today: LocalDate) {
     val p = Earnd.palette
     val max = (earned.values + spent.values).maxOrNull()?.coerceAtLeast(1) ?: 1
-    Row(Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
-        days.forEach { d ->
-            val e = earned[d.toEpochDay()] ?: 0
-            val s = spent[d.toEpochDay()] ?: 0
-            val isToday = d == today
-            val desc = stringResource(R.string.stats_day_desc, dayLabel(d), e, s)
-            Column(
-                Modifier.weight(1f).semantics { contentDescription = desc },
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // The value label rides the earned slot, so it stays above the bar that carries it.
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Num(if (e > 0) "$e" else "", color = p.amber, style = NumberStyle.copy(fontSize = 12.sp))
-                    }
-                    if (e > 0 && s > 0) Spacer(Modifier.weight(1f))
-                }
-                Column(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth().height(104.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
-                        // A day with one series gives that bar the whole column; splitting it in two
-                        // left the bar sitting under the gap instead of under its own day label.
+    Column(Modifier.fillMaxWidth()) {
+        // The same leading label column and equal-width cells as DayGrid below, so every bar
+        // sits exactly over its table column.
+        Row(Modifier.fillMaxWidth().height(104.dp), verticalAlignment = Alignment.Bottom) {
+            Spacer(Modifier.width(GridLabelWidth))
+            days.forEach { d ->
+                val e = earned[d.toEpochDay()] ?: 0
+                val s = spent[d.toEpochDay()] ?: 0
+                val desc = stringResource(R.string.stats_day_desc, dayLabel(d), e, s)
+                Column(Modifier.weight(1f).padding(horizontal = 3.dp).semantics { contentDescription = desc }) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
+                        // The value rides the bar it belongs to, so a small day reads as a small
+                        // bar with its number on top instead of a number floating at the top of
+                        // the column with no visible owner. Both series are numbered: the spent
+                        // bar's colour alone can't be read at a glance.
+                        val eh = (84f * e / max).dp
+                        val sh = (84f * s / max).dp
                         if (e > 0 && s > 0) {
-                            Box(Modifier.weight(1f).height((100f * e / max).dp).background(p.amber))
-                            Box(Modifier.weight(1f).height((100f * s / max).dp).background(p.secondary))
+                            Bar("$e", eh, p.amberFill, Modifier.weight(1f), labelColor = p.amber)
+                            Bar("$s", sh, p.secondary, Modifier.weight(1f))
                         } else if (e > 0) {
-                            Box(Modifier.fillMaxWidth().height((100f * e / max).dp).background(p.amber))
+                            Bar("$e", eh, p.amberFill, Modifier.fillMaxWidth(), labelColor = p.amber)
                         } else if (s > 0) {
-                            Box(Modifier.fillMaxWidth().height((100f * s / max).dp).background(p.secondary))
+                            Bar("$s", sh, p.secondary, Modifier.fillMaxWidth())
                         }
                     }
-                    // One solid baseline instead of a stub per empty day, which read as a dashed axis.
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(p.divider))
                 }
-                Text(
-                    dayLabel(d), maxLines = 1, modifier = Modifier.padding(top = 4.dp),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal),
-                    color = if (isToday) p.text else p.secondary,
-                )
             }
         }
+        // One solid baseline instead of a stub per empty day, which read as a dashed axis.
+        Box(Modifier.fillMaxWidth().height(1.dp).background(p.divider))
+        Row(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.width(GridLabelWidth))
+            days.forEach { d ->
+                val isToday = d == today
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Text(
+                        dayLabel(d), maxLines = 1, modifier = Modifier.padding(top = 4.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal),
+                        color = if (isToday) p.text else p.secondary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** One bar with its value riding on top; large fills use amberFill while numerals stay amber. */
+@Composable
+private fun Bar(label: String, height: Dp, color: Color, modifier: Modifier = Modifier, labelColor: Color = color) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Num(label, color = labelColor, style = NumberStyle.copy(fontSize = 12.sp))
+        Box(Modifier.fillMaxWidth().height(height).background(color))
     }
 }
 
@@ -185,7 +203,7 @@ private fun PairedBars(days: List<LocalDate>, earned: Map<Long, Int>, spent: Map
 @Composable
 private fun DayGrid(days: List<LocalDate>, today: LocalDate, rows: List<Pair<String, Map<Long, Int>>>) {
     val p = Earnd.palette
-    val labelWidth = 72.dp
+    val labelWidth = GridLabelWidth
     Row(Modifier.fillMaxWidth()) {
         Spacer(Modifier.width(labelWidth))
         days.forEach { d ->
