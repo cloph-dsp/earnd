@@ -381,7 +381,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             complete && !com.earnd.app.domain.HabitProgress.isQuantity(h) ->
                 IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.secondary) }
             complete -> Unit
-            com.earnd.app.domain.TimedHabit.isTimed(h) -> TextButton(onClick = onStart) { Text(com.earnd.app.focus.startLabel(h, settings), color = p.secondary) }
+            com.earnd.app.domain.TimedHabit.isTimed(h) -> com.earnd.app.ui.theme.QuietChip(com.earnd.app.focus.startLabel(h, settings), onStart)
             HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, stringResource(R.string.home_photo_needed), tint = p.muted, modifier = Modifier.size(16.dp))
             h.targetQuantity != null -> Icon(Icons.Outlined.Add, stringResource(R.string.home_add_amount), tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Unit
@@ -395,15 +395,20 @@ private fun fmtQty(q: Double): String = HabitRules.formatAmount(q)
 @Composable
 private fun AddButton(onClick: () -> Unit, description: String) {
     val p = Earnd.palette
-    Surface(
-        onClick,
-        Modifier.size(32.dp),
-        shape = RectangleShape,
-        color = Color.Transparent,
-        border = androidx.compose.foundation.BorderStroke(1.dp, p.edge),
+    Box(
+        // 48dp touch target around the 32dp visual.
+        Modifier.minimumInteractiveComponentSize().clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.Add, description, tint = p.secondary, modifier = Modifier.size(18.dp))
+        Surface(
+            shape = RectangleShape,
+            color = Color.Transparent,
+            border = androidx.compose.foundation.BorderStroke(1.dp, p.edge),
+            modifier = Modifier.size(32.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Add, description, tint = p.secondary, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }

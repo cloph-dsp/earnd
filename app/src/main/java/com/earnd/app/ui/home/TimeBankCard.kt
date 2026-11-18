@@ -148,6 +148,14 @@ fun TimeBankCard(
 private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
     val p = Earnd.palette
     val options = UnlockCap.choices(SPEND_CHOICES, balance, cap).take(5)
+    // One option is no choice: the unlock button already states the amount, and a single
+    // full-width chip reads as a focused input field rather than a picker.
+    if (options.size == 1) {
+        Button(onClick = { onSpend(options.first()) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+            Text(stringResource(R.string.home_bank_unlock_until, formatMinutes(options.first()), UiFormats.value.formatTime(System.currentTimeMillis() + options.first() * 60_000L, java.time.ZoneId.systemDefault())), style = MaterialTheme.typography.labelLarge)
+        }
+        return
+    }
     var pick by remember(balance, cap) { mutableIntStateOf(options.first()) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() } }

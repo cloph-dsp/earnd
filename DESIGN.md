@@ -26,7 +26,7 @@ magenta gradients, glows).
 - Tasks use neutral text-colored checkboxes; amber only when they carry a reward. Priority "High" is
   secondary text, never red.
 - Empty drain segments use drainEmpty #3F392E.
-- Light variant: paper #F2EFE8, surface #FFFFFF, line #D6D0C4, text #121110; amber → #9A6A00, red → #C9281C.
+- Light variant: paper #F2EFE8, surface #FFFFFF, line #C0B9A8, divider #CCC5B6, text #121110; amber → #855C00 (≥4.5:1 on paper and surface), done → #6F695D, edge → #7D7669, red → #C9281C. All light tokens checked with a WCAG script: body text ≥4.5:1, control outlines ≥3:1, hairlines and empty progress tracks ~1.7-2:1 so structure stays visible on cream.
 
 ## Type (SIL OFL, bundle in res/font)
 - Chakra Petch 500/600 for UI and headings (compact: body 13–14sp, section headings 12sp semibold
@@ -45,5 +45,15 @@ magenta gradients, glows).
 - Today: wordmark + time + off-day chip + add → time-bank card (state, balance, Unlock) → habits
   done ("N of M habits") → "Next" (one hero habit, most ignored first) → "Later today" → "Tasks today".
 - Lock screen: red chamfered badge "<App> locked", "Not yet.", earnable rows, quiet "Back to home".
+- A ruler always carries its scale caption (Today: the day reference; lock: the minutes needed), so
+  the same shape never means two quantities. Earn rows draw the same outline checkbox as the task
+  lists; the amber "+N min" numeral says what it pays.
+- A picker with a single option is not drawn: the unlock button already states the amount, and one
+  full-width chip reads as a focused input field.
+- Row-end start actions ("Start N min") are outlined quiet chips, not bare text: the affordance has
+  to be visible for the one action that runs a timer.
+- Settings category rows are bodyMedium under the 18sp screen title; navigation never matches the
+  weight of the title it sits under. The bottom bar boundary uses the stronger line hairline, not
+  the list divider.
 - Widgets, notifications accent and launcher icon follow this palette (icon: amber chamfered mark on
   graphite).

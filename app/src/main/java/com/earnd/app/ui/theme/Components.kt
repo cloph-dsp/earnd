@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 
 private val ButtonPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 
@@ -145,6 +146,29 @@ fun AddFab(onClick: () -> Unit, description: String, modifier: Modifier = Modifi
     val p = Earnd.palette
     Surface(onClick, modifier.size(56.dp), shape = RectangleShape, color = p.raised, border = BorderStroke(1.dp, p.edge)) {
         Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Add, description, tint = p.text) }
+    }
+}
+
+/** Compact outlined action for a row end: a visible affordance without a filled button's weight. */
+@Composable
+fun QuietChip(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val p = Earnd.palette
+    Box(
+        modifier
+            // 48dp touch target around the 32dp chip.
+            .minimumInteractiveComponentSize()
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .heightIn(min = 32.dp)
+                .border(1.dp, p.edge, RectangleShape)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text, style = MaterialTheme.typography.labelMedium, color = p.secondary)
+        }
     }
 }
 

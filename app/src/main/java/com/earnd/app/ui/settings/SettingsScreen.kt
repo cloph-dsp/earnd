@@ -194,7 +194,8 @@ fun SettingsScreen(onOpenApps: () -> Unit, onOpenPermissions: () -> Unit) {
 private fun CategoryRow(title: String, summary: String, onClick: () -> Unit) {
     com.earnd.app.ui.theme.ListRow(onClick, Modifier.padding(vertical = 8.dp), minHeight = 56.dp) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            // Navigation labels stay a step below the 18sp screen title they sit under.
+            Text(title, style = MaterialTheme.typography.bodyMedium)
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
         }
         Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Earnd.palette.muted)

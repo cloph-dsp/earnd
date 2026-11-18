@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -67,7 +68,8 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
         bottomBar = {
             if (tabs.any { it.route == route }) {
                 Column {
-                RowDivider()
+                // The bar is a surface boundary, not a list separator, so it takes the stronger hairline.
+                HorizontalDivider(thickness = 1.dp, color = Earnd.palette.line)
                 NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                     tabs.forEach { t ->
                         NavigationBarItem(

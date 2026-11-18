@@ -215,9 +215,9 @@ private fun HabitOverviewRow(d: HabitDay, due: Boolean, streak: Int, activeDays:
         }
         if (due && !d.complete && com.earnd.app.domain.TimedHabit.isTimed(h) && !h.archived) {
             val context = androidx.compose.ui.platform.LocalContext.current
-            androidx.compose.material3.TextButton(onClick = { com.earnd.app.ui.common.launchUi { com.earnd.app.focus.startFocus(context, h.id) } }) {
-                Text(com.earnd.app.focus.startLabel(h, settings), color = p.secondary)
-            }
+            com.earnd.app.ui.theme.QuietChip(com.earnd.app.focus.startLabel(h, settings), onClick = {
+                com.earnd.app.ui.common.launchUi { com.earnd.app.focus.startFocus(context, h.id) }
+            })
         }
         // Partway through a multi-check-in habit (6 of 10): the tick adds one, this takes the last one back.
         if (d.done > 0 && !d.complete) IconButton(onClick = onUndo) {

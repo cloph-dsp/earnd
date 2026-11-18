@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.earnd.app.ui.theme.DrainRuler
+import com.earnd.app.ui.theme.DrainScale
 import com.earnd.app.domain.UnlockCap
 import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.RowDivider
@@ -213,6 +214,8 @@ private fun Header(cause: BlockCause, target: String, until: String?, balance: I
             if (!enough) Text(pluralStringResource(R.plurals.blocking_balance, balance, balance),
                 style = MaterialTheme.typography.bodyMedium, color = p.secondary)
             DrainRuler(balance, need, Modifier.padding(top = 4.dp))
+            // Same ruler shape as Today, so it needs the same scale caption to say what "full" means here.
+            DrainScale(need)
         }
     }
 }
@@ -286,7 +289,8 @@ private fun EarnRow(title: String, detail: String, minutes: Int, photo: Boolean,
             Icon(Icons.Outlined.CameraAlt, contentDescription = stringResource(R.string.blocking_check_in),
                 tint = p.amber, modifier = Modifier.size(16.dp))
         } else {
-            Checkbox(false, null, reward = true)
+            // Same outline the task lists draw: the amber "+N min" numeral already says this pays.
+            Checkbox(false, null)
         }
     }
 }
