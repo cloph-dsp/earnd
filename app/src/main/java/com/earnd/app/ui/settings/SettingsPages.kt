@@ -37,10 +37,12 @@ import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
+import com.earnd.app.ui.common.WeekdayPicker
 import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.OutlinedButton
 import java.time.DayOfWeek
 import java.time.format.TextStyle
+import java.time.LocalDate
 import java.util.Locale
 
 @Composable
@@ -195,8 +197,20 @@ internal fun RemindersPage(cur: Settings, change: Change) {
     SectionTitle(stringResource(R.string.settings_rem_ringing_section))
     val today = com.earnd.app.ServiceLocator.clock.today().toEpochDay()
     SwitchRow(stringResource(R.string.settings_rem_off_day), cur.onOffDay(today),
-        { on -> change { it.copy(offDayEpochDay = if (on) today else null) } },
+        { on ->
+            change { s ->
+                if (on) s.copy(offDayEpochDay = today)
+                else if (s.offDayEpochDay == today) s.copy(offDayEpochDay = null)
+                else s.copy(offDayWeekdays = s.offDayWeekdays - LocalDate.ofEpochDay(today).dayOfWeek.value)
+            }
+        },
         hint = stringResource(R.string.settings_rem_off_day_hint))
+    Label(stringResource(R.string.settings_rem_off_day_weekdays))
+    Helper(stringResource(R.string.settings_rem_off_day_weekdays_hint))
+    WeekdayPicker(cur.offDayWeekdays.fold(0) { acc, v -> acc or (1 shl (v - 1)) }) { m ->
+        val days = (1..7).filter { m and (1 shl (it - 1)) != 0 }.toSet()
+        change { it.copy(offDayWeekdays = days) }
+    }
     Label(stringResource(R.string.settings_rem_ring_for))
     com.earnd.app.ui.alarms.RingForPicker(cur.ringSec, withDefault = false) { v -> v?.let { s -> change { it.copy(ringSec = s) } } }
     Label(stringResource(R.string.settings_rem_volume, cur.alarmVolumePct))

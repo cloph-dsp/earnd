@@ -90,6 +90,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.earnd.app.R
 import com.earnd.app.i18n.Str
+import java.time.LocalDate
 
 private val SEGMENT_ORDER = listOf(DaySegment.MORNING, DaySegment.AFTERNOON, DaySegment.EVENING, DaySegment.NONE)
 
@@ -165,7 +166,13 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     Spacer(Modifier.width(10.dp))
                     Num(clock, Modifier.weight(1f))
                     OffDayToggle(settings.onOffDay(todayDay)) { on ->
-                        launchUi { sl.settings.update { it.copy(offDayEpochDay = if (on) todayDay else null) } }
+                        launchUi {
+                            sl.settings.update { s ->
+                                if (on) s.copy(offDayEpochDay = todayDay)
+                                else if (s.offDayEpochDay == todayDay) s.copy(offDayEpochDay = null)
+                                else s.copy(offDayWeekdays = s.offDayWeekdays - LocalDate.ofEpochDay(todayDay).dayOfWeek.value)
+                            }
+                        }
                     }
                     Spacer(Modifier.width(8.dp))
                     AddButton(onClick = onAddHabit, description = stringResource(R.string.home_add_habit))

@@ -8,6 +8,7 @@ import com.earnd.app.data.entity.ThemeMode
 import com.earnd.app.domain.DateFormatPref
 import com.earnd.app.domain.TimeFormatPref
 import java.time.DayOfWeek
+import java.time.LocalDate
 
 /** Typed user settings. Minute-of-day values are 0..1439 local time. */
 data class Settings(
@@ -65,8 +66,11 @@ data class Settings(
     val gentleStart: Boolean = true,
     /** Alarms on this day (epoch day) vibrate instead of playing a sound. */
     val offDayEpochDay: Long? = null,
+    /** DayOfWeek values (1=Monday..7=Sunday) whose alarms vibrate every week. */
+    val offDayWeekdays: Set<Int> = emptySet(),
 ) {
-    fun onOffDay(epochDay: Long): Boolean = offDayEpochDay == epochDay
+    fun onOffDay(epochDay: Long): Boolean =
+        offDayEpochDay == epochDay || LocalDate.ofEpochDay(epochDay).dayOfWeek.value in offDayWeekdays
 
     fun onVacation(epochDay: Long): Boolean {
         val from = vacationFromDay ?: return false

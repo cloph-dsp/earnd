@@ -339,4 +339,6 @@
     <string name="backup_err_hard_mode">Hard mode is on, so data cannot be replaced or cleared.</string>
     <string name="settings_rem_off_day">Off day</string>
     <string name="settings_rem_off_day_hint">Today\'s alarms vibrate instead of playing a sound. It ends at midnight.</string>
+    <string name="settings_rem_off_day_weekdays">Recurring off days</string>
+    <string name="settings_rem_off_day_weekdays_hint">Alarms vibrate on these weekdays</string>
 </resources>
