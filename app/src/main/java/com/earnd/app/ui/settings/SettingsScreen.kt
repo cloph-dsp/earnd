@@ -23,7 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import com.earnd.app.ui.theme.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -51,17 +50,16 @@ import com.earnd.app.remote.RemoteSettings
 import com.earnd.app.ui.alarms.AlarmConfigEditor
 import com.earnd.app.ui.alarms.AlarmConfigs
 import com.earnd.app.ui.common.ChoiceChips
+import com.earnd.app.ui.common.DateField
 import com.earnd.app.domain.DateFormatPref
 import com.earnd.app.domain.TimeFormatPref
 import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
-import com.earnd.app.ui.common.formatDate
 import com.earnd.app.ui.common.dateHint
 import com.earnd.app.ui.common.formatMinuteOfDay
 import com.earnd.app.ui.common.launchUi
-import com.earnd.app.ui.common.parseDate
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import androidx.compose.ui.Alignment
@@ -275,19 +273,36 @@ internal fun ExactAlarmRow() {
 
 @Composable
 internal fun VacationEditor(cur: Settings, change: Change) {
-    var from by remember(cur.vacationFromDay) { mutableStateOf(cur.vacationFromDay?.let(::formatDate) ?: "") }
-    var to by remember(cur.vacationToDay) { mutableStateOf(cur.vacationToDay?.let(::formatDate) ?: "") }
     Text(stringResource(R.string.settings_vacation_blurb), style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(from, { from = it }, label = { Text(stringResource(R.string.settings_vacation_from, dateHint())) }, singleLine = true, modifier = Modifier.weight(1f))
-        OutlinedTextField(to, { to = it }, label = { Text(stringResource(R.string.settings_vacation_to)) }, singleLine = true, modifier = Modifier.weight(1f))
+        DateField(
+            label = stringResource(R.string.settings_vacation_from, dateHint()),
+            epochDay = cur.vacationFromDay,
+            onChange = { d ->
+                if (d != null) {
+                    val curTo = cur.vacationToDay
+                    // A range is only valid ordered: a From past To swaps them.
+                    val (from, to) = if (curTo != null && d > curTo) Pair(curTo, d) else Pair(d, curTo)
+                    change { it.copy(vacationFromDay = from, vacationToDay = to) }
+                }
+            },
+            modifier = Modifier.weight(1f),
+        )
+        DateField(
+            label = stringResource(R.string.settings_vacation_to),
+            epochDay = cur.vacationToDay,
+            onChange = { d ->
+                if (d != null) {
+                    val curFrom = cur.vacationFromDay
+                    // A range is only valid ordered: a To before From swaps them.
+                    val (from, to) = if (curFrom != null && d < curFrom) Pair(d, curFrom) else Pair(curFrom, d)
+                    change { it.copy(vacationFromDay = from, vacationToDay = to) }
+                }
+            },
+            modifier = Modifier.weight(1f),
+        )
     }
     Row {
-        val f = parseDate(from)
-        val t = parseDate(to)
-        TextButton(enabled = f != null && t != null && t >= f, onClick = {
-            change { it.copy(vacationFromDay = f, vacationToDay = t) }
-        }) { Text(stringResource(R.string.settings_vacation_set)) }
         if (cur.vacationFromDay != null) {
             TextButton(onClick = { change { it.copy(vacationFromDay = null, vacationToDay = null) } }) { Text(stringResource(R.string.settings_vacation_clear)) }
         }
