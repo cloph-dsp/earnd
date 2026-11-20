@@ -2,6 +2,7 @@ package com.earnd.app
 
 import android.app.Application
 import com.earnd.app.alarms.AlarmsModule
+import com.earnd.app.backup.WeeklyBackup
 import com.earnd.app.widgets.WidgetRefresher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ class EarndApp : Application() {
         appScope.launch { runCatching { com.earnd.app.notify.Notify.init(this@EarndApp) } } // nudge and report survive a force-stop
         AlarmsModule.start(this, appScope)     // re-plans alarms on task/habit/settings changes
         WidgetRefresher.start(this, appScope)  // refreshes widgets on balance/session/task changes
+        WeeklyBackup.ensure(this)              // silent weekly backup into Downloads (idempotent, KEEP policy)
         appScope.launch { runCatching { ServiceLocator.focus.restore() } } // finish or re-arm a focus session after restart
     }
 }

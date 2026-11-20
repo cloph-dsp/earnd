@@ -13,6 +13,7 @@ import com.earnd.app.domain.ChangeKind
 import com.earnd.app.i18n.Str
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.OutputStream
 
 /** Reads and writes whole-database backups through Storage Access Framework URIs. */
 class BackupStore(private val db: EarndDatabase) {
@@ -40,9 +41,14 @@ class BackupStore(private val db: EarndDatabase) {
     }
 
     suspend fun export(context: Context, uri: Uri): Int = withContext(Dispatchers.IO) {
+        val out = context.contentResolver.openOutputStream(uri, "wt") ?: throw java.io.IOException(Str.get(R.string.backup_err_open))
+        export(out)
+    }
+
+    /** Same snapshot and encoding, for a caller that already owns the destination stream (weekly backup). */
+    suspend fun export(out: OutputStream): Int = withContext(Dispatchers.IO) {
         val data = snapshot()
-        context.contentResolver.openOutputStream(uri, "wt")?.bufferedWriter()?.use { it.write(BackupCodec.encode(data)) }
-            ?: throw java.io.IOException(Str.get(R.string.backup_err_open))
+        out.bufferedWriter().use { it.write(BackupCodec.encode(data)) }
         data.rowCount()
     }
 
