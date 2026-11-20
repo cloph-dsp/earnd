@@ -11,7 +11,7 @@ import java.time.LocalDate
 
 enum class TaskBucket { OVERDUE, TODAY, UPCOMING, NO_DATE, COMPLETED }
 
-class TaskService(
+open class TaskService(
     private val tasks: TaskDao,
     private val bank: TimeBank,
     private val settings: SettingsRepository,
@@ -53,7 +53,7 @@ class TaskService(
      * Marks done, earns the reward (if any) and, for a recurring task, creates the next
      * occurrence (with fresh copies of its subtasks), which is returned.
      */
-    suspend fun complete(taskId: Long, creditBank: Boolean = true): TaskEntity? = tx.run {
+    open suspend fun complete(taskId: Long, creditBank: Boolean = true): TaskEntity? = tx.run {
         val t = tasks.get(taskId) ?: return@run null
         if (t.completedAt != null) return@run null
         val now = clock.now()
@@ -62,6 +62,15 @@ class TaskService(
         val next = if (t.parentId == null) spawnNext(t, clock.localDate(now)) else null
         bus.emit(ChangeKind.TASKS)
         next
+    }
+
+    /**
+     * Pays the task's reward for a completed focus session. Does NOT complete the task and does
+     * not spawn the next occurrence; focus minutes ride the task's own source so un-completing
+     * the task later reverses everything that task paid (TimeBank.reverse semantics).
+     */
+    open suspend fun focusEarn(taskId: Long, reward: Int) = tx.run {
+        bank.earn(reward, LedgerKind.EARN_TASK, OwnerKind.TASK, taskId)
     }
 
     /** Reopens a task, reverses its reward and removes the untouched occurrence it spawned. */

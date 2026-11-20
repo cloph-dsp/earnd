@@ -9,6 +9,7 @@ import com.earnd.app.alarms.AlarmPermissions
 import com.earnd.app.data.SettingsRepository
 import com.earnd.app.data.dao.FocusDao
 import com.earnd.app.data.dao.HabitDao
+import com.earnd.app.data.dao.TaskDao
 import com.earnd.app.data.entity.FocusSessionEntity
 import com.earnd.app.data.entity.FocusState
 import com.earnd.app.domain.ChangeBus
@@ -16,12 +17,13 @@ import com.earnd.app.domain.ChangeKind
 import com.earnd.app.domain.Clock
 import com.earnd.app.domain.FocusOption
 import com.earnd.app.domain.HabitService
+import com.earnd.app.domain.TaskService
 import com.earnd.app.domain.TimedHabit
 import kotlinx.coroutines.flow.Flow
 
 sealed interface FocusStart {
     data class Started(val session: FocusSessionEntity) : FocusStart
-    data class Busy(val habitId: Long) : FocusStart
+    data class Busy(val habitId: Long, val taskId: Long? = null) : FocusStart
     /** Several durations are offered: ask which one, then call start again with its minutes. */
     data class Choose(val habitId: Long, val options: List<FocusOption>) : FocusStart
     data object NotTimed : FocusStart
@@ -37,13 +39,15 @@ data class StopwatchResult(val minutes: Int, val earned: Int?, val bonus: Int)
  * Stopwatch sessions count up with no alarm and are credited by [finishStopwatch].
  */
 class FocusManager(
-    private val context: Context,
+    private val context: Context?,
     private val dao: FocusDao,
     private val habitDao: HabitDao,
     private val habits: HabitService,
     private val clock: Clock,
     private val bus: ChangeBus,
     private val settings: SettingsRepository,
+    private val taskDao: TaskDao,
+    private val tasks: TaskService,
 ) {
     fun observe(): Flow<FocusSessionEntity?> = dao.observe()
 
@@ -52,7 +56,7 @@ class FocusManager(
     /** Starts [habitId]'s session; [minutes] picks a duration option (required when several are offered). */
     suspend fun start(habitId: Long, minutes: Int? = null): FocusStart {
         completeIfDue()
-        running()?.let { return FocusStart.Busy(it.habitId) }
+        running()?.let { return FocusStart.Busy(it.habitId, it.taskId) }
         val h = habitDao.get(habitId)?.takeIf { !it.archived } ?: return FocusStart.NotTimed
         val s = if (h.stopwatch) {
             FocusSessionEntity(habitId = habitId, startedAt = clock.now(), durationMs = 0, stopwatch = true)
@@ -68,17 +72,36 @@ class FocusManager(
         }
         dao.put(s)
         if (!s.stopwatch) armAlarm(FocusMath.endAt(s))
-        FocusNotifier.showOngoing(context, s, h.name)
+        context?.let { FocusNotifier.showOngoing(it, s, h.name) }
         bus.emit(ChangeKind.FOCUS)
         return FocusStart.Started(s)
     }
 
+    /** Starts a fixed countdown on [taskId]; finishes pay the task's reward without completing it. */
+    suspend fun startTask(taskId: Long, minutes: Int): FocusStart {
+        completeIfDue()
+        running()?.let { return FocusStart.Busy(it.habitId, it.taskId) }
+        val t = taskDao.get(taskId) ?: return FocusStart.NotTimed
+        // Task-owned session row: habitId=0 sentinel (habit ids start at 1).
+        val s = FocusSessionEntity(
+            habitId = 0,
+            taskId = taskId,
+            startedAt = clock.now(),
+            durationMs = minutes * 60_000L,
+            rewardMinutes = t.rewardMinutes?.coerceAtLeast(0),
+        )
+        dao.put(s)
+        armAlarm(FocusMath.endAt(s))
+        context?.let { FocusNotifier.showOngoing(it, s, t.title) }
+        bus.emit(ChangeKind.FOCUS)
+        return FocusStart.Started(s)
+    }
     /** Discards the running session: no check-in, no minutes. */
     suspend fun cancel(): Boolean {
         val s = running() ?: return false
         if (dao.finish(s.startedAt, FocusState.CANCELLED) == 0) return false
         cancelAlarm()
-        FocusNotifier.clearOngoing(context)
+        context?.let { FocusNotifier.clearOngoing(it) }
         bus.emit(ChangeKind.FOCUS)
         return true
     }
@@ -89,11 +112,19 @@ class FocusManager(
         if (!FocusMath.isDue(s, clock.now())) return false
         if (dao.finish(s.startedAt, FocusState.DONE) == 0) return false
         cancelAlarm()
-        FocusNotifier.clearOngoing(context)
-        val h = habitDao.get(s.habitId)
-        val r = if (h != null && !h.archived) runCatching { habits.checkInWithBonus(h.id, rewardOverride = s.rewardMinutes) }.getOrNull() else null
-        FocusChime.play(context)
-        FocusNotifier.showDone(context, h?.name ?: context.getString(R.string.focus_fallback_name), (s.durationMs / 60_000L).toInt(), r?.checkIn?.minutesEarned, r?.bonus ?: 0)
+        context?.let { FocusNotifier.clearOngoing(it) }
+        if (s.taskId != null) {
+            val t = taskDao.get(s.taskId)
+            val earned = (s.rewardMinutes ?: t?.rewardMinutes?.coerceAtLeast(0))?.takeIf { it > 0 }
+            runCatching { tasks.focusEarn(s.taskId, s.rewardMinutes ?: t?.rewardMinutes?.coerceAtLeast(0) ?: 0) }
+            context?.let { FocusChime.play(it) }
+            context?.let { FocusNotifier.showDone(it, t?.title ?: it.getString(R.string.focus_fallback_name), (s.durationMs / 60_000L).toInt(), earned, 0) }
+        } else {
+            val h = habitDao.get(s.habitId)
+            val r = if (h != null && !h.archived) runCatching { habits.checkInWithBonus(h.id, rewardOverride = s.rewardMinutes) }.getOrNull() else null
+            context?.let { FocusChime.play(it) }
+            context?.let { FocusNotifier.showDone(it, h?.name ?: it.getString(R.string.focus_fallback_name), (s.durationMs / 60_000L).toInt(), r?.checkIn?.minutesEarned, r?.bonus ?: 0) }
+        }
         bus.emit(ChangeKind.FOCUS)
         return true
     }
@@ -103,12 +134,12 @@ class FocusManager(
         val s = running()?.takeIf { it.stopwatch } ?: return null
         val elapsed = (clock.now() - s.startedAt).coerceAtLeast(0L)
         if (dao.finishStopwatch(s.startedAt, elapsed) == 0) return null
-        FocusNotifier.clearOngoing(context)
+        context?.let { FocusNotifier.clearOngoing(it) }
         val h = habitDao.get(s.habitId)?.takeIf { !it.archived }
         val reward = h?.let { TimedHabit.stopwatchReward(it, elapsed) }
         val r = if (h != null && reward != null) runCatching { habits.checkInWithBonus(h.id, rewardOverride = reward) }.getOrNull() else null
         val minutes = (elapsed / 60_000L).toInt()
-        if (h != null && r != null) FocusNotifier.showDone(context, h.name, minutes, r.checkIn.minutesEarned, r.bonus)
+        if (h != null && r != null) context?.let { FocusNotifier.showDone(it, h.name, minutes, r.checkIn.minutesEarned, r.bonus) }
         bus.emit(ChangeKind.FOCUS)
         return StopwatchResult(minutes, r?.checkIn?.minutesEarned, r?.bonus ?: 0)
     }
@@ -118,8 +149,10 @@ class FocusManager(
         if (completeIfDue()) return
         val s = running() ?: return
         if (!s.stopwatch) armAlarm(FocusMath.endAt(s))
-        val name = habitDao.get(s.habitId)?.name ?: context.getString(R.string.focus_fallback_name)
-        FocusNotifier.showOngoing(context, s, name)
+        val fallback = context?.getString(R.string.focus_fallback_name) ?: ""
+        val name = if (s.taskId != null) taskDao.get(s.taskId)?.title ?: fallback
+        else habitDao.get(s.habitId)?.name ?: fallback
+        context?.let { FocusNotifier.showOngoing(it, s, name) }
     }
 
     private fun alarmIntent(): PendingIntent = PendingIntent.getBroadcast(
@@ -128,15 +161,17 @@ class FocusManager(
     )
 
     private fun armAlarm(at: Long) {
-        val am = context.getSystemService(AlarmManager::class.java)
+        val ctx = context ?: return
+        val am = ctx.getSystemService(AlarmManager::class.java)
         runCatching {
-            if (AlarmPermissions.canScheduleExact(context)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarmIntent())
+            if (AlarmPermissions.canScheduleExact(ctx)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarmIntent())
             else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarmIntent())
         }
     }
 
     private fun cancelAlarm() {
-        context.getSystemService(AlarmManager::class.java).cancel(alarmIntent())
+        val ctx = context ?: return
+        ctx.getSystemService(AlarmManager::class.java).cancel(alarmIntent())
     }
 
     private companion object { const val REQ_END = 4200 }

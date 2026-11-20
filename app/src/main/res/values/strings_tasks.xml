@@ -96,4 +96,6 @@
     <string name="stats_meter_empty">Nothing counted yet.</string>
     <string name="stats_meter_charged_screen">%1$s charged · %2$s on screen</string>
     <string name="tasks_due_pick">Pick a date</string>
+    <string name="tasks_start_focus_minutes">Start %1$d min</string>
+    <string name="tasks_focus_minutes_label">Focus minutes</string>
 </resources>

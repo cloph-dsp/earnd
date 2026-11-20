@@ -26,6 +26,8 @@ data class TaskEntity(
     @ColumnInfo(defaultValue = "1") val repeatOccurrence: Int = 1,
     /** Null => earns nothing. */
     val rewardMinutes: Int? = null,
+    /** Null => no timed focus session available for this task. */
+    val focusMinutes: Int? = null,
     val completedAt: Long? = null,
     /** Shared by all occurrences of a recurring task. */
     val seriesId: Long? = null,

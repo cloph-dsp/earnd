@@ -146,6 +146,14 @@ fun TaskRow(t: TaskEntity, onOpen: (Long) -> Unit) {
                 if (t.priority == Priority.HIGH && !done) Num(stringResource(R.string.tasks_priority_high), Modifier.padding(start = 8.dp), color = Earnd.palette.secondary)
             }
         }
+        // The trailing action sits before the reward: the reward owns the row's last slot.
+        if (!done && t.focusMinutes != null) {
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            com.earnd.app.ui.theme.QuietChip(
+                Str.get(R.string.tasks_start_focus_minutes, t.focusMinutes),
+                onClick = { com.earnd.app.ui.common.launchUi { com.earnd.app.focus.startTaskFocus(ctx, t.id, t.focusMinutes) } },
+            )
+        }
         t.rewardMinutes?.takeIf { it > 0 }?.let {
             Box(Modifier.padding(start = 8.dp).widthIn(min = 40.dp), contentAlignment = Alignment.CenterEnd) {
                 Num("+$it", color = if (done) Earnd.palette.muted else Earnd.palette.amber, style = com.earnd.app.ui.theme.NumberStyle.copy(fontSize = 14.sp))

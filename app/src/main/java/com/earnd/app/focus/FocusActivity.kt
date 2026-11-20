@@ -138,12 +138,17 @@ private fun FocusScreen(
         }
     }
     var name by remember { mutableStateOf("") }
-    LaunchedEffect(s.habitId) { name = ServiceLocator.db.habitDao().get(s.habitId)?.name.orEmpty() }
+    LaunchedEffect(s.taskId, s.habitId) {
+        name = if (s.taskId != null) ServiceLocator.db.taskDao().get(s.taskId)?.title.orEmpty()
+        else ServiceLocator.db.habitDao().get(s.habitId)?.name.orEmpty()
+    }
     val done = s.state == FocusState.DONE
     val total = s.durationMs / 60_000L
     val progress = if (done) 1f else FocusMath.progress(s, now)
     var habit by remember { mutableStateOf<com.earnd.app.data.entity.HabitEntity?>(null) }
-    LaunchedEffect(s.habitId) { habit = ServiceLocator.db.habitDao().get(s.habitId) }
+    LaunchedEffect(s.taskId, s.habitId) {
+        habit = if (s.taskId != null) null else ServiceLocator.db.habitDao().get(s.habitId)
+    }
     var showInfo by rememberSaveable { mutableStateOf(false) }
     val reward = s.rewardMinutes ?: habit?.minutesPerCheckIn
     var askFinish by remember { mutableStateOf(false) }

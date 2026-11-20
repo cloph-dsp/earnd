@@ -122,6 +122,13 @@ fun TaskEditScreen(taskId: Long, onDone: () -> Unit, onOpenTask: (Long) -> Unit)
             }, hint = stringResource(R.string.tasks_reward_hint))
             t.rewardMinutes?.let { r -> NumberField(stringResource(R.string.tasks_reward_minutes), r, { set(t.copy(rewardMinutes = (it ?: 0).coerceIn(0, 600))) }) }
 
+            SwitchRow(stringResource(R.string.tasks_focus_minutes_label), t.focusMinutes != null, { on ->
+                set(t.copy(focusMinutes = if (on) 20 else null))
+            })
+            t.focusMinutes?.let { m ->
+                NumberField(stringResource(R.string.tasks_focus_minutes_label), m, { set(t.copy(focusMinutes = (it ?: 1).coerceIn(com.earnd.app.focus.FocusMath.MINUTES_RANGE))) })
+            }
+
             SectionTitle(stringResource(R.string.tasks_section_subtasks))
             subtasks.forEach { s ->
                 Row(verticalAlignment = Alignment.CenterVertically) {

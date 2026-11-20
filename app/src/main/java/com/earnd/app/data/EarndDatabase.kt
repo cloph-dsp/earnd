@@ -16,7 +16,7 @@ import com.earnd.app.data.entity.*
         NagStateEntity::class, LedgerEntryEntity::class, UnlockSessionEntity::class,
         AppRuleEntity::class, SettingEntity::class, FocusSessionEntity::class, MeterUseEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class EarndDatabase : RoomDatabase() {
@@ -35,13 +35,21 @@ abstract class EarndDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): EarndDatabase =
             Room.databaseBuilder(context, EarndDatabase::class.java, "earnd.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .build()
 
         /** Per-app usage keeps the raw foreground time as well as the charged minutes (old rows stay at 0). */
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE meter_use ADD COLUMN rawMs INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** Timed focus for tasks: task.focusMinutes and focus_session.taskId (habitId=0 sentinel for task rows). */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE task ADD COLUMN focusMinutes INTEGER")
+                db.execSQL("ALTER TABLE focus_session ADD COLUMN taskId INTEGER")
             }
         }
 

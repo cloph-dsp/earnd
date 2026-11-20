@@ -29,7 +29,7 @@ data class HabitDay(val habit: HabitEntity, val done: Int, val required: Int, va
 /** A saved check-in and the comeback bonus it earned on top of `minutesEarned`. */
 data class CheckInResult(val checkIn: CheckInEntity, val bonus: Int)
 
-class HabitService(
+open class HabitService(
     private val habits: HabitDao,
     private val checkIns: CheckInDao,
     private val bank: TimeBank,
@@ -131,7 +131,7 @@ class HabitService(
      * The first earning check-in after a lapse also earns a COMEBACK ledger entry on the same source,
      * so undoing the check-in reverses both.
      */
-    suspend fun checkInWithBonus(
+    open suspend fun checkInWithBonus(
         habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true,
         rewardOverride: Int? = null,
     ): CheckInResult = tx.run {

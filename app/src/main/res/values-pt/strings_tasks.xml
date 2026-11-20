@@ -96,4 +96,6 @@
     <string name="stats_meter_empty">Ainda nada contado.</string>
     <string name="stats_meter_charged_screen">%1$s cobrados · %2$s em ecrã</string>
     <string name="tasks_due_pick">Escolher data</string>
+    <string name="tasks_start_focus_minutes">Iniciar %1$d min</string>
+    <string name="tasks_focus_minutes_label">Minutos de foco</string>
 </resources>

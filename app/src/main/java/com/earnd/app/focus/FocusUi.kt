@@ -73,6 +73,15 @@ suspend fun startFocus(context: Context, habitId: Long, minutes: Int? = null) {
     }
 }
 
+/** Starts a timed focus session on a task and opens the timer (or reopens the running one). */
+suspend fun startTaskFocus(context: Context, taskId: Long, minutes: Int) {
+    when (val r = ServiceLocator.focus.startTask(taskId, minutes)) {
+        is FocusStart.Started, is FocusStart.Busy -> context.startActivity(FocusActivity.intent(context))
+        is FocusStart.Choose -> Unit
+        FocusStart.NotTimed -> Unit
+    }
+}
+
 /** Quick picker of a habit's focus durations; place once at the app root. */
 @Composable
 fun FocusPickerHost() {

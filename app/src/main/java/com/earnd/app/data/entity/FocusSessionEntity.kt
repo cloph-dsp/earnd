@@ -11,6 +11,8 @@ enum class FocusState { ACTIVE, DONE, CANCELLED }
 data class FocusSessionEntity(
     @PrimaryKey val id: Long = SINGLE,
     val habitId: Long,
+    /** Non-null when this session runs on a task (habit rows use habitId=0 sentinel). */
+    val taskId: Long? = null,
     val startedAt: Long,
     val durationMs: Long,
     val state: FocusState = FocusState.ACTIVE,
