@@ -17,6 +17,7 @@ import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.content.ContextCompat
 import com.earnd.app.ServiceLocator
 import com.earnd.app.alarms.GuardReminder
+import com.earnd.app.domain.BlockCause
 import com.earnd.app.domain.BlockDecision
 import com.earnd.app.domain.BlockRules
 import com.earnd.app.domain.ChangeKind
@@ -50,6 +51,12 @@ class GuardAccessibilityService : AccessibilityService() {
     private var lastUrlScanAt = 0L
     private var lastWinAt = 0L
     private var pending: Job? = null
+    private var running = false
+    private var pendingForce = false
+    /** Interactive state seen by the previous pass: the interval just ended was charged under it. */
+    private var prevAllowed = true
+    /** When the shade was seen open over a counting app (5 s grace, then counting pauses). */
+    private var shadeSince: Long? = null
 
     private var overlay: MeterOverlay? = null
     private var ticker: Job? = null
@@ -164,11 +171,21 @@ class GuardAccessibilityService : AccessibilityService() {
 
     /** Notification shade and keyboards briefly take focus without changing the foreground app (they keep counting). */
     private fun isTransientSystemUi(pkg: String) =
-        pkg == "com.android.systemui" || pkg.contains("inputmethod") || pkg.endsWith(".ime")
+        pkg == SYSTEM_UI || pkg.contains("inputmethod") || pkg.endsWith(".ime")
 
     private fun schedule(force: Boolean = false) {
-        pending?.cancel()
-        pending = scope.launch { delay(DEBOUNCE_MS); recheck(force = force) }
+        pendingForce = pendingForce || force
+        // A pass already in flight is never cancelled (it may be inside a charge): it runs once more after it.
+        if (running || pending?.isActive == true) return
+        pending = scope.launch {
+            delay(DEBOUNCE_MS)
+            do {
+                val f = pendingForce
+                pendingForce = false
+                running = true
+                try { attempt { recheck(f) } } finally { running = false }
+            } while (pendingForce)
+        }
     }
 
     private fun env(): Env {
@@ -207,10 +224,12 @@ class GuardAccessibilityService : AccessibilityService() {
         try {
             val env = env()
             if (!env.screenUsable) { pauseCounting(now); return }
-            // Charge the time since the last check at the previous rate before deciding with the new balance.
-            attempt { ServiceLocator.meterEngine.advance(now, env.allowed) }
+            // The state before this pass owns the interval just ended: a call starting now must not erase the time used before it.
+            attempt { ServiceLocator.meterEngine.advance(now, prevAllowed) }
+            prevAllowed = env.allowed
+            // A broken DB must not silently turn the guard off: fail closed.
             val decision = attempt { ServiceLocator.blockPolicy.decide(pkg, url, now) }
-                .getOrDefault(BlockDecision.Allow)
+                .getOrDefault(BlockDecision.Block(BlockCause.NO_BALANCE, null))
             val ruleKey = (decision as? BlockDecision.Metered)?.key
             grantKey?.let { if (it != ruleKey) ServiceLocator.grants.leave(it, now) }
             grantKey = ruleKey
@@ -235,7 +254,20 @@ class GuardAccessibilityService : AccessibilityService() {
             }
             // A failing look at the windows beside the app must not stop the app in front from being counted.
             val extras = attempt { extraTargets(pkg, now) }.getOrDefault(emptyList())
-            applyCounting(CountRules.pick(primary, extras), env, now)
+            val pick = CountRules.pick(primary, extras)
+            // A peek at the shade is free; staying in the shade is not using the app. Count a short grace, then pause.
+            if (pick != null && shadeOpen()) {
+                val from = shadeSince ?: now
+                shadeSince = from
+                if (now - from >= SHADE_GRACE_MS) {
+                    attempt { ServiceLocator.meterEngine.advance(now, env.allowed) }
+                    applyCounting(null, env, now)
+                    return
+                }
+            } else {
+                shadeSince = null
+            }
+            applyCounting(pick, env, now)
         } catch (e: kotlinx.coroutines.CancellationException) {
             lastCheckKey = null
             throw e
@@ -264,9 +296,21 @@ class GuardAccessibilityService : AccessibilityService() {
         return out
     }
 
+    /**
+     * True when the window has an area on screen. AccessibilityWindowInfo has no isVisibleToUser (that is on
+     * AccessibilityNodeInfo), so an empty frame is the closest a hidden surface reports.
+     */
+    private fun shown(w: AccessibilityWindowInfo): Boolean = runCatching {
+        val b = android.graphics.Rect()
+        w.getBoundsInScreen(b)
+        !b.isEmpty
+    }.getOrDefault(true)
+
     private fun visibleWindows(): List<WinInfo> = runCatching {
         windows.mapNotNull { w ->
             if (w.type != AccessibilityWindowInfo.TYPE_APPLICATION) return@mapNotNull null
+            // A reported but hidden window (covered surface, no area on screen) is not being looked at.
+            if (!shown(w)) return@mapNotNull null
             val root = w.root ?: return@mapNotNull null
             val p = root.packageName?.toString()
             @Suppress("DEPRECATION")
@@ -274,6 +318,25 @@ class GuardAccessibilityService : AccessibilityService() {
             p?.let { WinInfo(it, w.isInPictureInPictureMode) }
         }
     }.getOrDefault(emptyList())
+
+    /** Notification shade or quick settings open: a tall system window owned by SystemUI (status and nav bars are thin). */
+    private fun shadeOpen(): Boolean = runCatching {
+        val screenH = resources.displayMetrics.heightPixels
+        val bounds = android.graphics.Rect()
+        windows.any { w ->
+            if (w.type == AccessibilityWindowInfo.TYPE_SYSTEM || w.type == AccessibilityWindowInfo.TYPE_APPLICATION) {
+                w.getBoundsInScreen(bounds)
+                bounds.height() > screenH / 2 && runCatching {
+                    w.root?.let { r ->
+                        val p = r.packageName?.toString()
+                        @Suppress("DEPRECATION")
+                        runCatching { r.recycle() }
+                        p == SYSTEM_UI
+                    } == true
+                }.getOrDefault(false)
+            } else false
+        }
+    }.getOrDefault(false)
 
     private suspend fun applyCounting(pick: Counted?, env: Env, now: Long) {
         val engine = ServiceLocator.meterEngine
@@ -317,7 +380,8 @@ class GuardAccessibilityService : AccessibilityService() {
                 delay(1_000)
                 val now = System.currentTimeMillis()
                 val e = env()
-                if (e.allowed != wasAllowed || !e.screenUsable) { wasAllowed = e.allowed; scope.launch { recheck(force = true) }; continue }
+                // The shade grace needs a pass to expire: keep re-checking while it is open (the tick loop stops with counting).
+                if (shadeSince != null || e.allowed != wasAllowed || !e.screenUsable) { wasAllowed = e.allowed; scope.launch { recheck(force = true) }; continue }
                 if (now - lastTickAdvance >= TICK_MS) {
                     lastTickAdvance = now
                     attempt { ServiceLocator.meterEngine.advance(now, e.allowed) }
@@ -419,6 +483,8 @@ class GuardAccessibilityService : AccessibilityService() {
         const val TICK_MS = 30_000L
         const val WINDOWS_MS = 1_500L
         const val EXTRA_LOCK_MS = 60_000L
+        const val SHADE_GRACE_MS = 5_000L
+        const val SYSTEM_UI = "com.android.systemui"
         val RECHECK_ON = setOf(ChangeKind.SESSION, ChangeKind.BLOCKLIST, ChangeKind.SETTINGS, ChangeKind.FOCUS)
     }
 }

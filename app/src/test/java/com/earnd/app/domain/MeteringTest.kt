@@ -167,6 +167,41 @@ class MeteringTest {
         assertEquals(listOf(120_000L), raw)
     }
 
+    @Test fun rawPendingBelongsToTheAppItWasSeenIn() = runTest {
+        val raw = mutableListOf<Long>()
+        val e = MeterEngine({ it }, { 0L }, { }) { _, _, _, r -> raw += r }
+        e.switchTo(MeterActive("k1", "a", 50, clock.now()), clock.now())
+        repeat(2) { clock.nowMs += 30_000; e.advance(clock.now()) } // app a: 60 s raw, no debit yet
+        e.switchTo(MeterActive("k2", "b", 50, clock.now()), clock.now())
+        repeat(2) { clock.nowMs += 30_000; e.advance(clock.now()) } // app b completes the minute
+        // Without the reset, a's pending 60 s would be reported against b (120 s).
+        assertEquals(listOf(60_000L), raw)
+    }
+
+    @Test fun stopDropsPendingRaw() = runTest {
+        val raw = mutableListOf<Long>()
+        val e = MeterEngine({ it }, { 0L }, { }) { _, _, _, r -> raw += r }
+        e.switchTo(MeterActive("k", "a", 50, clock.now()), clock.now())
+        repeat(2) { clock.nowMs += 30_000; e.advance(clock.now()) } // 60 s raw pending, nothing debited
+        e.stop(clock.now())
+        e.switchTo(MeterActive("k", "a", 50, clock.now()), clock.now())
+        repeat(2) { clock.nowMs += 30_000; e.advance(clock.now()) } // fresh 60 s completes the minute
+        assertEquals(listOf(60_000L), raw)
+    }
+
+    @Test fun aCallStartingKeepsTheTimeUsedBeforeIt() = runTest {
+        val e = MeterEngine({ it }, { 0L }, { })
+        val active = MeterActive("k", "p", 100, clock.now())
+        // The bug: deciding with the new state loses the interval since the last advance.
+        e.switchTo(active, clock.now())
+        clock.nowMs += 60_000
+        assertEquals(0, e.advance(clock.now(), interactive = false))
+        // The fix: advance under the state that held during the interval, then pause.
+        e.switchTo(active, clock.now())
+        clock.nowMs += 60_000
+        assertEquals(1, e.advance(clock.now(), interactive = true))
+    }
+
     @Test fun debitIsFifoAcrossLots() = runTest {
         earn(10, 1)
         clock.advanceMin(60)

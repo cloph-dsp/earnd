@@ -118,22 +118,22 @@ class MeterEngine(
 
     private suspend fun advanceLocked(now: Long, interactive: Boolean): Int {
         val from = lastAt
-        lastAt = now
-        val r = active?.ratePct
-        if (from == null || r == null || r == 0 || !interactive || now <= from) return 0
-        val c = carry ?: loadCarry().also { carry = it }
+        val a = active ?: run { lastAt = now; return 0 }
+        val r = a.ratePct
+        if (from == null || r == 0 || !interactive || now <= from) { lastAt = now; return 0 }
+        val c = carry ?: loadCarry()
         val step = MeterMath.accrue(c, now - from, r)
         // Beyond the cap the service wasn't verifying, so it isn't usage.
-        rawPending += (now - from).coerceIn(0, MeterMath.MAX_STEP_MS)
+        val raw = rawPending + (now - from).coerceIn(0, MeterMath.MAX_STEP_MS)
+        // Debit first: lastAt, carry and rawPending commit only once it is done, so a cancellation cannot lose the interval.
+        val taken = if (step.units <= 0) 0 else debit(step.units)
+        lastAt = now
         carry = step.carry
         if (step.carry != c) saveCarry(step.carry)
-        if (step.units <= 0) return 0
-        val taken = debit(step.units)
-        balance = (balance - taken).coerceAtLeast(0)
-        if (taken > 0) active?.let {
-            val raw = rawPending
-            rawPending = 0
-            runCatching { record(it.key, now, taken, raw) }
+        rawPending = if (taken > 0) 0L else raw
+        if (taken > 0) {
+            balance = (balance - taken).coerceAtLeast(0)
+            runCatching { record(a.key, now, taken, raw) }
         }
         return taken
     }
@@ -141,11 +141,15 @@ class MeterEngine(
     /** Starts/keeps counting [target] (null = nothing counts). Keeps the original start when the target is unchanged. */
     suspend fun switchTo(target: MeterActive?, now: Long) = mutex.withLock {
         val cur = active
+        // Raw belongs to the app it was seen in.
+        if (target?.key != cur?.key) rawPending = 0L
         active = if (target != null && cur != null && cur.key == target.key && cur.ratePct == target.ratePct) cur else target
         lastAt = now
         if (target != null && carry == null) carry = loadCarry()
     }
 
     /** Charge up to [now] and stop metering (service stopped, screen off, lock shown). */
-    suspend fun stop(now: Long): Int = mutex.withLock { advanceLocked(now, true).also { active = null; lastAt = now } }
+    suspend fun stop(now: Long): Int = mutex.withLock {
+        advanceLocked(now, true).also { active = null; lastAt = now; rawPending = 0L }
+    }
 }
