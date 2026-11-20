@@ -115,9 +115,8 @@
     <string name="settings_sched_evening">Noite</string>
     <string name="settings_sched_vacation_section">Férias</string>
     <string name="settings_vacation_blurb">Pausa do bloqueio e das sequências entre duas datas.</string>
-    <string name="settings_vacation_from">De (%1$s)</string>
+    <string name="settings_vacation_from">De</string>
     <string name="settings_vacation_to">Até</string>
-    <string name="settings_vacation_set">Definir férias</string>
     <string name="settings_vacation_clear">Limpar</string>
 
     <!-- Reminders -->

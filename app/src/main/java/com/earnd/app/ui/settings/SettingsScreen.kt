@@ -57,7 +57,6 @@ import com.earnd.app.ui.common.NumberField
 import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.SwitchRow
 import com.earnd.app.ui.common.TimeField
-import com.earnd.app.ui.common.dateHint
 import com.earnd.app.ui.common.formatMinuteOfDay
 import com.earnd.app.ui.common.launchUi
 import kotlinx.coroutines.launch
@@ -276,7 +275,7 @@ internal fun VacationEditor(cur: Settings, change: Change) {
     Text(stringResource(R.string.settings_vacation_blurb), style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         DateField(
-            label = stringResource(R.string.settings_vacation_from, dateHint()),
+            label = stringResource(R.string.settings_vacation_from),
             epochDay = cur.vacationFromDay,
             onChange = { d ->
                 if (d != null) {

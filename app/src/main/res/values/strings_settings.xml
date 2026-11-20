@@ -115,9 +115,8 @@
     <string name="settings_sched_evening">Evening</string>
     <string name="settings_sched_vacation_section">Vacation</string>
     <string name="settings_vacation_blurb">Pauses blocking and streaks between two dates.</string>
-    <string name="settings_vacation_from">From (%1$s)</string>
+    <string name="settings_vacation_from">From</string>
     <string name="settings_vacation_to">To</string>
-    <string name="settings_vacation_set">Set vacation</string>
     <string name="settings_vacation_clear">Clear</string>
 
     <!-- Reminders -->
