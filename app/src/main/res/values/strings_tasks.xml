@@ -61,6 +61,7 @@
     <string name="stats_section_done_per_day">Done per day</string>
     <string name="stats_row_check_ins">Check-ins</string>
     <string name="stats_row_tasks">Tasks</string>
+    <string name="stats_screen_time_row">Screen time</string>
     <string name="stats_day_desc">%1$s: earned %2$d min, spent %3$d min</string>
     <string name="stats_screen_time_today">Screen time today</string>
     <string name="stats_usage_access_explain">Allow usage access to see which apps took your time today. It is read on this phone only.</string>

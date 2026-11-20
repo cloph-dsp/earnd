@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.earnd.app.ServiceLocator
 import com.earnd.app.data.entity.LedgerKind
 import com.earnd.app.domain.localDate
+import com.earnd.app.domain.startOfDay
 import com.earnd.app.domain.today
 import com.earnd.app.ui.common.SectionTitle
 import com.earnd.app.ui.common.formatMinutes
@@ -56,6 +57,7 @@ fun StatsScreen() {
     val days = remember { (DAYS - 1 downTo 0).map { today.minusDays(it.toLong()) } }
     val ledger by remember { sl.db.ledgerDao().observeRecent(1000) }.collectAsState(initial = emptyList())
     val completed by remember { sl.db.taskDao().observeCompleted(500) }.collectAsState(initial = emptyList())
+    val rawUses by remember { sl.db.meterUseDao().observeRawSince(sl.clock.startOfDay(days.first())) }.collectAsState(initial = emptyList())
     val checkIns by produceState(emptyMap<Long, Int>(), ledger.size) {
         value = days.associate { d -> d.toEpochDay() to sl.db.checkInDao().forDay(d.toEpochDay()).size }
     }
@@ -73,6 +75,9 @@ fun StatsScreen() {
     }
     val tasksByDay = days.associate { d ->
         d.toEpochDay() to completed.count { t -> t.completedAt?.let { sl.clock.localDate(it) } == d }
+    }
+    val screenByDay = days.associate { d ->
+        d.toEpochDay() to (rawUses.filter { sl.clock.localDate(it.at) == d }.sumOf { it.rawMs } / 60_000).toInt()
     }
     val p = Earnd.palette
     val earned = earnedByDay.values.sum()
@@ -93,7 +98,11 @@ fun StatsScreen() {
         PairedBars(days, earnedByDay, spentByDay, today)
 
         SectionTitle(stringResource(R.string.stats_section_done_per_day))
-        DayGrid(days, today, listOf(stringResource(R.string.stats_row_check_ins) to checkIns, stringResource(R.string.stats_row_tasks) to tasksByDay))
+        DayGrid(days, today, listOf(
+            stringResource(R.string.stats_row_check_ins) to checkIns,
+            stringResource(R.string.stats_row_tasks) to tasksByDay,
+            stringResource(R.string.stats_screen_time_row) to screenByDay,
+        ))
 
         MeterSection(DAYS)
 
