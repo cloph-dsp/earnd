@@ -1,6 +1,9 @@
 package com.earnd.app.ui.home
 
 import android.content.Intent
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,11 +21,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -33,19 +38,34 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.earnd.app.R
 import com.earnd.app.ui.theme.Earnd
+import kotlinx.coroutines.launch
 
 /**
  * Shown on Today while something the app depends on is off (accessibility, notifications, exact alarms, battery) or
- * the alarm volume is zero. Re-checked every time the screen comes back, so it vanishes once it is fixed.
+ * the alarm volume is zero. Live for accessibility (the item that actually dies with reboots and that the user can
+ * toggle from system settings); re-checked on resume for the rest, so it vanishes once fixed.
  */
 @Composable
 fun HealthBanner(onOpenPermissions: () -> Unit) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     var resumes by remember { mutableIntStateOf(0) }
     var health by remember { mutableStateOf(Health(emptyList(), false)) }
     LaunchedEffect(lifecycle) { lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { resumes++ } }
     LaunchedEffect(resumes) { health = HealthCheck.read(context) }
+    DisposableEffect(Unit) {
+        // The OS coalesces rapid setting updates, so a single re-read per change needs no debounce.
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                scope.launch { health = HealthCheck.read(context) }
+            }
+        }
+        val resolver = context.contentResolver
+        resolver.registerContentObserver(Settings.Secure.getUriFor(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES), false, observer)
+        resolver.registerContentObserver(Settings.Secure.getUriFor(Settings.Secure.ACCESSIBILITY_ENABLED), false, observer)
+        onDispose { resolver.unregisterContentObserver(observer) }
+    }
     if (health.ok) return
     val p = Earnd.palette
     Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
