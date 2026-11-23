@@ -167,6 +167,27 @@ class MeteringTest {
         assertEquals(listOf(120_000L), raw)
     }
 
+    @Test fun elapsedClockChargesElapsedDeltaAndRecordUsesWallTime() = runTest {
+        var elapsed = 10_000L
+        var wall = 1_700_000_000_000L
+        val recorded = mutableListOf<Long>()
+        // The clocks are injectable; record stays the trailing lambda.
+        val e = MeterEngine({ it }, { 0L }, { }, elapsedNow = { elapsed }, wallNow = { wall }) { _, at, _, _ -> recorded += at }
+        e.syncBalance(10)
+        e.switchTo(MeterActive("k", "p", 100, elapsed), elapsed)
+        assertEquals(MeterMath.UNIT_MS * 10, e.remainingMs(elapsed))
+
+        elapsed += 30_000
+        wall += 3_600_000 // NTP correction forward: wall jumps an hour, the app was used 30 s
+        assertEquals(MeterMath.UNIT_MS * 10 - 30_000, e.remainingMs(elapsed))
+        assertEquals(0, e.advance(elapsed))
+        assertTrue(recorded.isEmpty())
+
+        elapsed += 30_000
+        assertEquals(1, e.advance(elapsed))
+        assertEquals(listOf(wall), recorded) // ledger gets wall time, never elapsed
+    }
+
     @Test fun rawPendingBelongsToTheAppItWasSeenIn() = runTest {
         val raw = mutableListOf<Long>()
         val e = MeterEngine({ it }, { 0L }, { }) { _, _, _, r -> raw += r }
@@ -337,5 +358,17 @@ class MeteringTest {
         assertEquals(10, HabitProgress.checkInReward(h, ci(1, 10), 10))
         assertEquals(0, HabitProgress.checkInReward(h, ci(2, 10), 10))
         assertEquals(0, HabitProgress.checkInReward(h, ci(5, 10), 10))
+    }
+
+
+    /** The streak nudge reads elapsed time; a wall/elapsed mix would keep it negative forever. */
+    @Test
+    fun streakCrossesEveryTwentyElapsedMinutes() {
+        val step = 20 * 60_000L
+        assertNull(OverlayMath.crossedStreak(null, step + 1))
+        assertNull(OverlayMath.crossedStreak(step - 1, step - 1))
+        assertEquals(20, OverlayMath.crossedStreak(step - 1, step + 1))
+        assertEquals(40, OverlayMath.crossedStreak(step + 1, 2 * step + 1))
+        assertNull(OverlayMath.crossedStreak(step + 1, step + 100))
     }
 }

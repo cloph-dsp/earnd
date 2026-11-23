@@ -1,5 +1,6 @@
 package com.earnd.app.domain
 
+import android.os.SystemClock
 import com.earnd.app.R
 import com.earnd.app.i18n.Str
 import kotlinx.coroutines.sync.Mutex
@@ -72,19 +73,32 @@ object MeterMath {
 }
 
 /** What the meter is charging: rule [key] (package or site host), the [pkg] in front, its [ratePct], and when counting began. */
-data class MeterActive(val key: String, val pkg: String, val ratePct: Int, val since: Long)
+data class MeterActive(
+    val key: String, val pkg: String, val ratePct: Int,
+    /** Wall-clock start, exposed over remote status(). */
+    val since: Long,
+    /** Monotonic start, for streak maths; defaults to [since] for callers that don't track both. */
+    val sinceElapsed: Long = since,
+)
 
 /**
  * Debits the bank for foreground time of the leisure app being counted. The guard calls [advance] on every event
  * (window change, screen on/off, user present) and tick, charging the time since the last call at the previous
  * rate, then [switchTo] with what now counts (null: nothing).
+ *
+ * Every [now] argument is a monotonic elapsed timestamp: a wall-clock correction must never charge extra time.
+ * The wall clock is used only for the ledger timestamp handed to [record].
  */
 class MeterEngine(
     /** Debits whole minutes from the bank; returns how many it could take. */
     private val debit: suspend (minutes: Int) -> Int,
     private val loadCarry: suspend () -> Long,
     private val saveCarry: suspend (Long) -> Unit,
-    /** Called with the rule key, time, whole minutes actually charged and the raw foreground ms of the same step; for the per-app summary. */
+    /** Monotonic clock for intervals; injectable so JVM tests can fake elapsed time. */
+    private val elapsedNow: () -> Long = { SystemClock.elapsedRealtime() },
+    /** Wall clock, only for the ledger timestamp. */
+    private val wallNow: () -> Long = { System.currentTimeMillis() },
+    /** Called with the rule key, wall time, whole minutes actually charged and the raw foreground ms of the same step; for the per-app summary. */
     private val record: suspend (key: String, at: Long, minutes: Int, rawMs: Long) -> Unit = { _, _, _, _ -> },
 ) {
     private val mutex = Mutex()
@@ -105,8 +119,8 @@ class MeterEngine(
 
     fun carryNow(): Long = carry ?: 0L
 
-    /** Real ms left at the current rate as of [now] (not yet committed); null when nothing counts or the rate is 0. */
-    fun remainingMs(now: Long): Long? {
+    /** Elapsed ms left at the current rate as of [now] (not yet committed); null when nothing counts or the rate is 0. */
+    fun remainingMs(now: Long = elapsedNow()): Long? {
         val a = active ?: return null
         val from = lastAt ?: now
         val virtual = (carry ?: 0L) + (now - from).coerceIn(0, MeterMath.MAX_STEP_MS) * a.ratePct.coerceIn(0, 100)
@@ -114,7 +128,7 @@ class MeterEngine(
     }
 
     /** Whole minutes debited. [interactive] false (screen off, call, locked) charges nothing. */
-    suspend fun advance(now: Long, interactive: Boolean = true): Int = mutex.withLock { advanceLocked(now, interactive) }
+    suspend fun advance(now: Long = elapsedNow(), interactive: Boolean = true): Int = mutex.withLock { advanceLocked(now, interactive) }
 
     private suspend fun advanceLocked(now: Long, interactive: Boolean): Int {
         val from = lastAt
@@ -133,13 +147,13 @@ class MeterEngine(
         rawPending = if (taken > 0) 0L else raw
         if (taken > 0) {
             balance = (balance - taken).coerceAtLeast(0)
-            runCatching { record(a.key, now, taken, raw) }
+            runCatching { record(a.key, wallNow(), taken, raw) }
         }
         return taken
     }
 
     /** Starts/keeps counting [target] (null = nothing counts). Keeps the original start when the target is unchanged. */
-    suspend fun switchTo(target: MeterActive?, now: Long) = mutex.withLock {
+    suspend fun switchTo(target: MeterActive?, now: Long = elapsedNow()) = mutex.withLock {
         val cur = active
         // Raw belongs to the app it was seen in.
         if (target?.key != cur?.key) rawPending = 0L
@@ -149,7 +163,42 @@ class MeterEngine(
     }
 
     /** Charge up to [now] and stop metering (service stopped, screen off, lock shown). */
-    suspend fun stop(now: Long): Int = mutex.withLock {
+    suspend fun stop(now: Long = elapsedNow()): Int = mutex.withLock {
         advanceLocked(now, true).also { active = null; lastAt = now; rawPending = 0L }
+    }
+}
+
+/**
+ * Pure classification of the accessibility window in front, so the guard's decision can be unit-tested without
+ * Android. A modal or system surface briefly taking focus does not mean the user left the app they were in.
+ */
+object ForegroundRules {
+    /** Mirrors AccessibilityWindowInfo.TYPE_* (kept as plain ints so the rules stay usable on the JVM). */
+    const val WINDOW_TYPE_APPLICATION = 1
+    const val WINDOW_TYPE_INPUT_METHOD = 2
+    const val SYSTEM_UI = "com.android.systemui"
+
+    /** Share sheet, Google sign-in, Play billing: the user is still in the app behind them. */
+    private val MODALS = listOf("com.android.intentresolver", "com.google.android.gms", "com.android.vending")
+
+    enum class Kind { APP, TRANSIENT, COVERING }
+
+    fun isIme(pkg: String): Boolean = pkg.contains("inputmethod") || pkg.endsWith(".ime")
+
+    fun isModal(pkg: String): Boolean = MODALS.any { pkg == it || pkg.startsWith("$it.") }
+
+    /** Windows that take focus without changing the foreground app (shade, keyboard, modals). */
+    fun isTransientSystemUi(pkg: String): Boolean = pkg == SYSTEM_UI || isIme(pkg) || isModal(pkg)
+
+    /**
+     * [COVERING] is a non-application surface (recents, overview, a system dialog) over the app: after a short grace
+     * the stale foreground package must stop being charged. The shade and IME have their own handling ([TRANSIENT]).
+     */
+    fun activeWindowKind(type: Int, pkg: String?, shadeOpen: Boolean): Kind = when {
+        shadeOpen -> Kind.TRANSIENT
+        type == WINDOW_TYPE_INPUT_METHOD || (pkg != null && isIme(pkg)) -> Kind.TRANSIENT
+        pkg != null && isModal(pkg) -> Kind.TRANSIENT
+        type == WINDOW_TYPE_APPLICATION && pkg != null && pkg != SYSTEM_UI -> Kind.APP
+        else -> Kind.COVERING
     }
 }

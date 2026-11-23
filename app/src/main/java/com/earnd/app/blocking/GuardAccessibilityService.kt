@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.os.PowerManager
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.telephony.TelephonyManager
@@ -24,6 +25,7 @@ import com.earnd.app.domain.ChangeKind
 import com.earnd.app.domain.Charging
 import com.earnd.app.domain.CountRules
 import com.earnd.app.domain.Counted
+import com.earnd.app.domain.ForegroundRules
 import com.earnd.app.domain.MeterActive
 import com.earnd.app.domain.OverlayMath
 import com.earnd.app.domain.WinInfo
@@ -57,6 +59,8 @@ class GuardAccessibilityService : AccessibilityService() {
     private var prevAllowed = true
     /** When the shade was seen open over a counting app (5 s grace, then counting pauses). */
     private var shadeSince: Long? = null
+    /** When a non-application surface (recents, a system dialog) covered the app (short grace, then pause). */
+    private var nonAppSince: Long? = null
 
     private var overlay: MeterOverlay? = null
     private var ticker: Job? = null
@@ -87,7 +91,7 @@ class GuardAccessibilityService : AccessibilityService() {
         // After a rebind (process killed, service toggled) no window event has arrived yet: read the app in front now.
         val root = runCatching { rootInActiveWindow }.getOrNull()
         try {
-            root?.packageName?.toString()?.takeIf { !isTransientSystemUi(it) }?.let { pkg ->
+            root?.packageName?.toString()?.takeIf { !ForegroundRules.isTransientSystemUi(it) }?.let { pkg ->
                 foregroundPkg = pkg
                 if (BrowserUrls.isBrowser(pkg)) lastUrl = runCatching { BrowserUrls.extract(root, pkg) }.getOrNull()
             }
@@ -103,7 +107,7 @@ class GuardAccessibilityService : AccessibilityService() {
                 if (kind == ChangeKind.BALANCE && armed) attempt {
                     val now = System.currentTimeMillis()
                     syncBalance(now)
-                    scheduleZero(now)
+                    scheduleZero(now, elapsedNow())
                 }
             }
         }
@@ -129,7 +133,7 @@ class GuardAccessibilityService : AccessibilityService() {
     private fun registerScreenReceiver() {
         val r = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                if (intent.action == Intent.ACTION_SCREEN_OFF) scope.launch { pauseCounting(System.currentTimeMillis()) }
+                if (intent.action == Intent.ACTION_SCREEN_OFF) scope.launch { pauseCounting(System.currentTimeMillis(), elapsedNow()) }
                 else scope.launch { recheck(force = true) }
             }
         }
@@ -153,7 +157,7 @@ class GuardAccessibilityService : AccessibilityService() {
         val pkg = event.packageName?.toString() ?: return
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
-                if (isTransientSystemUi(pkg)) return
+                if (ForegroundRules.isTransientSystemUi(pkg)) return
                 if (pkg != foregroundPkg) { foregroundPkg = pkg; lastUrl = null }
                 if (BrowserUrls.isBrowser(pkg)) lastUrl = BrowserUrls.extract(rootInActiveWindow, pkg)
                 schedule()
@@ -163,15 +167,15 @@ class GuardAccessibilityService : AccessibilityService() {
                 val now = System.currentTimeMillis()
                 if (now - lastUrlScanAt < URL_SCAN_MS) return
                 lastUrlScanAt = now
-                val url = BrowserUrls.extract(rootInActiveWindow, pkg) ?: return
+                val url = BrowserUrls.extract(rootInActiveWindow, pkg)
+                // No readable address bar: do not keep charging the previous host; fall back to the package rule.
                 if (url != lastUrl) { lastUrl = url; schedule() }
             }
         }
     }
 
-    /** Notification shade and keyboards briefly take focus without changing the foreground app (they keep counting). */
-    private fun isTransientSystemUi(pkg: String) =
-        pkg == SYSTEM_UI || pkg.contains("inputmethod") || pkg.endsWith(".ime")
+    /** Monotonic time for metering intervals: an NTP correction must never look like app usage. */
+    private fun elapsedNow(): Long = SystemClock.elapsedRealtime()
 
     private fun schedule(force: Boolean = false) {
         pendingForce = pendingForce || force
@@ -198,23 +202,44 @@ class GuardAccessibilityService : AccessibilityService() {
         return Env(usable, CountRules.inCall(call, mode))
     }
 
-    /** The package of the focused application window, or null when the system does not say (secure window, none). */
-    private fun activeAppPackage(): String? = runCatching {
-        windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.isActive }?.root?.let { r ->
-            val p = r.packageName?.toString()
-            @Suppress("DEPRECATION")
-            runCatching { r.recycle() }
-            p
+    private data class ActiveWin(val kind: ForegroundRules.Kind, val pkg: String?)
+
+    /** The focused window classified for metering, or null when the system reports no active window. */
+    private fun activeWindow(): ActiveWin? = runCatching {
+        windows.firstOrNull { it.isActive }?.let { w ->
+            val shade = shadeOpen()
+            val p = w.root?.let { r ->
+                val pkg = r.packageName?.toString()
+                @Suppress("DEPRECATION")
+                runCatching { r.recycle() }
+                pkg
+            }
+            ActiveWin(ForegroundRules.activeWindowKind(w.type, p, shade), p)
         }
     }.getOrNull()
 
     private suspend fun recheck(force: Boolean) {
         val now = System.currentTimeMillis()
+        val elapsed = elapsedNow()
         // A dialog, chooser or bubble from another package can take the last window event and leave the app that is
-        // really in front forgotten (counter gone until the next switch): trust the focused window over the last event.
-        activeAppPackage()?.takeIf { it != foregroundPkg && !isTransientSystemUi(it) }?.let { foregroundPkg = it; lastUrl = null }
+        // really in front forgotten: trust the focused window over the last event.
+        val active = activeWindow()
+        when (active?.kind) {
+            ForegroundRules.Kind.APP -> active.pkg?.let { p ->
+                if (p != foregroundPkg) { foregroundPkg = p; lastUrl = null }
+                nonAppSince = null
+            }
+            ForegroundRules.Kind.TRANSIENT -> nonAppSince = null
+            ForegroundRules.Kind.COVERING -> {
+                // Recents/overview or a system dialog: a fast peek is fine, but the stale app is not being used.
+                val since = nonAppSince ?: elapsed
+                nonAppSince = since
+                if (elapsed - since >= NON_APP_GRACE_MS) { pauseCounting(now, elapsed); return }
+            }
+            null -> nonAppSince = null
+        }
         val pkg = foregroundPkg
-        if (pkg == null || pkg == packageName) { pauseCounting(now); return }
+        if (pkg == null || pkg == packageName) { pauseCounting(now, elapsed); return }
         val url = lastUrl
         val key = "$pkg|${url?.let { BrowserUrls.hostOf(it) }}"
         if (!force && key == lastCheckKey && now - lastCheckAt < SAME_KEY_MS) return
@@ -223,9 +248,9 @@ class GuardAccessibilityService : AccessibilityService() {
         // A cancelled pass applied nothing, so the next one must not be skipped as a duplicate of it.
         try {
             val env = env()
-            if (!env.screenUsable) { pauseCounting(now); return }
+            if (!env.screenUsable) { pauseCounting(now, elapsed); return }
             // The state before this pass owns the interval just ended: a call starting now must not erase the time used before it.
-            attempt { ServiceLocator.meterEngine.advance(now, prevAllowed) }
+            attempt { ServiceLocator.meterEngine.advance(elapsed, prevAllowed) }
             prevAllowed = env.allowed
             // A broken DB must not silently turn the guard off: fail closed.
             val decision = attempt { ServiceLocator.blockPolicy.decide(pkg, url, now) }
@@ -236,7 +261,7 @@ class GuardAccessibilityService : AccessibilityService() {
             var primary: Counted? = null
             when (decision) {
                 is BlockDecision.Block -> {
-                    pauseCounting(now)
+                    pauseCounting(now, elapsed)
                     if (foregroundPkg == pkg) showLock(pkg, url, decision)
                     return
                 }
@@ -245,7 +270,7 @@ class GuardAccessibilityService : AccessibilityService() {
                         ServiceLocator.grants.enter(decision.key)
                         primary = Counted(decision.key, pkg, decision.ratePct, primary = true)
                     } else {
-                        pauseCounting(now)
+                        pauseCounting(now, elapsed)
                         if (foregroundPkg == pkg) showGate(pkg, url, decision)
                         return
                     }
@@ -257,17 +282,17 @@ class GuardAccessibilityService : AccessibilityService() {
             val pick = CountRules.pick(primary, extras)
             // A peek at the shade is free; staying in the shade is not using the app. Count a short grace, then pause.
             if (pick != null && shadeOpen()) {
-                val from = shadeSince ?: now
+                val from = shadeSince ?: elapsed
                 shadeSince = from
-                if (now - from >= SHADE_GRACE_MS) {
-                    attempt { ServiceLocator.meterEngine.advance(now, env.allowed) }
-                    applyCounting(null, env, now)
+                if (elapsed - from >= SHADE_GRACE_MS) {
+                    attempt { ServiceLocator.meterEngine.advance(elapsed, env.allowed) }
+                    applyCounting(null, env, now, elapsed)
                     return
                 }
             } else {
                 shadeSince = null
             }
-            applyCounting(pick, env, now)
+            applyCounting(pick, env, now, elapsed)
         } catch (e: kotlinx.coroutines.CancellationException) {
             lastCheckKey = null
             throw e
@@ -331,24 +356,26 @@ class GuardAccessibilityService : AccessibilityService() {
                         val p = r.packageName?.toString()
                         @Suppress("DEPRECATION")
                         runCatching { r.recycle() }
-                        p == SYSTEM_UI
+                        p == ForegroundRules.SYSTEM_UI
                     } == true
                 }.getOrDefault(false)
             } else false
         }
     }.getOrDefault(false)
 
-    private suspend fun applyCounting(pick: Counted?, env: Env, now: Long) {
+    private suspend fun applyCounting(pick: Counted?, env: Env, now: Long, elapsed: Long) {
         val engine = ServiceLocator.meterEngine
-        val active = pick?.takeIf { env.allowed }?.let { MeterActive(it.key, it.pkg, it.ratePct, now) }
-        attempt { engine.switchTo(active, now) }
+        // since is exposed over remote status() as an epoch timestamp, so it stays wall time;
+        // the engine's lastAt uses elapsed. Do not pass elapsed here.
+        val active = pick?.takeIf { env.allowed }?.let { MeterActive(it.key, it.pkg, it.ratePct, now, elapsed) }
+        attempt { engine.switchTo(active, elapsed) }
         armed = pick != null
         if (pick == null) { stopTicker(); hideOverlay(); return }
         label = if (pick.key == pick.pkg) labelOf(pick.pkg) else pick.key
         attempt { syncBalance(now) }
         startTicker()
-        renderOverlay(now)
-        scheduleZero(now)
+        renderOverlay(elapsed)
+        scheduleZero(now, elapsed)
     }
 
     private suspend fun syncBalance(now: Long) {
@@ -358,13 +385,13 @@ class GuardAccessibilityService : AccessibilityService() {
     }
 
     /** Predicted moment the balance reaches zero (or a lot expires): re-check exactly then, no polling lag. */
-    private fun scheduleZero(now: Long) {
+    private fun scheduleZero(now: Long, elapsed: Long) {
         zeroJob?.cancel()
-        val rem = ServiceLocator.meterEngine.remainingMs(now) ?: return
+        val rem = ServiceLocator.meterEngine.remainingMs(elapsed) ?: return
         val wait = minOf(rem, expiryAt?.let { it - now } ?: Long.MAX_VALUE).coerceAtLeast(0) + 50
         zeroJob = scope.launch {
             delay(wait)
-            val t = System.currentTimeMillis()
+            val t = elapsedNow()
             attempt { ServiceLocator.meterEngine.advance(t, env().allowed) }
             // Separate job: the re-check cancels and re-creates this one.
             scope.launch { recheck(force = true) }
@@ -375,18 +402,22 @@ class GuardAccessibilityService : AccessibilityService() {
         if (ticker?.isActive == true) return
         ticker = scope.launch {
             var wasAllowed = env().allowed
-            lastTickAdvance = System.currentTimeMillis()
+            lastTickAdvance = elapsedNow()
             while (isActive) {
                 delay(1_000)
-                val now = System.currentTimeMillis()
+                val elapsed = elapsedNow()
                 val e = env()
-                // The shade grace needs a pass to expire: keep re-checking while it is open (the tick loop stops with counting).
-                if (shadeSince != null || e.allowed != wasAllowed || !e.screenUsable) { wasAllowed = e.allowed; scope.launch { recheck(force = true) }; continue }
-                if (now - lastTickAdvance >= TICK_MS) {
-                    lastTickAdvance = now
-                    attempt { ServiceLocator.meterEngine.advance(now, e.allowed) }
+                // Both graces need a pass to expire: keep re-checking while one is pending (the loop stops with counting).
+                if (shadeSince != null || nonAppSince != null || e.allowed != wasAllowed || !e.screenUsable) {
+                    wasAllowed = e.allowed
+                    scope.launch { recheck(force = true) }
+                    continue
                 }
-                renderOverlay(now)
+                if (elapsed - lastTickAdvance >= TICK_MS) {
+                    lastTickAdvance = elapsed
+                    attempt { ServiceLocator.meterEngine.advance(elapsed, e.allowed) }
+                }
+                renderOverlay(elapsed)
             }
         }
     }
@@ -396,21 +427,21 @@ class GuardAccessibilityService : AccessibilityService() {
         zeroJob?.cancel(); zeroJob = null
     }
 
-    private fun renderOverlay(now: Long) {
+    private fun renderOverlay(elapsed: Long) {
         val a = ServiceLocator.meterEngine.current()
-        val rem = ServiceLocator.meterEngine.remainingMs(now)
+        val rem = ServiceLocator.meterEngine.remainingMs(elapsed)
         if (a == null || rem == null || a.ratePct == 0) { hideOverlay(); return }
         if (OverlayMath.crossedVibrate(prevRemaining, rem)) vibrate()
         prevRemaining = rem
         overlay?.show(a.pkg, label, rem, a.ratePct)
         // Unbroken use of the same app: a gentle buzz and a note every 20 minutes.
-        val elapsed = now - a.since
-        OverlayMath.crossedStreak(prevElapsed.takeIf { prevKey == a.key }, elapsed)?.let { min ->
+        val streakMs = elapsed - a.sinceElapsed
+        OverlayMath.crossedStreak(prevElapsed.takeIf { prevKey == a.key }, streakMs)?.let { min ->
             vibrate()
             overlay?.nudge(getString(com.earnd.app.R.string.meter_streak_note, min))
         }
         prevKey = a.key
-        prevElapsed = elapsed
+        prevElapsed = streakMs
     }
 
     private fun hideOverlay() { overlay?.hide(); prevRemaining = null; prevKey = null; prevElapsed = null }
@@ -421,9 +452,9 @@ class GuardAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** Stops counting (charging up to [now]) and removes the overlay: leaving the app, screen off, lock/gate shown. */
-    private suspend fun pauseCounting(now: Long) {
-        attempt { ServiceLocator.meterEngine.stop(now) }
+    /** Stops counting (charging up to [elapsed]) and removes the overlay: leaving the app, screen off, lock/gate shown. */
+    private suspend fun pauseCounting(now: Long, elapsed: Long) {
+        attempt { ServiceLocator.meterEngine.stop(elapsed) }
         armed = false
         stopTicker()
         hideOverlay()
@@ -459,8 +490,8 @@ class GuardAccessibilityService : AccessibilityService() {
         runCatching { screenReceiver?.let { unregisterReceiver(it) } }
         screenReceiver = null
         overlay?.hide()
-        val now = System.currentTimeMillis()
-        CoroutineScope(Dispatchers.Default).launch { runCatching { ServiceLocator.meterEngine.stop(now) } }
+        val elapsed = elapsedNow()
+        CoroutineScope(Dispatchers.Default).launch { runCatching { ServiceLocator.meterEngine.stop(elapsed) } }
         scope.cancel()
     }
 
@@ -484,7 +515,8 @@ class GuardAccessibilityService : AccessibilityService() {
         const val WINDOWS_MS = 1_500L
         const val EXTRA_LOCK_MS = 60_000L
         const val SHADE_GRACE_MS = 5_000L
-        const val SYSTEM_UI = "com.android.systemui"
+        /** A brief peek at recents is free, but a stale app is not charged indefinitely. */
+        const val NON_APP_GRACE_MS = 1_000L
         val RECHECK_ON = setOf(ChangeKind.SESSION, ChangeKind.BLOCKLIST, ChangeKind.SETTINGS, ChangeKind.FOCUS)
     }
 }

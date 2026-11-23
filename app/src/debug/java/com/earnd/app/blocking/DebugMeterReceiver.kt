@@ -29,7 +29,7 @@ class DebugMeterReceiver : BroadcastReceiver() {
                 val msg = buildString {
                     append("counting=").append(a?.let { "${it.pkg} key=${it.key} rate=${it.ratePct}% since=${(now - it.since) / 1000}s ago" } ?: "none")
                     append(" balance=").append(bal).append("min")
-                    append(" remaining=").append(e.remainingMs(now)?.let { "${it / 1000}s" } ?: "n/a")
+                    append(" remaining=").append(e.remainingMs(android.os.SystemClock.elapsedRealtime())?.let { "${it / 1000}s" } ?: "n/a")
                     append(" carry=").append(MeterMath.carrySeconds(e.carryNow())).append("s")
                     append(" grants=[").append(ServiceLocator.grants.describe(now)).append("]")
                     append(" overlay=").append(MeterOverlayState.visible)
