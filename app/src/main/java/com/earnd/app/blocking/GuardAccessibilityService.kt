@@ -26,8 +26,9 @@ import com.earnd.app.domain.Charging
 import com.earnd.app.domain.CountRules
 import com.earnd.app.domain.Counted
 import com.earnd.app.domain.ForegroundRules
-import com.earnd.app.domain.MeterActive
 import com.earnd.app.domain.OverlayMath
+import com.earnd.app.domain.meterActiveFor
+import com.earnd.app.domain.streakDelta
 import com.earnd.app.domain.WinInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -226,7 +227,7 @@ class GuardAccessibilityService : AccessibilityService() {
         val active = activeWindow()
         when (active?.kind) {
             ForegroundRules.Kind.APP -> active.pkg?.let { p ->
-                if (p != foregroundPkg) { foregroundPkg = p; lastUrl = null }
+                if (!ForegroundRules.keepTargetOnTransient(foregroundPkg, p)) { foregroundPkg = p; lastUrl = null }
                 nonAppSince = null
             }
             ForegroundRules.Kind.TRANSIENT -> nonAppSince = null
@@ -234,7 +235,7 @@ class GuardAccessibilityService : AccessibilityService() {
                 // Recents/overview or a system dialog: a fast peek is fine, but the stale app is not being used.
                 val since = nonAppSince ?: elapsed
                 nonAppSince = since
-                if (elapsed - since >= NON_APP_GRACE_MS) { pauseCounting(now, elapsed); return }
+                if (ForegroundRules.shouldPause(since, elapsed, NON_APP_GRACE_MS)) { pauseCounting(now, elapsed); return }
             }
             null -> nonAppSince = null
         }
@@ -367,7 +368,7 @@ class GuardAccessibilityService : AccessibilityService() {
         val engine = ServiceLocator.meterEngine
         // since is exposed over remote status() as an epoch timestamp, so it stays wall time;
         // the engine's lastAt uses elapsed. Do not pass elapsed here.
-        val active = pick?.takeIf { env.allowed }?.let { MeterActive(it.key, it.pkg, it.ratePct, now, elapsed) }
+        val active = pick?.takeIf { env.allowed }?.let { meterActiveFor(it, now, elapsed) }
         attempt { engine.switchTo(active, elapsed) }
         armed = pick != null
         if (pick == null) { stopTicker(); hideOverlay(); return }
@@ -435,7 +436,7 @@ class GuardAccessibilityService : AccessibilityService() {
         prevRemaining = rem
         overlay?.show(a.pkg, label, rem, a.ratePct)
         // Unbroken use of the same app: a gentle buzz and a note every 20 minutes.
-        val streakMs = elapsed - a.sinceElapsed
+        val streakMs = streakDelta(elapsed, a)
         OverlayMath.crossedStreak(prevElapsed.takeIf { prevKey == a.key }, streakMs)?.let { min ->
             vibrate()
             overlay?.nudge(getString(com.earnd.app.R.string.meter_streak_note, min))

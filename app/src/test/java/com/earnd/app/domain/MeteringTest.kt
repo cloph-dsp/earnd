@@ -188,6 +188,22 @@ class MeteringTest {
         assertEquals(listOf(wall), recorded) // ledger gets wall time, never elapsed
     }
 
+    /** The guard's two construction sites: status() reads since, the streak reads sinceElapsed. */
+    @Test fun meterActiveForUsesBothClocksAndStreakIgnoresWall() {
+        val wall = 1_700_000_000_000L
+        val elapsed = 10_000L
+        val active = meterActiveFor(Counted("k", "p", 50), wall, elapsed)
+        assertEquals(wall, active.since)
+        assertEquals(elapsed, active.sinceElapsed)
+
+        // NTP jumps the wall an hour; the monotonic clock only sees 21 minutes of use.
+        val afterJump = meterActiveFor(Counted("k", "p", 50), wall + 3_600_000L, elapsed)
+        assertEquals(wall + 3_600_000L, afterJump.since)
+        assertEquals(elapsed, afterJump.sinceElapsed)
+        assertEquals(21 * 60_000L, streakDelta(elapsed + 21 * 60_000L, active))
+        assertEquals(21 * 60_000L, streakDelta(elapsed + 21 * 60_000L, afterJump))
+    }
+
     @Test fun rawPendingBelongsToTheAppItWasSeenIn() = runTest {
         val raw = mutableListOf<Long>()
         val e = MeterEngine({ it }, { 0L }, { }) { _, _, _, r -> raw += r }

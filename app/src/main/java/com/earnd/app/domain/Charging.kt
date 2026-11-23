@@ -81,6 +81,13 @@ data class MeterActive(
     val sinceElapsed: Long = since,
 )
 
+/** The guard's construction site: wall for [MeterActive.since], monotonic for [MeterActive.sinceElapsed]. */
+fun meterActiveFor(pick: Counted, wallNow: Long, elapsedNow: Long): MeterActive =
+    MeterActive(pick.key, pick.pkg, pick.ratePct, wallNow, elapsedNow)
+
+/** Unbroken foreground time: only the monotonic clock, never the wall one. */
+fun streakDelta(elapsedNow: Long, active: MeterActive): Long = elapsedNow - active.sinceElapsed
+
 /**
  * Debits the bank for foreground time of the leisure app being counted. The guard calls [advance] on every event
  * (window change, screen on/off, user present) and tick, charging the time since the last call at the previous
@@ -178,8 +185,13 @@ object ForegroundRules {
     const val WINDOW_TYPE_INPUT_METHOD = 2
     const val SYSTEM_UI = "com.android.systemui"
 
-    /** Share sheet, Google sign-in, Play billing: the user is still in the app behind them. */
-    private val MODALS = listOf("com.android.intentresolver", "com.google.android.gms", "com.android.vending")
+    /** Share sheet, sign-in/billing plumbing: the user is still in the app behind them. */
+    private val MODALS = listOf(
+        "com.android.intentresolver", "com.google.android.gms", "com.android.vending",
+        "com.google.android.gsf", "com.android.keyguard",
+    )
+    // AccessibilityWindowInfo exposes no reliable modal/opaque flag; size or class heuristics misread legitimate small
+    // windows (PiP, split screen), so only system/provider packages are added: a missed modal keeps the old behaviour.
 
     enum class Kind { APP, TRANSIENT, COVERING }
 
@@ -189,6 +201,14 @@ object ForegroundRules {
 
     /** Windows that take focus without changing the foreground app (shade, keyboard, modals). */
     fun isTransientSystemUi(pkg: String): Boolean = pkg == SYSTEM_UI || isIme(pkg) || isModal(pkg)
+
+    /** True once a COVERING surface has stayed over the app for [graceMs]; null means no cover was seen. */
+    fun shouldPause(nonAppSince: Long?, now: Long, graceMs: Long): Boolean =
+        nonAppSince != null && now - nonAppSince >= graceMs
+
+    /** True when a candidate package must not replace the metered target (absent, unchanged or transient/modal). */
+    fun keepTargetOnTransient(current: String?, candidate: String?): Boolean =
+        candidate == null || candidate == current || isTransientSystemUi(candidate)
 
     /**
      * [COVERING] is a non-application surface (recents, overview, a system dialog) over the app: after a short grace
