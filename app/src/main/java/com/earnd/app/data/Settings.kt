@@ -68,6 +68,8 @@ data class Settings(
     val offDayEpochDay: Long? = null,
     /** DayOfWeek values (1=Monday..7=Sunday) whose alarms vibrate every week. */
     val offDayWeekdays: Set<Int> = emptySet(),
+    /** Total real reminders per local day across all items; null = no cap. */
+    val nagCapPerDay: Int? = null,
 ) {
     fun onOffDay(epochDay: Long): Boolean =
         offDayEpochDay == epochDay || LocalDate.ofEpochDay(epochDay).dayOfWeek.value in offDayWeekdays

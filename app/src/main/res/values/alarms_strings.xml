@@ -47,4 +47,10 @@
     <string name="alarms_channel_ring_fallback">Alarms (backup)</string>
 <string name="alarms_channel_ring_fallback_vibrate">Alarms (backup, vibrate only)</string>
     <string name="alarms_channel_ring_fallback_desc">Used when the full-screen alarm cannot start. Plays the alarm sound once.</string>
+    <string name="alarms_nag_pending_1">Ready when you are.</string>
+    <string name="alarms_nag_pending_2">One small check-in is enough.</string>
+    <string name="alarms_nag_pending_3">Your minutes are still waiting.</string>
+    <string name="alarms_nag_upcoming_1">Coming up in a moment.</string>
+    <string name="alarms_nag_upcoming_2">A little time left for this one.</string>
+    <string name="alarms_nag_cap">Quiet for the rest of today.</string>
 </resources>

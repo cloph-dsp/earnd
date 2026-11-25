@@ -47,4 +47,10 @@
     <string name="alarms_channel_ring_fallback">Alarmes (reserva)</string>
 <string name="alarms_channel_ring_fallback_vibrate">Alarmes (reserva, só vibração)</string>
     <string name="alarms_channel_ring_fallback_desc">Usado quando o alarme em ecrã inteiro não arranca. Toca o som de alarme uma vez.</string>
+    <string name="alarms_nag_pending_1">Pronto quando quiseres.</string>
+    <string name="alarms_nag_pending_2">Um registo chega.</string>
+    <string name="alarms_nag_pending_3">Os teus minutos continuam à espera.</string>
+    <string name="alarms_nag_upcoming_1">A seguir, dentro de momentos.</string>
+    <string name="alarms_nag_upcoming_2">Ainda tens um pouco de tempo para este.</string>
+    <string name="alarms_nag_cap">Silencioso pelo resto de hoje.</string>
 </resources>

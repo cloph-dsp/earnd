@@ -44,4 +44,15 @@ class SettingsCodecTest {
         assertTrue(s.onOffDay(20_001L))
         assertFalse(s.onOffDay(20_002L))
     }
+
+    @Test
+    fun nagCapRoundTripsDefaultsAndClamps() {
+        val encoded = SettingsCodec.encode(Settings(nagCapPerDay = 5))
+        assertEquals("5", encoded["nagCapPerDay"])
+        assertEquals(5, SettingsCodec.decode(encoded).nagCapPerDay)
+        assertNull(SettingsCodec.decode(mapOf("nagCapPerDay" to "")).nagCapPerDay)
+        assertNull(SettingsCodec.decode(emptyMap()).nagCapPerDay)
+        assertEquals(20, SettingsCodec.decode(mapOf("nagCapPerDay" to "99")).nagCapPerDay)
+        assertEquals(0, SettingsCodec.decode(mapOf("nagCapPerDay" to "-3")).nagCapPerDay)
+    }
 }

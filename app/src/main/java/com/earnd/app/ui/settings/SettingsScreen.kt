@@ -232,7 +232,8 @@ private fun summary(p: Page, s: Settings, remoteOn: Boolean): String = when (p) 
         " · " + (
         if (s.dailyReportEnabled) Str.get(R.string.settings_sum_report, formatMinuteOfDay(s.dailyReportMin))
         else Str.get(R.string.settings_sum_report_off)
-        )
+        ) +
+        " · " + (s.nagCapPerDay?.let { Str.get(R.string.settings_sum_nag_cap, it) } ?: Str.get(R.string.settings_sum_nag_no_cap))
     Page.APPEARANCE -> listOf(
         Str.get(when (s.themeMode) {
             ThemeMode.SYSTEM -> R.string.settings_sum_theme_system

@@ -340,4 +340,8 @@
     <string name="settings_rem_off_day_hint">Today\'s alarms vibrate instead of playing a sound. It ends at midnight.</string>
     <string name="settings_rem_off_day_weekdays">Recurring off days</string>
     <string name="settings_rem_off_day_weekdays_hint">Alarms vibrate on these weekdays</string>
+    <string name="settings_rem_cap_per_day">Reminders per day</string>
+    <string name="settings_rem_cap_per_day_hint">Total across all items. Leave empty for no cap; resets at day start.</string>
+    <string name="settings_sum_nag_cap">%1$d/day</string>
+    <string name="settings_sum_nag_no_cap">no cap</string>
 </resources>

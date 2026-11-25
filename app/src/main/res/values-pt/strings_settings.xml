@@ -344,4 +344,8 @@
     <string name="settings_rem_off_day_hint">Hoje os alarmes vibram em vez de tocar. Termina à meia-noite.</string>
     <string name="settings_rem_off_day_weekdays">Folgas semanais</string>
     <string name="settings_rem_off_day_weekdays_hint">Os alarmes vibram nestes dias da semana</string>
+    <string name="settings_rem_cap_per_day">Lembretes por dia</string>
+    <string name="settings_rem_cap_per_day_hint">Total em todos os itens. Vazio significa sem limite; reinicia no início do dia.</string>
+    <string name="settings_sum_nag_cap">%1$d/dia</string>
+    <string name="settings_sum_nag_no_cap">sem limite</string>
 </resources>

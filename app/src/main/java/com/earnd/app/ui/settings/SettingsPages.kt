@@ -193,6 +193,9 @@ internal fun RemindersPage(cur: Settings, change: Change) {
     if (cur.dailyReportEnabled) {
         TimeField(stringResource(R.string.settings_at), cur.dailyReportMin, { v -> v?.let { m -> change { it.copy(dailyReportMin = m) } } })
     }
+    NumberField(stringResource(R.string.settings_rem_cap_per_day), cur.nagCapPerDay,
+        { v -> change { it.copy(nagCapPerDay = v?.coerceIn(0, 20)) } }, Modifier.fillMaxWidth())
+    Helper(stringResource(R.string.settings_rem_cap_per_day_hint))
 
     SectionTitle(stringResource(R.string.settings_rem_ringing_section))
     val today = com.earnd.app.ServiceLocator.clock.today().toEpochDay()

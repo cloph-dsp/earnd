@@ -15,6 +15,7 @@ class AlarmActions(private val context: Context) {
     private val db get() = ServiceLocator.db
     private val nag get() = ServiceLocator.nagEngine
     private val clock get() = ServiceLocator.clock
+    @Volatile private var lastEventPassAt = 0L
 
     /** An item's due time arrived. */
     suspend fun onDue(kind: OwnerKind, id: Long) {
@@ -32,24 +33,38 @@ class AlarmActions(private val context: Context) {
         val label = labelOf(kind, id)
         if (label.isNotBlank()) {
             UpcomingNotifier.show(context, kind, id, label, dueAt,
-                silent = styleOf(kind, id) == AlarmStyle.SILENT || offDay(), needsApp = needsApp(kind, id))
+                silent = styleOf(kind, id) == AlarmStyle.SILENT || offDay(), needsApp = needsApp(kind, id),
+                nagCount = db.nagStateDao().get(kind, id)?.nagCount ?: 0)
         }
         AlarmsModule.planner.rearmAll()
+        nagPass(NagTrigger.DUE_NEAR)
     }
 
-    /** Nag alarm or heartbeat: bump due items, ring full-screen ones, refresh the notification. */
-    suspend fun nagPass() = passLock.withLock {
+    /** Nag alarm or a contextual event: bump due items, refresh the notification; only a timer may ring full-screen. */
+    suspend fun nagPass(trigger: NagTrigger = NagTrigger.TIMER) = passLock.withLock {
+        val now = clock.now()
+        // Events can arrive several times a second; a full pass is expensive and may churn ChangeBus. Timers always pass.
+        if (trigger != NagTrigger.TIMER) {
+            if (now - lastEventPassAt < 30_000L) return@withLock
+            lastEventPassAt = now
+        }
         housekeeping()
         // Reconcile first: anything finished elsewhere must not be bumped (and rung) one last time.
         runCatching { AlarmsModule.planner.rearmAll() }
-        val now = clock.now()
+        nag.ambient = nag.ambient.copy(
+            trigger = trigger,
+            focusRunning = runCatching { com.earnd.app.focus.FocusMath.isRunning(db.focusDao().get(), now) }.getOrDefault(false),
+            balanceZero = runCatching { ServiceLocator.timeBank.balance(now).minutes <= 0 }.getOrDefault(false),
+        )
         val before = db.nagStateDao().all().associate { (it.ownerKind to it.ownerId) to it.nagCount }
-        nag.onFired(now)
+        nag.onFired(now, trigger)
         val bumped = db.nagStateDao().all().filter { it.nagCount > (before[it.ownerKind to it.ownerId] ?: 0) }
         AlarmsModule.planner.rearmAll()
         val styles = bumped.map { styleOf(it.ownerKind, it.ownerId) }
-        bumped.zip(styles).firstOrNull { it.second == AlarmStyle.FULL_SCREEN }?.let { (s, _) ->
-            Ringing.show(context, s.ownerKind, s.ownerId)
+        if (trigger == NagTrigger.TIMER) {
+            bumped.zip(styles).firstOrNull { it.second == AlarmStyle.FULL_SCREEN }?.let { (s, _) ->
+                Ringing.show(context, s.ownerKind, s.ownerId)
+            }
         }
         val alert = styles.any { it != AlarmStyle.SILENT } && !inQuiet()
         AlarmsModule.notifier.refresh(alert = alert, quiet = inQuiet())

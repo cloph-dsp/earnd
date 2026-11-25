@@ -29,6 +29,7 @@ object AlarmsModule {
     private val relevant = setOf(
         ChangeKind.TASKS, ChangeKind.HABITS, ChangeKind.CHECKINS, ChangeKind.SETTINGS, ChangeKind.ALARMS,
     )
+    private val NAG_TRIGGERS = setOf(ChangeKind.FOCUS, ChangeKind.BALANCE, ChangeKind.SESSION)
 
     /** Creates channels, arms everything, and re-plans (debounced) whenever relevant data changes. */
     @OptIn(FlowPreview::class)
@@ -39,6 +40,15 @@ object AlarmsModule {
         scope.launch { resync() }
         scope.launch {
             ServiceLocator.changeBus.events.filter { it in relevant }.debounce(600).collect { resync() }
+        }
+        scope.launch {
+            ServiceLocator.changeBus.events.filter { it in NAG_TRIGGERS }.debounce(600).collect { kind ->
+                actions.nagPass(when (kind) {
+                    ChangeKind.FOCUS -> NagTrigger.FOCUS_END
+                    ChangeKind.BALANCE -> NagTrigger.BALANCE_ZERO
+                    else -> NagTrigger.BLOCK_END
+                })
+            }
         }
     }
 

@@ -24,7 +24,9 @@ class PendingNotifier(private val context: Context) {
      */
     suspend fun refresh(alert: Boolean, quiet: Boolean = false) {
         val now = ServiceLocator.clock.now()
-        val offDay = ServiceLocator.settings.current().onOffDay(ServiceLocator.clock.today().toEpochDay())
+        val settingsNow = ServiceLocator.settings.current()
+        val offDay = settingsNow.onOffDay(ServiceLocator.clock.today().toEpochDay())
+        val capped = settingsNow.nagCapPerDay?.let { ServiceLocator.nagEngine.nagsToday(now) >= it } ?: false
         val items = ServiceLocator.nagEngine.pending(now)
         val nm = context.getSystemService(NotificationManager::class.java)
         if (items.isEmpty()) {
@@ -35,17 +37,19 @@ class PendingNotifier(private val context: Context) {
         val digest = states.isNotEmpty() && states.filter { it.dueAt <= now }.all { NagSchedule.isDigest(it, now) }
         val needsApp = items.filter { it.ownerKind == com.earnd.app.data.entity.OwnerKind.HABIT && AlarmsModule.actions.needsApp(it.ownerKind, it.ownerId) }
             .map { it.ownerId }.toSet()
-        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest, quiet, needsApp, offDay))
+        nm.notify(AlarmKeys.NOTIF_PENDING, build(items, alert, digest, quiet, needsApp, offDay, capped))
     }
 
-    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean, quiet: Boolean = false, needsApp: Set<Long> = emptySet(), offDay: Boolean = false): Notification {
+    fun build(items: List<PendingItem>, alert: Boolean, digest: Boolean, quiet: Boolean = false, needsApp: Set<Long> = emptySet(), offDay: Boolean = false, capped: Boolean = false): Notification {
         AlarmChannels.ensure(context)
         val res = context.resources
         val title = if (digest) res.getQuantityString(R.plurals.alarms_digest_title, items.size, items.size)
         else res.getQuantityString(R.plurals.alarms_pending_title, items.size, items.size)
         val header = items.joinToString(" · ") { shortLabel(it) }
         val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title).setSummaryText(header)
-        items.take(MAX_LINES).forEach { inbox.addLine(line(it)) }
+        val epochDay = ServiceLocator.clock.today().toEpochDay()
+        items.take(MAX_LINES).forEach { inbox.addLine(line(it, epochDay)) }
+        if (capped) inbox.addLine(NagCopy.capReachedLine)
         if (items.size > MAX_LINES) inbox.addLine(context.getString(R.string.alarms_more, items.size - MAX_LINES))
 
         val channel = when {
@@ -66,23 +70,19 @@ class PendingNotifier(private val context: Context) {
             .setOngoing(false)
             .setAutoCancel(false)
             .setShowWhen(true)
-            .setNumber(items.sumOf { it.nagCount })
         openAppIntent()?.let { builder.setContentIntent(it) }
-        // Android shows up to three actions; items are already ordered most-ignored first.
+        // Android shows up to three actions; items are already ordered most-nagged first.
         items.take(MAX_ACTIONS).forEach { item ->
             builder.addAction(0, context.getString(R.string.alarms_done_action, ellipsize(item.label, 22)), doneIntent(item, item.ownerKind == com.earnd.app.data.entity.OwnerKind.HABIT && item.ownerId in needsApp))
         }
         return builder.build()
     }
 
-    private fun line(it: PendingItem): String =
-        if (it.nagCount == 0) it.label
-        else context.resources.getQuantityString(R.plurals.alarms_line_nagged, it.nagCount, it.label, it.nagCount)
+    private fun line(it: PendingItem, epochDay: Long): String =
+        "${it.label} · ${NagCopy.pendingLine(epochDay, it.nagCount)}"
 
-    private fun shortLabel(it: PendingItem): String {
-        val short = ellipsize(it.label.substringBefore(' ').ifBlank { it.label }, 12)
-        return if (it.nagCount > 0) "$short ×${it.nagCount}" else short
-    }
+    private fun shortLabel(it: PendingItem): String =
+        ellipsize(it.label.substringBefore(' ').ifBlank { it.label }, 12)
 
     private fun doneIntent(item: PendingItem, needsApp: Boolean): PendingIntent {
         if (needsApp) {

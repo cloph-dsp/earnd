@@ -17,7 +17,9 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.content.ContextCompat
 import com.earnd.app.ServiceLocator
+import com.earnd.app.alarms.AlarmsModule
 import com.earnd.app.alarms.GuardReminder
+import com.earnd.app.alarms.NagTrigger
 import com.earnd.app.domain.BlockCause
 import com.earnd.app.domain.BlockDecision
 import com.earnd.app.domain.BlockRules
@@ -78,6 +80,7 @@ class GuardAccessibilityService : AccessibilityService() {
     private var lastTickAdvance = 0L
     private var lastExtraLockAt = 0L
     private var screenReceiver: BroadcastReceiver? = null
+    private var lastAppSwitchAt = 0L
 
     private class Env(val screenUsable: Boolean, val inCall: Boolean) {
         val allowed get() = screenUsable && !inCall
@@ -134,8 +137,19 @@ class GuardAccessibilityService : AccessibilityService() {
     private fun registerScreenReceiver() {
         val r = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                if (intent.action == Intent.ACTION_SCREEN_OFF) scope.launch { pauseCounting(System.currentTimeMillis(), elapsedNow()) }
-                else scope.launch { recheck(force = true) }
+                if (intent.action == Intent.ACTION_SCREEN_OFF) scope.launch {
+                    ServiceLocator.nagEngine.ambient = ServiceLocator.nagEngine.ambient.copy(interactive = false)
+                    pauseCounting(System.currentTimeMillis(), elapsedNow())
+                }
+                else {
+                    if (intent.action == Intent.ACTION_SCREEN_ON || intent.action == Intent.ACTION_USER_PRESENT) {
+                        scope.launch {
+                            ServiceLocator.nagEngine.ambient = ServiceLocator.nagEngine.ambient.copy(interactive = true)
+                            AlarmsModule.actions.nagPass(NagTrigger.SCREEN_ON)
+                        }
+                    }
+                    scope.launch { recheck(force = true) }
+                }
             }
         }
         val f = IntentFilter().apply {
@@ -162,6 +176,11 @@ class GuardAccessibilityService : AccessibilityService() {
                 if (pkg != foregroundPkg) { foregroundPkg = pkg; lastUrl = null }
                 if (BrowserUrls.isBrowser(pkg)) lastUrl = BrowserUrls.extract(rootInActiveWindow, pkg)
                 schedule()
+                val t = System.currentTimeMillis()
+                if (t - lastAppSwitchAt >= SAME_KEY_MS) {
+                    lastAppSwitchAt = t
+                    scope.launch { AlarmsModule.actions.nagPass(NagTrigger.APP_SWITCH) }
+                }
             }
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
                 if (pkg != foregroundPkg || !BrowserUrls.isBrowser(pkg)) return
@@ -225,6 +244,14 @@ class GuardAccessibilityService : AccessibilityService() {
         // A dialog, chooser or bubble from another package can take the last window event and leave the app that is
         // really in front forgotten: trust the focused window over the last event.
         val active = activeWindow()
+        val envNow = env()
+        val engine = ServiceLocator.nagEngine
+        engine.ambient = engine.ambient.copy(
+            foregroundKind = active?.kind,
+            interactive = envNow.screenUsable,
+            inCall = envNow.inCall,
+            selfForeground = foregroundPkg == packageName,
+        )
         when (active?.kind) {
             ForegroundRules.Kind.APP -> active.pkg?.let { p ->
                 if (!ForegroundRules.keepTargetOnTransient(foregroundPkg, p)) { foregroundPkg = p; lastUrl = null }
@@ -240,7 +267,10 @@ class GuardAccessibilityService : AccessibilityService() {
             null -> nonAppSince = null
         }
         val pkg = foregroundPkg
-        if (pkg == null || pkg == packageName) { pauseCounting(now, elapsed); return }
+        if (pkg == null || pkg == packageName) {
+            if (pkg == packageName) engine.ambient = engine.ambient.copy(selfForeground = true)
+            pauseCounting(now, elapsed); return
+        }
         val url = lastUrl
         val key = "$pkg|${url?.let { BrowserUrls.hostOf(it) }}"
         if (!force && key == lastCheckKey && now - lastCheckAt < SAME_KEY_MS) return
@@ -248,7 +278,7 @@ class GuardAccessibilityService : AccessibilityService() {
         lastCheckAt = now
         // A cancelled pass applied nothing, so the next one must not be skipped as a duplicate of it.
         try {
-            val env = env()
+            val env = envNow
             if (!env.screenUsable) { pauseCounting(now, elapsed); return }
             // The state before this pass owns the interval just ended: a call starting now must not erase the time used before it.
             attempt { ServiceLocator.meterEngine.advance(elapsed, prevAllowed) }
@@ -394,8 +424,9 @@ class GuardAccessibilityService : AccessibilityService() {
             delay(wait)
             val t = elapsedNow()
             attempt { ServiceLocator.meterEngine.advance(t, env().allowed) }
-            // Separate job: the re-check cancels and re-creates this one.
+            // Separate jobs: the re-check cancels and re-creates this one.
             scope.launch { recheck(force = true) }
+            scope.launch { AlarmsModule.actions.nagPass(NagTrigger.BALANCE_ZERO) }
         }
     }
 
@@ -461,6 +492,7 @@ class GuardAccessibilityService : AccessibilityService() {
         hideOverlay()
         grantKey?.let { ServiceLocator.grants.leave(it, now) }
         grantKey = null
+        AlarmsModule.actions.nagPass(NagTrigger.BLOCK_END)
     }
 
     private fun labelOf(pkg: String): String = runCatching {

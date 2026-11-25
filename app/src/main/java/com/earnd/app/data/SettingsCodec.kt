@@ -54,6 +54,7 @@ internal object SettingsCodec {
         put("gentleStart", s.gentleStart.toString())
         put("offDayEpochDay", s.offDayEpochDay?.toString() ?: "")
         put("offDayWeekdays", s.offDayWeekdays.sorted().joinToString(","))
+        put("nagCapPerDay", s.nagCapPerDay?.toString() ?: "")
     }
 
     fun decode(m: Map<String, String>): Settings {
@@ -105,6 +106,7 @@ internal object SettingsCodec {
             gentleStart = bool("gentleStart", d.gentleStart),
             offDayEpochDay = optLong("offDayEpochDay", d.offDayEpochDay),
             offDayWeekdays = m["offDayWeekdays"]?.split(",")?.mapNotNull { it.toIntOrNull() }?.toSet() ?: d.offDayWeekdays,
+            nagCapPerDay = optInt("nagCapPerDay", d.nagCapPerDay)?.coerceIn(0, 20),
         )
     }
 }

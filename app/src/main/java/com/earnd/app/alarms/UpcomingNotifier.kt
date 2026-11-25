@@ -9,13 +9,16 @@ import androidx.core.app.NotificationCompat
 import com.earnd.app.R
 import com.earnd.app.alarms.AlarmKeys.putOwner
 import com.earnd.app.data.entity.OwnerKind
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Date
 
 /** Heads-up reminder shown at an "offset before" time. Replaced per item, cleared when done. */
 internal object UpcomingNotifier {
-    fun show(context: Context, kind: OwnerKind, id: Long, label: String, dueAt: Long, silent: Boolean, needsApp: Boolean = false) {
+    fun show(context: Context, kind: OwnerKind, id: Long, label: String, dueAt: Long, silent: Boolean, needsApp: Boolean = false, nagCount: Int = 0) {
         AlarmChannels.ensure(context)
         val time = DateFormat.getTimeFormat(context).format(Date(dueAt))
+        val epochDay = Instant.ofEpochMilli(dueAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
         // Photo, focus and amount habits cannot be completed from the shade: the action opens their check-in flow.
         val done = if (needsApp && kind == OwnerKind.HABIT) {
             PendingIntent.getActivity(
@@ -32,7 +35,7 @@ internal object UpcomingNotifier {
             .setSmallIcon(R.drawable.alarms_ic_notification)
             .setColor(context.getColor(R.color.alarms_accent))
             .setContentTitle(label)
-            .setContentText(context.getString(R.string.alarms_upcoming_text, time))
+            .setContentText(NagCopy.upcomingLine(epochDay, nagCount) + " " + context.getString(R.string.alarms_upcoming_text, time))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setSilent(silent)
             .setAutoCancel(true)
