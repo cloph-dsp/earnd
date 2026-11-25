@@ -28,12 +28,12 @@
     <string name="alarms_ring_text">Tocar para abrir o alarme.</string>
     <string name="alarms_ring_stop">Parar</string>
     <string name="alarms_ring_snooze_short">Adiar %d min</string>
-    <string name="alarms_channel_missed">Alarmes perdidos</string>
-    <string name="alarms_missed_title">Alarme perdido</string>
+    <string name="alarms_channel_missed">Alarmes em aberto</string>
+    <string name="alarms_missed_title">Alarme em aberto</string>
     <string name="alarms_ring_done">Feito</string>
     <string name="alarms_ring_minutes_unit">min</string>
     <string name="alarms_ring_silence">Silenciar</string>
-    <string name="alarms_ring_ignored">ignorado %d×</string>
+    <string name="alarms_ring_ignored">lembretes %d×</string>
     <string name="alarms_ring_reward">+%d min</string>
     <plurals name="alarms_ring_snooze"><item quantity="many">Adiar (restam %1$d)</item>
         <item quantity="one">Adiar (resta %1$d)</item>

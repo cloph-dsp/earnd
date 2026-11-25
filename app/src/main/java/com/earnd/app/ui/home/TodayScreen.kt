@@ -245,7 +245,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                                     }
                                     Row {
                                         if (reward > 0) Num(stringResource(R.string.home_reward_min, reward), color = p.amber)
-                                        if (nagCount > 0) Num((if (reward > 0) " · " else "") + stringResource(R.string.home_ignored, nagCount), color = p.red)
+                                        if (nagCount > 0) Num((if (reward > 0) " · " else "") + stringResource(R.string.home_ignored, nagCount), color = p.muted)
                                     }
                                 }
                                 Spacer(Modifier.width(12.dp))
@@ -382,7 +382,7 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
             if (focusing != null) Num(focusing, color = p.amber)
             else Row {
                 if (parts.isNotEmpty()) Num(parts.joinToString("  "), color = if (complete) p.muted else p.secondary)
-                if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) " · " else "") + stringResource(R.string.home_ignored, ignored), color = p.red)
+                if (!complete && ignored > 0) Num((if (parts.isNotEmpty()) " · " else "") + stringResource(R.string.home_ignored, ignored), color = p.muted)
             }
         }
         when {

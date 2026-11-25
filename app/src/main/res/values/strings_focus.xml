@@ -7,7 +7,7 @@
     <string name="focus_minutes">%1$d min</string>
     <string name="focus_result_finished">finished</string>
     <string name="focus_result_too_short">too short · no check-in</string>
-    <string name="focus_result_bonus">checked in · +%1$d +%2$d comeback</string>
+    <string name="focus_result_bonus">checked in · +%1$d +%2$d welcome back</string>
     <string name="focus_result_earned">checked in · +%1$d min</string>
     <string name="focus_result_checked_in">checked in</string>
     <string name="focus_min_to_count">min %1$d min to count</string>
@@ -36,14 +36,14 @@
     <string name="focus_notif_countdown_text">%1$d min. Leaving early loses the progress.</string>
     <string name="focus_done_title">%1$s: %2$d min done</string>
     <string name="focus_done_checked">Checked in.</string>
-    <string name="focus_done_checked_bonus">Checked in. +%1$d min, +%2$d comeback bonus.</string>
+    <string name="focus_done_checked_bonus">Checked in. +%1$d min, +%2$d welcome back bonus.</string>
     <string name="focus_done_checked_min">Checked in. +%1$d min.</string>
     <string name="focus_label_practising">Practising · %1$s</string>
     <string name="focus_label_focusing">Focusing · %1$s left</string>
     <string name="focus_start">Start</string>
     <string name="focus_start_min">Start %1$d min</string>
     <string name="focus_start_choice">Start…</string>
-    <string name="focus_bonus_text">+%1$d min · +%2$d comeback bonus</string>
+    <string name="focus_bonus_text">+%1$d min · +%2$d welcome back bonus</string>
     <string name="focus_option">"%1$d min  ·  +%2$d min"</string>
     <string name="focus_not_now">Not now</string>
 </resources>

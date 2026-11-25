@@ -28,12 +28,12 @@
     <string name="alarms_ring_text">Tap to open the alarm.</string>
     <string name="alarms_ring_stop">Stop</string>
     <string name="alarms_ring_snooze_short">Snooze %d min</string>
-    <string name="alarms_channel_missed">Missed alarms</string>
-    <string name="alarms_missed_title">Missed alarm</string>
+    <string name="alarms_channel_missed">Alarms still open</string>
+    <string name="alarms_missed_title">Alarm still open</string>
     <string name="alarms_ring_done">Done</string>
     <string name="alarms_ring_minutes_unit">min</string>
     <string name="alarms_ring_silence">Silence</string>
-    <string name="alarms_ring_ignored">ignored %d×</string>
+    <string name="alarms_ring_ignored">reminders %d×</string>
     <string name="alarms_ring_reward">+%d min</string>
     <plurals name="alarms_ring_snooze">
         <item quantity="one">Snooze (%1$d left)</item>

@@ -21,7 +21,7 @@
     <string name="habits_archived">Arquivados</string>
     <string name="habits_row_stopwatch">%1$s · cronómetro</string>
     <string name="habits_row_focus">%1$s · %2$s min de foco</string>
-    <string name="habits_row_comeback">%1$s regresso</string>
+    <string name="habits_row_comeback">%1$s boas-vindas</string>
     <string name="habits_today_done">feito</string>
     <string name="habits_today_rest">descanso</string>
     <string name="habits_streak_short">sequência %1$dd</string>

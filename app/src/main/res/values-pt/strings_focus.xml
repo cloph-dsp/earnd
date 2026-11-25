@@ -7,7 +7,7 @@
     <string name="focus_minutes">%1$d min</string>
     <string name="focus_result_finished">terminado</string>
     <string name="focus_result_too_short">demasiado curto · sem registo</string>
-    <string name="focus_result_bonus">registado · +%1$d +%2$d regresso</string>
+    <string name="focus_result_bonus">registado · +%1$d +%2$d boas-vindas</string>
     <string name="focus_result_earned">registado · +%1$d min</string>
     <string name="focus_result_checked_in">registado</string>
     <string name="focus_min_to_count">mín. %1$d min para contar</string>
@@ -36,14 +36,14 @@
     <string name="focus_notif_countdown_text">%1$d min. Sair antes faz perder o progresso.</string>
     <string name="focus_done_title">%1$s: %2$d min concluídos</string>
     <string name="focus_done_checked">Registado.</string>
-    <string name="focus_done_checked_bonus">Registado. +%1$d min, +%2$d de bónus de regresso.</string>
+    <string name="focus_done_checked_bonus">Registado. +%1$d min, +%2$d de bónus de boas-vindas.</string>
     <string name="focus_done_checked_min">Registado. +%1$d min.</string>
     <string name="focus_label_practising">Prática · %1$s</string>
     <string name="focus_label_focusing">Foco · %1$s restantes</string>
     <string name="focus_start">Iniciar</string>
     <string name="focus_start_min">Iniciar %1$d min</string>
     <string name="focus_start_choice">Iniciar…</string>
-    <string name="focus_bonus_text">+%1$d min · +%2$d de bónus de regresso</string>
+    <string name="focus_bonus_text">+%1$d min · +%2$d de bónus de boas-vindas</string>
     <string name="focus_option">"%1$d min  ·  +%2$d min"</string>
     <string name="focus_not_now">Agora não</string>
 </resources>

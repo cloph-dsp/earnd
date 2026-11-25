@@ -47,7 +47,7 @@
     <string name="home_nothing_scheduled">Nada previsto para hoje, por isso nada fica bloqueado. Adicionar um hábito quando for altura.</string>
     <string name="home_next">Seguinte</string>
     <string name="home_reward_min">+%1$d min</string>
-    <string name="home_ignored">ignorado %1$d×</string>
+    <string name="home_ignored">lembretes %1$d×</string>
     <string name="home_action_photo">Foto</string>
     <string name="home_action_add">Adicionar</string>
     <string name="home_action_check_in">Registar</string>
@@ -58,7 +58,7 @@
     <string name="home_done_count">Feitos (%1$d)</string>
     <string name="home_collapse_done">Recolher feitos</string>
     <string name="home_expand_done">Expandir feitos</string>
-    <string name="home_comeback_label">%1$s regresso</string>
+    <string name="home_comeback_label">%1$s boas-vindas</string>
     <string name="home_check_in_again">Registar novamente</string>
     <string name="home_photo_needed">Foto necessária</string>
     <string name="home_add_amount">Adicionar quantidade</string>

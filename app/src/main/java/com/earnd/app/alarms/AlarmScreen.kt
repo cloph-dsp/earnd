@@ -69,7 +69,7 @@ internal fun AlarmScreen(
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (ignoredCount > 0) {
-                        Num(stringResource(R.string.alarms_ring_ignored, ignoredCount), color = Earnd.palette.red, style = NumberStyle.copy(fontSize = 14.sp, lineHeight = 18.sp))
+                        Num(stringResource(R.string.alarms_ring_ignored, ignoredCount), color = Earnd.palette.muted, style = NumberStyle.copy(fontSize = 14.sp, lineHeight = 18.sp))
                     }
                     if (rewardMinutes > 0) {
                         Num(stringResource(R.string.alarms_ring_reward, rewardMinutes), color = Earnd.palette.amber, style = NumberStyle.copy(fontSize = 14.sp, lineHeight = 18.sp))

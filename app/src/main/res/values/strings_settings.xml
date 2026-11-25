@@ -92,9 +92,9 @@
     <string name="settings_bank_default_task_reward">Default task reward (minutes, blank = none)</string>
     <string name="settings_bank_promise">I promise to prove it</string>
     <string name="settings_bank_promise_hint">Habits check in with a photo unless you set otherwise on the habit.</string>
-    <string name="settings_bank_comeback_section">Comeback</string>
-    <string name="settings_bank_comeback_bonus">Comeback bonus</string>
-    <string name="settings_bank_comeback_hint">After missed days, the first check-in earns up to double. Skipping never pays more than doing.</string>
+    <string name="settings_bank_comeback_section">Welcome back</string>
+    <string name="settings_bank_comeback_bonus">Welcome back bonus</string>
+    <string name="settings_bank_comeback_hint">After a gap, your first check-in earns a welcome-back credit up to double. Doing it all along still pays more.</string>
 
     <!-- Schedule -->
     <string name="settings_sched_day_start_section">Day start</string>

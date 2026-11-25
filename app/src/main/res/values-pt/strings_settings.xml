@@ -92,9 +92,9 @@
     <string name="settings_bank_default_task_reward">Recompensa predefinida da tarefa (minutos, vazio = nenhuma)</string>
     <string name="settings_bank_promise">Prometo provar</string>
     <string name="settings_bank_promise_hint">Os hábitos são registados com foto, salvo indicação em contrário no hábito.</string>
-    <string name="settings_bank_comeback_section">Regresso</string>
-    <string name="settings_bank_comeback_bonus">Bónus de regresso</string>
-    <string name="settings_bank_comeback_hint">Após dias falhados, o primeiro registo ganha até o dobro. Saltar nunca compensa mais do que fazer.</string>
+    <string name="settings_bank_comeback_section">Boas-vindas</string>
+    <string name="settings_bank_comeback_bonus">Bónus de boas-vindas</string>
+    <string name="settings_bank_comeback_hint">Após uma pausa, o primeiro registo ganha um bónus de boas-vindas até ao dobro. Fazer sempre compensa mais.</string>
 
     <!-- Schedule -->
     <string name="settings_sched_day_start_section">Início do dia</string>

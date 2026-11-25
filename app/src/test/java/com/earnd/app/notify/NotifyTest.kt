@@ -49,7 +49,7 @@ class NotifyTest {
         val r = NotifyText.report(listOf(HabitLine("Read", 1, 1), HabitLine("Walk", 0, 1)), 75, 20)!!
         assertEquals("Today: 1/2 habits done", r.title)
         assertTrue(r.body.contains("Done: Read"))
-        assertTrue(r.body.contains("Missed: Walk"))
+        assertTrue(r.body.contains("Still open: Walk"))
         assertTrue(r.body.contains("1 h 15 min"))
         assertEquals("All done today: 1/1", NotifyText.report(listOf(HabitLine("Read", 1, 1)), 0, 5)!!.title)
         assertNull(NotifyText.report(emptyList(), 0, 0))
