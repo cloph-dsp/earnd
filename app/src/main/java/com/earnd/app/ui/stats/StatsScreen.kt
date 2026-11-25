@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.earnd.app.ServiceLocator
+import com.earnd.app.alarms.NagHistory
 import com.earnd.app.data.entity.LedgerKind
 import com.earnd.app.domain.localDate
 import com.earnd.app.domain.startOfDay
@@ -60,6 +61,9 @@ fun StatsScreen() {
     val rawUses by remember { sl.db.meterUseDao().observeRawSince(sl.clock.startOfDay(days.first())) }.collectAsState(initial = emptyList())
     val checkIns by produceState(emptyMap<Long, Int>(), ledger.size) {
         value = days.associate { d -> d.toEpochDay() to sl.db.checkInDao().forDay(d.toEpochDay()).size }
+    }
+    val answered by produceState(emptyMap<Long, Int>(), ledger.size) {
+        value = NagHistory.rateFor(days.map { it.toEpochDay() })
     }
     val earnedByDay = days.associate { d ->
         d.toEpochDay() to ledger.filter {
@@ -101,6 +105,7 @@ fun StatsScreen() {
         DayGrid(days, today, listOf(
             stringResource(R.string.stats_row_check_ins) to checkIns,
             stringResource(R.string.stats_row_tasks) to tasksByDay,
+            stringResource(R.string.stats_row_answered) to answered,
             stringResource(R.string.stats_screen_time_row) to screenByDay,
         ))
 

@@ -129,6 +129,9 @@ class AlarmActions(private val context: Context) {
     }
 
     private suspend fun finishDone(kind: OwnerKind, id: Long): Boolean {
+        // Only an explicit Done after a real prompt counts as an answer. Read before resolve deletes the state.
+        val state = db.nagStateDao().get(kind, id)
+        if (state != null && state.nagCount > 0) NagHistory.recordResponse(clock.now())
         nag.resolve(kind, id)
         Ringing.dismiss(context, kind, id)
         UpcomingNotifier.cancel(context, kind, id)

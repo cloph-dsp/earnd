@@ -34,6 +34,7 @@
 
     <!-- Today screen -->
     <string name="home_add_habit">Add habit</string>
+    <string name="home_since_check_in">Since last check-in · %1$s</string>
     <plurals name="home_bedtime_grace">
         <item quantity="one">Bedtime. Take %1$d minute to wrap up</item>
         <item quantity="other">Bedtime. Take %1$d minutes to wrap up</item>

@@ -43,6 +43,7 @@
     <string name="habits_stat_current">Current streak</string>
     <string name="habits_stat_best">Best streak</string>
     <string name="habits_stat_days_done">Days done</string>
+    <string name="habits_horizon_note">Most habits take roughly 2–5 months to feel automatic. Streaks are information, not a deadline; a missed day is not a reset.</string>
     <string name="habits_archived_note">Archived. Restore it to see it on Today again.</string>
     <string name="habits_prev_month">Previous month</string>
     <string name="habits_next_month">Next month</string>
@@ -89,8 +90,8 @@
     <string name="habits_section_reminder">Reminder</string>
     <string name="habits_remind_some_days">Remind only on some days</string>
     <string name="habits_remind_every_day_hint">Pick which days get a reminder.</string>
-    <string name="habits_reminder_message">Reminder message (optional)</string>
-    <string name="habits_reminder_message_hint">Uses the habit name</string>
+    <string name="habits_reminder_message">Cue (optional)</string>
+    <string name="habits_reminder_message_hint">Shown in the reminder; blank uses the habit name.</string>
     <string name="habits_custom_reminder">Custom reminder for this habit</string>
     <string name="habits_custom_reminder_hint">Set its own times instead of the defaults.</string>
     <string name="habits_more_options">More options</string>

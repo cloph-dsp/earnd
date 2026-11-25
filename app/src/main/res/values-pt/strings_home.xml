@@ -34,6 +34,7 @@
 
     <!-- Today screen -->
     <string name="home_add_habit">Adicionar hábito</string>
+    <string name="home_since_check_in">Desde o último registo · %1$s</string>
     <plurals name="home_bedtime_grace">
         <item quantity="one">Hora de deitar. Usar %1$d minuto para terminar</item>
         <item quantity="other">Hora de deitar. Usar %1$d minutos para terminar</item>

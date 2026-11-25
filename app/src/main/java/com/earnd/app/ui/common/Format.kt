@@ -53,3 +53,10 @@ fun formatRemaining(ms: Long): String {
     val s = total % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
+
+/** Elapsed time rounded up to whole minutes, with language-neutral digits. */
+fun formatElapsed(ms: Long): String {
+    if (ms <= 0) return "0m"
+    val min = (ms - 1) / 60_000 + 1
+    return if (min < 60) "${min}m" else "${min / 60}h ${min % 60}m"
+}

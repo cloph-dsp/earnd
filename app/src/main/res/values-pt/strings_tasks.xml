@@ -61,6 +61,7 @@
     <string name="stats_section_done_per_day">Feito por dia</string>
     <string name="stats_row_check_ins">Registos</string>
     <string name="stats_row_tasks">Tarefas</string>
+    <string name="stats_row_answered">Respostas</string>
     <string name="stats_screen_time_row">Tempo de ecrã</string>
     <string name="stats_day_desc">%1$s: ganho %2$d min, gasto %3$d min</string>
     <string name="stats_screen_time_today">Tempo de ecrã hoje</string>

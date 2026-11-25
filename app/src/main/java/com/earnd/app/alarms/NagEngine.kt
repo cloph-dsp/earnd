@@ -95,6 +95,7 @@ class NagEngine(
         val day = clock.localDate(now).toEpochDay().toString()
         if (settings.rawGet("nag.day") != day) settings.rawPut("nag.day", day)
         settings.rawPut("nag.count", count.toString())
+        NagHistory.recordPrompt(now, 1)
     }
 
     /** Full-screen alarm snooze. Returns the new nag time, or null if the snooze limit is reached. */

@@ -143,6 +143,11 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
             Stat(stringResource(R.string.habits_stat_best), best, Modifier.weight(1f))
             Stat(stringResource(R.string.habits_stat_days_done), perfect, Modifier.weight(1f))
         }
+        Text(
+            stringResource(R.string.habits_horizon_note),
+            style = MaterialTheme.typography.bodySmall, color = Earnd.palette.muted,
+            modifier = Modifier.padding(top = 8.dp),
+        )
         if (h.archived) Text(stringResource(R.string.habits_archived_note), style = MaterialTheme.typography.bodySmall)
         if (!h.archived && com.earnd.app.domain.TimedHabit.isTimed(h)) {
             val st by androidx.compose.runtime.remember { sl.settings.settings }.collectAsState(initial = com.earnd.app.data.Settings())

@@ -53,6 +53,7 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.runtime.LaunchedEffect
 import com.earnd.app.data.entity.OwnerKind
 import com.earnd.app.domain.TaskBucket
+import com.earnd.app.ui.common.formatElapsed
 import com.earnd.app.ui.common.formatMinuteOfDay
 import com.earnd.app.ui.tasks.TaskRow
 import com.earnd.app.ui.theme.Checkbox
@@ -109,6 +110,8 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
     var askDuration by remember { mutableStateOf<HabitEntity?>(null) }
     val byHabit = checkIns.groupBy { it.habitId }
+    val visibleIds = habits.map { it.habit.id }.toSet()
+    val lastAt = checkIns.filter { it.habitId in visibleIds }.maxOfOrNull { it.at }
     val doneOf = { hd: HabitDay -> hd.complete }
     val minuteNow = sl.clock.minuteOfDay(sl.clock.now())
     val currentSeg = if (settings.segmentMode) Segments.current(minuteNow, settings) else null
@@ -125,8 +128,9 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val overdue by remember { sl.taskService.observeBucket(TaskBucket.OVERDUE) }.collectAsState(initial = emptyList())
     val dueToday by remember { sl.taskService.observeBucket(TaskBucket.TODAY) }.collectAsState(initial = emptyList())
     val tasksToday = overdue + dueToday
-    var clock by remember { mutableStateOf(formatMinuteOfDay(minuteNow)) }
-    LaunchedEffect(Unit) { while (true) { clock = formatMinuteOfDay(sl.clock.minuteOfDay(sl.clock.now())); delay(15_000) } }
+    var nowMs by remember { mutableStateOf(sl.clock.now()) }
+    val clock = formatMinuteOfDay(sl.clock.minuteOfDay(nowMs))
+    LaunchedEffect(Unit) { while (true) { nowMs = sl.clock.now(); delay(15_000) } }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val doCheck: (HabitDay) -> Unit = { hd ->
@@ -161,6 +165,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
             item {
+                val p = Earnd.palette
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Wordmark()
                     Spacer(Modifier.width(10.dp))
@@ -176,6 +181,9 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                     }
                     Spacer(Modifier.width(8.dp))
                     AddButton(onClick = onAddHabit, description = stringResource(R.string.home_add_habit))
+                }
+                lastAt?.let { at ->
+                    Num(stringResource(R.string.home_since_check_in, formatElapsed(nowMs - at)), color = p.muted)
                 }
                 HealthBanner(onOpenPermissions)
                 TimeBankCard(
