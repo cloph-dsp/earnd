@@ -112,7 +112,7 @@ class FocusManagerTest {
 
     private val habits = object : HabitService(habitDao, FakeCheckInDao(), bank, clock, ChangeBus(), settings) {
         val calls = mutableListOf<Pair<Long, Int?>>()
-        override suspend fun checkInWithBonus(habitId: Long, quantity: Double?, photoPath: String?, creditBank: Boolean, rewardOverride: Int?): CheckInResult {
+        override suspend fun checkInWithBonus(habitId: Long, quantity: Double?, photoPath: String?, creditBank: Boolean, rewardOverride: Int?, onDay: java.time.LocalDate?): CheckInResult {
             calls += habitId to rewardOverride
             return CheckInResult(
                 CheckInEntity(habitId = habitId, epochDay = 0, at = clock.now(), minutesEarned = rewardOverride ?: 0),

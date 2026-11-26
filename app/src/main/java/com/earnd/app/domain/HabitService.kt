@@ -118,35 +118,43 @@ open class HabitService(
     }
 
     /**
-     * Records a check-in for today. Counted habits take unlimited check-ins (`timesPerDay` is the target; overflow earns at most +50% of the day's reward); quantity
+     * Records a check-in for today, or backfills [onDay] (past only). Backfilling marks that day
+     * done but pays into the current balance, so a forgotten evening can still be credited in the morning.
+     * Counted habits take unlimited check-ins (`timesPerDay` is the target; overflow earns at most +50% of the day's reward); quantity
      * habits add up amounts and earn once on reaching the target. In "only when everything is
      * done" reward mode single check-ins earn nothing; the day's lump sum is credited once all
      * scheduled habits are complete.
      */
-    suspend fun checkIn(habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true): CheckInEntity =
-        checkInWithBonus(habitId, quantity, photoPath, creditBank).checkIn
+    suspend fun checkIn(
+        habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true,
+        onDay: java.time.LocalDate? = null,
+    ): CheckInEntity =
+        checkInWithBonus(habitId, quantity, photoPath, creditBank, onDay = onDay).checkIn
 
     /**
      * As [checkIn]; [rewardOverride] replaces the habit reward (focus duration option, stopwatch).
      * The first earning check-in after a lapse also earns a COMEBACK ledger entry on the same source,
-     * so undoing the check-in reverses both.
+     * so undoing the check-in reverses both. A backfill through [onDay] never pays a comeback and
+     * pays at most once per day, while its minutes still land in today's balance.
      */
     open suspend fun checkInWithBonus(
         habitId: Long, quantity: Double? = null, photoPath: String? = null, creditBank: Boolean = true,
-        rewardOverride: Int? = null,
+        rewardOverride: Int? = null, onDay: java.time.LocalDate? = null,
     ): CheckInResult = tx.run {
         val h = requireNotNull(habits.get(habitId)) { "No habit $habitId" }
         val s = settingsNow()
         val now = clock.now()
-        val day = clock.localDate(now)
+        val day = onDay ?: clock.localDate(now)
+        require(!day.isAfter(clock.today())) { "Cannot check in for a future day" }
         val before = checkIns.forHabitDay(habitId, day.toEpochDay())
         val draft = CheckInEntity(habitId = habitId, epochDay = day.toEpochDay(), at = now, quantity = quantity,
             photoPath = photoPath, minutesEarned = 0)
         val perCheckIn = creditBank && s.rewardMode == RewardMode.PER_CHECKIN &&
             HabitProgress.earns(h, before, before + draft)
         val base = (rewardOverride ?: HabitProgress.rewardMinutes(h, s)).coerceAtLeast(0)
-        val minutes = if (!perCheckIn) 0 else if (HabitProgress.isQuantity(h)) base else HabitProgress.checkInReward(h, before, base)
-        val bonus = if (minutes > 0 && s.comebackBonus) {
+        val alreadyEarned = onDay != null && before.any { it.minutesEarned > 0 }
+        val minutes = if (alreadyEarned) 0 else if (!perCheckIn) 0 else if (HabitProgress.isQuantity(h)) base else HabitProgress.checkInReward(h, before, base)
+        val bonus = if (onDay == null && minutes > 0 && s.comebackBonus) {
             val past = checkIns.forHabitBetween(habitId, day.minusDays(Comeback.LOOKBACK_DAYS).toEpochDay(), day.toEpochDay())
             Comeback.bonus(minutes, Comeback.missedOccasions(h, day, activeDays(h, past), skip = { s.onVacation(it.toEpochDay()) }))
         } else 0

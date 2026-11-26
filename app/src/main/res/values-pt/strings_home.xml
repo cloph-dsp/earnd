@@ -93,4 +93,7 @@
     <string name="health_alarm_muted_title">O volume do alarme está a zero</string>
     <string name="health_alarm_muted_body">Os alarmes vão tocar sem som. Toca para abrir as definições de som.</string>
     <string name="home_off_day">Folga</string>
+    <string name="home_day_today">Hoje</string>
+    <string name="home_day_yesterday">Ontem</string>
+    <string name="home_backfill_photo_unavailable">Registo com foto não está disponível para ontem.</string>
 </resources>

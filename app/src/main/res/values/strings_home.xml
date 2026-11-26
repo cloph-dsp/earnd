@@ -91,4 +91,7 @@
     <string name="health_alarm_muted_title">Alarm volume is at zero</string>
     <string name="health_alarm_muted_body">Alarms will ring silently. Tap to open the sound settings.</string>
     <string name="home_off_day">Off day</string>
+    <string name="home_day_today">Today</string>
+    <string name="home_day_yesterday">Yesterday</string>
+    <string name="home_backfill_photo_unavailable">Photo check-in isn\'t available for yesterday.</string>
 </resources>
