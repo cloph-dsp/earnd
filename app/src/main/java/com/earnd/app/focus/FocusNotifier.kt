@@ -79,4 +79,23 @@ object FocusNotifier {
             context.getSystemService(NotificationManager::class.java)?.notify(ID_DONE, n)
         }
     }
+
+    /** Session ended but the check-in save failed: same channel/id so it replaces the success notice. */
+    @SuppressLint("MissingPermission")
+    fun showFailed(context: Context, habitName: String, minutes: Int) {
+        ensure(context)
+        runCatching {
+            val n = Notification.Builder(context, CH_DONE)
+                .setSmallIcon(R.drawable.alarms_ic_notification)
+                .setColor(context.getColor(R.color.alarms_accent))
+                .setContentTitle(context.getString(R.string.focus_done_title, habitName, minutes))
+                .setContentText(context.getString(R.string.focus_done_failed))
+                .setAutoCancel(true)
+                .setContentIntent(PendingIntent.getActivity(context, 2,
+                    context.packageManager.getLaunchIntentForPackage(context.packageName),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                .build()
+            context.getSystemService(NotificationManager::class.java)?.notify(ID_DONE, n)
+        }
+    }
 }

@@ -117,6 +117,14 @@ open class HabitService(
         return hs.filter { HabitSchedule.isDueOn(it, day, week[it.id] ?: 0) }.map { dayOf(it, byHabit[it.id].orEmpty()) }
     }
 
+    /** Progress of every habit scheduled on [day]; follows check-ins and habit edits. */
+    fun observeDay(day: LocalDate): Flow<List<HabitDay>> =
+        combine(habits.observeActive(), checkIns.observeForDay(day.toEpochDay())) { hs, cs ->
+            val byHabit = cs.groupBy { it.habitId }
+            val week = weekDoneBefore(hs, day)
+            hs.filter { HabitSchedule.isDueOn(it, day, week[it.id] ?: 0) }.map { dayOf(it, byHabit[it.id].orEmpty()) }
+        }
+
     /**
      * Records a check-in for today, or backfills [onDay] (past only). Backfilling marks that day
      * done but pays into the current balance, so a forgotten evening can still be credited in the morning.
@@ -146,6 +154,7 @@ open class HabitService(
         val now = clock.now()
         val day = onDay ?: clock.localDate(now)
         require(!day.isAfter(clock.today())) { "Cannot check in for a future day" }
+        val wasDone = creditBank && s.rewardMode == RewardMode.ALL_DONE && allDone(day)
         val before = checkIns.forHabitDay(habitId, day.toEpochDay())
         val draft = CheckInEntity(habitId = habitId, epochDay = day.toEpochDay(), at = now, quantity = quantity,
             photoPath = photoPath, minutesEarned = 0)
@@ -162,7 +171,8 @@ open class HabitService(
         val saved = c.copy(id = checkIns.insert(c))
         if (minutes > 0) bank.earn(minutes, LedgerKind.EARN_HABIT, OwnerKind.HABIT, saved.id)
         if (bonus > 0) bank.earn(bonus, LedgerKind.COMEBACK, OwnerKind.HABIT, saved.id)
-        if (creditBank && s.rewardMode == RewardMode.ALL_DONE) settleDayBonus(day, s)
+        if (creditBank && s.rewardMode == RewardMode.ALL_DONE)
+            settleDayBonus(day, s, allowPayout = day == clock.today() || !wasDone)
         bus.emit(ChangeKind.CHECKINS)
         CheckInResult(saved, bonus)
     }
@@ -172,18 +182,17 @@ open class HabitService(
         val c = checkIns.get(checkInId) ?: return@run null
         checkIns.deleteById(checkInId)
         bank.reverse(OwnerKind.HABIT, checkInId)
-        settleDayBonus(LocalDate.ofEpochDay(c.epochDay), settingsNow())
+        settleDayBonus(LocalDate.ofEpochDay(c.epochDay), settingsNow(), allowPayout = false)
         bus.emit(ChangeKind.CHECKINS)
         c.photoPath
     }
 
     /** Credits or takes back the "all done" lump sum so it matches the day's state. */
-    private suspend fun settleDayBonus(day: LocalDate, s: Settings) {
-        if (day != clock.today()) return
+    private suspend fun settleDayBonus(day: LocalDate, s: Settings, allowPayout: Boolean = day == clock.today()) {
         val source = dayBonusSource(day)
         val credited = bank.netFor(OwnerKind.HABIT, source) > 0
         val done = allDone(day)
-        if (done && !credited && s.rewardMode == RewardMode.ALL_DONE) {
+        if (done && !credited && s.rewardMode == RewardMode.ALL_DONE && allowPayout) {
             val total = daySummary(day).sumOf { HabitProgress.dayValue(it.habit, s) }
             if (total > 0) bank.earn(total, LedgerKind.EARN_HABIT, OwnerKind.HABIT, source)
         } else if (!done && credited) {

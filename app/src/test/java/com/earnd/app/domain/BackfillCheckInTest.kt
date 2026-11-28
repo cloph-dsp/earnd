@@ -9,6 +9,9 @@ import com.earnd.app.data.dao.CheckInDao
 import com.earnd.app.data.dao.HabitDao
 import com.earnd.app.data.entity.CheckInEntity
 import com.earnd.app.data.entity.HabitEntity
+import com.earnd.app.data.entity.LedgerKind
+import com.earnd.app.data.entity.OwnerKind
+import com.earnd.app.data.entity.RewardMode
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
@@ -159,5 +162,76 @@ class BackfillCheckInTest {
 
         assertTrue(e.service.daySummary(yesterday).single { it.habit.id == id }.complete)
         assertEquals(0, e.service.daySummary(e.today).single { it.habit.id == id }.done)
+    }
+
+    @Test fun allDoneBackfillPaysLumpSumToday() = runTest {
+        val e = Env()
+        val yesterday = e.today.minusDays(1)
+        e.settings.update { it.copy(rewardMode = RewardMode.ALL_DONE) }
+        val first = e.habit(reward = 5, anchor = yesterday)
+        val second = e.habit(reward = 7, anchor = yesterday)
+
+        e.service.checkInWithBonus(first, onDay = yesterday)
+        e.service.checkInWithBonus(second, onDay = yesterday)
+
+        val earns = e.ledger.rows.value.filter { it.kind == LedgerKind.EARN_HABIT }
+        assertEquals(1, earns.size)
+        val earn = earns.single()
+        assertEquals(12, earn.minutes)
+        assertEquals(-(yesterday.toEpochDay() + 1), earn.sourceId)
+        assertEquals(e.today.toEpochDay(), earn.periodKey)
+        assertEquals(e.clock.now() + 24 * TimeBank.HOUR, earn.expiresAt)
+        assertTrue(e.checkIns.rows.all { it.minutesEarned == 0 })
+    }
+
+    @Test fun allDoneBackfillPaysOnlyOnce() = runTest {
+        val e = Env()
+        val yesterday = e.today.minusDays(1)
+        e.settings.update { it.copy(rewardMode = RewardMode.ALL_DONE) }
+        val first = e.habit(reward = 5, anchor = yesterday)
+        val second = e.habit(reward = 7, anchor = yesterday)
+
+        e.service.checkInWithBonus(first, onDay = yesterday)
+        e.service.checkInWithBonus(second, onDay = yesterday)
+        e.clock.advanceMin(25 * 60)
+        // An extra row in an already closed day must not re-pay, even from a new day.
+        e.service.checkInWithBonus(first, onDay = yesterday)
+
+        assertEquals(12, e.bank.netFor(OwnerKind.HABIT, -(yesterday.toEpochDay() + 1)))
+        assertEquals(1, e.ledger.rows.value.count { it.kind == LedgerKind.EARN_HABIT })
+    }
+
+    @Test fun undoCompletingBackfillReversesTodaysLumpSum() = runTest {
+        val e = Env()
+        val yesterday = e.today.minusDays(1)
+        e.settings.update { it.copy(rewardMode = RewardMode.ALL_DONE) }
+        val first = e.habit(reward = 5, anchor = yesterday)
+        val second = e.habit(reward = 7, anchor = yesterday)
+
+        e.service.checkInWithBonus(first, onDay = yesterday)
+        val completing = e.service.checkInWithBonus(second, onDay = yesterday)
+        e.service.undoCheckIn(completing.checkIn.id)
+
+        assertEquals(0, e.bank.netFor(OwnerKind.HABIT, -(yesterday.toEpochDay() + 1)))
+        val undo = e.ledger.rows.value.single { it.kind == LedgerKind.UNDO }
+        assertEquals(-12, undo.minutes)
+        assertEquals(e.today.toEpochDay(), undo.periodKey)
+    }
+
+    @Test fun undoExtraBackfillKeepsLumpSum() = runTest {
+        val e = Env()
+        val yesterday = e.today.minusDays(1)
+        e.settings.update { it.copy(rewardMode = RewardMode.ALL_DONE) }
+        val first = e.habit(reward = 5, anchor = yesterday)
+        val second = e.habit(reward = 7, anchor = yesterday)
+
+        e.service.checkInWithBonus(first, onDay = yesterday)
+        e.service.checkInWithBonus(second, onDay = yesterday)
+        val overflow = e.service.checkInWithBonus(first, onDay = yesterday)
+        e.service.undoCheckIn(overflow.checkIn.id)
+
+        assertEquals(12, e.bank.netFor(OwnerKind.HABIT, -(yesterday.toEpochDay() + 1)))
+        assertEquals(1, e.ledger.rows.value.count { it.kind == LedgerKind.EARN_HABIT })
+        assertEquals(0, e.ledger.rows.value.count { it.kind == LedgerKind.UNDO })
     }
 }

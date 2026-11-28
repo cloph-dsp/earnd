@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CameraAlt
-import androidx.compose.material.icons.outlined.Undo
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -105,9 +105,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     LaunchedEffect(todayDay) { if (shownDay != todayDay && shownDay != todayDay - 1) shownDay = todayDay }
     // Only yesterday is backfillable; any other visible day is a stale value after midnight.
     val backfillDay = if (shownDay == todayDay || shownDay != todayDay - 1) null else LocalDate.ofEpochDay(shownDay)
-    val shownHabits by produceState(initialValue = emptyList<HabitDay>(), key1 = shownDay) {
-        value = sl.habitService.daySummary(LocalDate.ofEpochDay(shownDay))
-    }
+    val shownHabits by remember(shownDay) { sl.habitService.observeDay(LocalDate.ofEpochDay(shownDay)) }.collectAsState(initial = emptyList())
     val loadedHabits by remember { sl.habitService.observeToday() }.collectAsState(initial = null)
     val habits = loadedHabits.orEmpty()
     val checkIns by remember(shownDay) { sl.db.checkInDao().observeForDay(shownDay) }.collectAsState(initial = emptyList())
@@ -115,12 +113,15 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val session by remember { sl.timeBank.observeActiveSession() }.collectAsState(initial = null)
     val settings by remember { sl.settings.settings }.collectAsState(initial = Settings())
     val snackbar = remember { SnackbarHostState() }
-    var doneOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var doneOpen by rememberSaveable(shownDay) { mutableStateOf(false) }
     var askAmount by remember { mutableStateOf<HabitEntity?>(null) }
     var askDuration by remember { mutableStateOf<HabitEntity?>(null) }
+    // Rapid taps on the same pending habit must not create two check-ins.
+    var checkInFlight by remember { mutableStateOf(false) }
     val byHabit = checkIns.groupBy { it.habitId }
     val visibleIds = habits.map { it.habit.id }.toSet()
-    val lastAt = checkIns.filter { it.habitId in visibleIds }.maxOfOrNull { it.at }
+    // In yesterday mode these check-ins belong to yesterday, not to today's visible habits.
+    val lastAt = if (backfillDay != null) null else checkIns.filter { it.habitId in visibleIds }.maxOfOrNull { it.at }
     val doneOf = { hd: HabitDay -> hd.complete }
     val minuteNow = sl.clock.minuteOfDay(sl.clock.now())
     val currentSeg = if (settings.segmentMode) Segments.current(minuteNow, settings) else null
@@ -137,7 +138,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
     val ignored = nags.filter { it.ownerKind == OwnerKind.HABIT }.associate { it.ownerId to it.nagCount }
     val overdue by remember { sl.taskService.observeBucket(TaskBucket.OVERDUE) }.collectAsState(initial = emptyList())
     val dueToday by remember { sl.taskService.observeBucket(TaskBucket.TODAY) }.collectAsState(initial = emptyList())
-    val tasksToday = overdue + dueToday
+    val tasksToday = if (backfillDay != null) emptyList() else overdue + dueToday
     var nowMs by remember { mutableStateOf(sl.clock.now()) }
     val clock = formatMinuteOfDay(sl.clock.minuteOfDay(nowMs))
     LaunchedEffect(Unit) { while (true) { nowMs = sl.clock.now(); delay(15_000) } }
@@ -155,9 +156,14 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                 else onPhotoCheckIn(h.id)
             }
             h.targetQuantity != null -> askAmount = h
-            else -> launchUi {
-                val r = sl.habitService.checkInWithBonus(h.id, rewardOverride = durations.firstOrNull()?.reward, onDay = backfillDay)
-                com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) }
+            else -> if (!checkInFlight) {
+                checkInFlight = true
+                launchUi {
+                    runCatching { sl.habitService.checkInWithBonus(h.id, rewardOverride = durations.firstOrNull()?.reward, onDay = backfillDay) }
+                        .onSuccess { r -> com.earnd.app.focus.bonusText(r)?.let { snackbar.showSnackbar(it) } }
+                        .onFailure { snackbar.showSnackbar(context.getString(R.string.home_check_in_failed)) }
+                    checkInFlight = false
+                }
             }
         }
     }
@@ -168,7 +174,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
             onOpen = { onOpenHabit(hd.habit.id) },
             onCheck = { doCheck(hd) },
             onStart = {
-                if (backfillDay != null) launchUi { snackbar.showSnackbar(context.getString(R.string.home_backfill_photo_unavailable)) }
+                if (backfillDay != null) launchUi { snackbar.showSnackbar(context.getString(R.string.home_backfill_focus_unavailable)) }
                 else launchUi { com.earnd.app.focus.startFocus(context, hd.habit.id) }
             },
             onUndo = { c -> launchUi { HabitActions.undo(c.id) } },
@@ -181,6 +187,17 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
         snackbarHost = { SnackbarHost(snackbar) },
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).padding(horizontal = 16.dp)) {
+            val byIgnored = compareBy<HabitDay> { it.habit.bonus }.thenByDescending { ignored[it.habit.id] ?: 0 }
+            val pendingHabits = shownHabits.filterNot(doneOf).sortedWith(byIgnored)
+            val doneHabits = shownHabits.filter(doneOf)
+            val pendingTasks = tasksToday.filter { it.completedAt == null }
+            val doneTasks = tasksToday.filter { it.completedAt != null }
+            val nextHabit = pendingHabits.firstOrNull()
+            val nextTask = if (nextHabit == null) pendingTasks.firstOrNull() else null
+            val restHabits = if (nextHabit != null) pendingHabits.drop(1) else pendingHabits
+            val restTasks = if (nextTask != null) pendingTasks.drop(1) else pendingTasks
+            val doneCount = doneHabits.size + doneTasks.size
+
             item {
                 val p = Earnd.palette
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -211,58 +228,7 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                 lastAt?.let { at ->
                     Num(stringResource(R.string.home_since_check_in, formatElapsed(nowMs - at)), color = p.muted)
                 }
-                HealthBanner(onOpenPermissions)
-                TimeBankCard(
-                    state = bank,
-                    onSpend = { m ->
-                        launchUi {
-                            val r = sl.timeBank.spend(m)
-                            if (r is SpendResult.Refused) snackbar.showSnackbar(refuseText(r.reason))
-                        }
-                    },
-                    onStop = { launchUi { sl.timeBank.endSession() } },
-                    onAllDoneUnlock = { launchUi { sl.timeBank.startAllDoneUnlock() } },
-                )
-                if (inBedtime && session == null) {
-                    TextButton(onClick = {
-                        launchUi {
-                            val r = sl.timeBank.startBedtimeGrace()
-                            if (r is SpendResult.Refused) snackbar.showSnackbar(refuseText(r.reason))
-                        }
-                    }) { Text(pluralStringResource(R.plurals.home_bedtime_grace, settings.bedtimeGraceMin, settings.bedtimeGraceMin)) }
-                }
             }
-            if (shownHabits.isNotEmpty()) {
-                item(key = "progress") {
-                    val counted = shownCore.ifEmpty { shownHabits }
-                    val done = counted.count(doneOf)
-                    Column(Modifier.padding(top = 28.dp)) {
-                        // Caption above the bar: below it, the bar read as a second balance bar
-                        // belonging to the card above.
-                        Num(pluralStringResource(R.plurals.home_progress, counted.size, counted.size, done), Modifier.padding(bottom = 6.dp))
-                        com.earnd.app.ui.theme.SegmentBar(done, counted.size)
-                    }
-                }
-            } else if (loadedHabits != null) {
-                item {
-                    Text(
-                        stringResource(R.string.home_nothing_scheduled),
-                        style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary,
-                        modifier = Modifier.padding(vertical = 20.dp),
-                    )
-                }
-            }
-            val byIgnored = compareBy<HabitDay> { it.habit.bonus }.thenByDescending { ignored[it.habit.id] ?: 0 }
-            val pendingHabits = shownHabits.filterNot(doneOf).sortedWith(byIgnored)
-            val doneHabits = shownHabits.filter(doneOf)
-            val pendingTasks = tasksToday.filter { it.completedAt == null }
-            val doneTasks = tasksToday.filter { it.completedAt != null }
-            val nextHabit = pendingHabits.firstOrNull()
-            val nextTask = if (nextHabit == null) pendingTasks.firstOrNull() else null
-            val restHabits = if (nextHabit != null) pendingHabits.drop(1) else pendingHabits
-            val restTasks = if (nextTask != null) pendingTasks.drop(1) else pendingTasks
-            val doneCount = doneHabits.size + doneTasks.size
-
             if (nextHabit != null || nextTask != null) {
                 item(key = "next") {
                     val p = Earnd.palette
@@ -302,6 +268,48 @@ fun TodayScreen(onOpenHabit: (Long) -> Unit, onAddHabit: () -> Unit, onPhotoChec
                             }
                         }
                     }
+                }
+            }
+            item {
+                HealthBanner(onOpenPermissions)
+                TimeBankCard(
+                    state = bank,
+                    onSpend = { m ->
+                        launchUi {
+                            val r = sl.timeBank.spend(m)
+                            if (r is SpendResult.Refused) snackbar.showSnackbar(refuseText(r.reason))
+                        }
+                    },
+                    onStop = { launchUi { sl.timeBank.endSession() } },
+                    onAllDoneUnlock = { launchUi { sl.timeBank.startAllDoneUnlock() } },
+                )
+                if (inBedtime && session == null) {
+                    TextButton(onClick = {
+                        launchUi {
+                            val r = sl.timeBank.startBedtimeGrace()
+                            if (r is SpendResult.Refused) snackbar.showSnackbar(refuseText(r.reason))
+                        }
+                    }) { Text(pluralStringResource(R.plurals.home_bedtime_grace, settings.bedtimeGraceMin, settings.bedtimeGraceMin)) }
+                }
+            }
+            if (shownHabits.isNotEmpty()) {
+                item(key = "progress") {
+                    val counted = shownCore.ifEmpty { shownHabits }
+                    val done = counted.count(doneOf)
+                    Column(Modifier.padding(top = 28.dp)) {
+                        // Caption above the bar: below it, the bar read as a second balance bar
+                        // belonging to the card above.
+                        Num(pluralStringResource(R.plurals.home_progress, counted.size, counted.size, done), Modifier.padding(bottom = 6.dp))
+                        com.earnd.app.ui.theme.SegmentBar(done, counted.size)
+                    }
+                }
+            } else if (loadedHabits != null) {
+                item {
+                    Text(
+                        stringResource(R.string.home_nothing_scheduled),
+                        style = MaterialTheme.typography.bodyMedium, color = Earnd.palette.secondary,
+                        modifier = Modifier.padding(vertical = 20.dp),
+                    )
                 }
             }
             if (settings.segmentMode) {
@@ -424,9 +432,13 @@ private fun HabitRow(hd: HabitDay, last: CheckInEntity?, complete: Boolean, toda
                 IconButton(onClick = onCheck) { Icon(Icons.Outlined.Add, stringResource(R.string.home_check_in_again), tint = p.secondary) }
             complete -> Unit
             com.earnd.app.domain.TimedHabit.isTimed(h) -> com.earnd.app.ui.theme.QuietChip(com.earnd.app.focus.startLabel(h, settings), onStart)
-            HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, stringResource(R.string.home_photo_needed), tint = p.muted, modifier = Modifier.size(16.dp))
-            h.targetQuantity != null -> Icon(Icons.Outlined.Add, stringResource(R.string.home_add_amount), tint = p.muted, modifier = Modifier.size(16.dp))
+            HabitRules.needsPhoto(h, settings) -> Icon(Icons.Outlined.CameraAlt, contentDescription = null, tint = p.muted, modifier = Modifier.size(16.dp))
+            h.targetQuantity != null -> Icon(Icons.Outlined.Add, contentDescription = null, tint = p.muted, modifier = Modifier.size(16.dp))
             else -> Unit
+        }
+        // Partway through a multi-check-in habit: the tick adds one, this takes the last one back.
+        if (!complete && last != null) IconButton(onClick = { onUndo(last) }) {
+            Icon(Icons.AutoMirrored.Outlined.Undo, stringResource(R.string.habits_undo_checkin), tint = p.secondary)
         }
         val rewardMin = HabitRules.rewardMinutes(h, settings)
         if (rewardMin > 0) Box(Modifier.padding(start = 8.dp).widthIn(min = 40.dp), contentAlignment = Alignment.CenterEnd) {

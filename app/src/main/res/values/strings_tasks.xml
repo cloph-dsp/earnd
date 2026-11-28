@@ -69,6 +69,7 @@
     <string name="stats_allow_usage_access">Allow usage access</string>
     <string name="stats_on_screen_so_far">%1$s on screen so far.</string>
     <string name="stats_by_hour">By hour</string>
+    <string name="stats_hour_empty">No screen time recorded by hour yet.</string>
 
     <!-- Apps and sites -->
     <string name="apps_title">Apps and sites</string>

@@ -38,6 +38,7 @@
     <string name="focus_done_checked">Checked in.</string>
     <string name="focus_done_checked_bonus">Checked in. +%1$d min, +%2$d welcome back bonus.</string>
     <string name="focus_done_checked_min">Checked in. +%1$d min.</string>
+    <string name="focus_done_failed">Focus finished but check-in failed — open Earnd to retry.</string>
     <string name="focus_label_practising">Practising · %1$s</string>
     <string name="focus_label_focusing">Focusing · %1$s left</string>
     <string name="focus_start">Start</string>

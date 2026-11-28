@@ -113,20 +113,28 @@ class FocusManager(
         if (dao.finish(s.startedAt, FocusState.DONE) == 0) return false
         cancelAlarm()
         context?.let { FocusNotifier.clearOngoing(it) }
-        if (s.taskId != null) {
+        val minutes = (s.durationMs / 60_000L).toInt()
+        val ctx = context
+        // DONE is already claimed; a failed save must not be reported as a check-in.
+        val ok = if (s.taskId != null) {
             val t = taskDao.get(s.taskId)
-            val earned = (s.rewardMinutes ?: t?.rewardMinutes?.coerceAtLeast(0))?.takeIf { it > 0 }
-            runCatching { tasks.focusEarn(s.taskId, s.rewardMinutes ?: t?.rewardMinutes?.coerceAtLeast(0) ?: 0) }
-            context?.let { FocusChime.play(it) }
-            context?.let { FocusNotifier.showDone(it, t?.title ?: it.getString(R.string.focus_fallback_name), (s.durationMs / 60_000L).toInt(), earned, 0) }
+            val reward = s.rewardMinutes ?: t?.rewardMinutes?.coerceAtLeast(0) ?: 0
+            val name = t?.title ?: ctx?.getString(R.string.focus_fallback_name) ?: ""
+            val done = runCatching { tasks.focusEarn(s.taskId, reward) }.isSuccess
+            if (done) ctx?.let { FocusNotifier.showDone(it, name, minutes, reward.takeIf { r -> r > 0 }, 0) }
+            else ctx?.let { FocusNotifier.showFailed(it, name, minutes) }
+            done
         } else {
             val h = habitDao.get(s.habitId)
+            val name = h?.name ?: ctx?.getString(R.string.focus_fallback_name) ?: ""
             val r = if (h != null && !h.archived) runCatching { habits.checkInWithBonus(h.id, rewardOverride = s.rewardMinutes) }.getOrNull() else null
-            context?.let { FocusChime.play(it) }
-            context?.let { FocusNotifier.showDone(it, h?.name ?: it.getString(R.string.focus_fallback_name), (s.durationMs / 60_000L).toInt(), r?.checkIn?.minutesEarned, r?.bonus ?: 0) }
+            if (r != null) ctx?.let { FocusNotifier.showDone(it, name, minutes, r.checkIn.minutesEarned, r.bonus) }
+            else ctx?.let { FocusNotifier.showFailed(it, name, minutes) }
+            r != null
         }
+        if (ok) ctx?.let { FocusChime.play(it) }
         bus.emit(ChangeKind.FOCUS)
-        return true
+        return ok
     }
 
     /** Ends the running stopwatch session (no penalty) and credits it if it reached the minimum. */
@@ -139,7 +147,9 @@ class FocusManager(
         val reward = h?.let { TimedHabit.stopwatchReward(it, elapsed) }
         val r = if (h != null && reward != null) runCatching { habits.checkInWithBonus(h.id, rewardOverride = reward) }.getOrNull() else null
         val minutes = (elapsed / 60_000L).toInt()
-        if (h != null && r != null) context?.let { FocusNotifier.showDone(it, h.name, minutes, r.checkIn.minutesEarned, r.bonus) }
+        val ctx = context
+        if (r != null) ctx?.let { FocusNotifier.showDone(it, h?.name ?: it.getString(R.string.focus_fallback_name), minutes, r.checkIn.minutesEarned, r.bonus) }
+        else ctx?.let { FocusNotifier.showFailed(it, h?.name ?: it.getString(R.string.focus_fallback_name), minutes) }
         bus.emit(ChangeKind.FOCUS)
         return StopwatchResult(minutes, r?.checkIn?.minutesEarned, r?.bonus ?: 0)
     }

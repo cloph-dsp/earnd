@@ -188,7 +188,7 @@ fun HabitDetailScreen(habitId: Long, onBack: () -> Unit, onEdit: () -> Unit) {
                     )
                 }
                 if (c.minutesEarned > 0) Num("+${c.minutesEarned}", Modifier.padding(start = 10.dp), color = p.amber, style = NumberStyle.copy(fontSize = 14.sp))
-                if (c.photoPath != null) Icon(Icons.Outlined.PhotoCamera, stringResource(R.string.habits_photo), Modifier.padding(start = 8.dp).size(16.dp), tint = p.muted)
+                if (c.photoPath != null) Icon(Icons.Outlined.PhotoCamera, contentDescription = null, Modifier.padding(start = 8.dp).size(16.dp), tint = p.muted)
                 IconButton(onClick = { launchUi { HabitActions.undo(c.id); reload++ } }) {
                     Icon(Icons.AutoMirrored.Outlined.Undo, stringResource(R.string.habits_undo_checkin), tint = p.secondary)
                 }

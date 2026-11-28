@@ -20,14 +20,14 @@
     <string name="home_bank_until">Até %1$s</string>
     <string name="home_bank_unused_back">Os minutos inteiros não usados voltam ao banco.</string>
     <string name="home_bank_lock_now">Bloquear agora</string>
-    <string name="home_bank_locked_balance">BLOQUEADAS · SALDO</string>
+    <string name="home_bank_locked_balance">SALDO</string>
     <string name="home_bank_of_scale">de %1$d min</string>
     <string name="home_bank_expire_at">%1$d min expira %2$s</string>
     <string name="home_bank_all_done">Tudo feito por hoje.</string>
     <string name="home_bank_unlock_today">Desbloquear por hoje</string>
     <string name="home_bank_hard_mode">Modo rígido: as apps abrem quando os hábitos de hoje estiverem feitos.</string>
     <string name="home_bank_earn_hint">Registar um hábito ou concluir uma tarefa para ganhar minutos.</string>
-    <string name="home_bank_minutes_to_open">Minutos para abrir</string>
+    <string name="home_bank_minutes_to_open">Minutos disponíveis</string>
     <string name="home_bank_pick_all">Tudo</string>
     <string name="home_bank_pick_max">Máx. %1$d</string>
     <string name="home_bank_unlock_until">Desbloquear %1$s · até %2$s</string>
@@ -61,8 +61,6 @@
     <string name="home_expand_done">Expandir feitos</string>
     <string name="home_comeback_label">%1$s boas-vindas</string>
     <string name="home_check_in_again">Registar novamente</string>
-    <string name="home_photo_needed">Foto necessária</string>
-    <string name="home_add_amount">Adicionar quantidade</string>
     <string name="home_duration_prompt">Quanto tempo fizeste?</string>
     <string name="home_amount_prompt">Quanto? (%1$s)</string>
     <string name="home_amount_default_unit">quantidade</string>
@@ -96,4 +94,6 @@
     <string name="home_day_today">Hoje</string>
     <string name="home_day_yesterday">Ontem</string>
     <string name="home_backfill_photo_unavailable">Registo com foto não está disponível para ontem.</string>
+    <string name="home_backfill_focus_unavailable">Sessões de foco não estão disponíveis para ontem.</string>
+    <string name="home_check_in_failed">Não foi possível guardar o registo. Tenta outra vez.</string>
 </resources>

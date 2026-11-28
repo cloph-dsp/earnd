@@ -69,6 +69,7 @@
     <string name="stats_allow_usage_access">Permitir acesso ao uso</string>
     <string name="stats_on_screen_so_far">%1$s em ecrã até agora.</string>
     <string name="stats_by_hour">Por hora</string>
+    <string name="stats_hour_empty">Ainda não há tempo de ecrã registado por hora.</string>
 
     <!-- Apps and sites -->
     <string name="apps_title">Apps e sites</string>

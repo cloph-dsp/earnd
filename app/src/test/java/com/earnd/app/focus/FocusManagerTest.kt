@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -112,8 +114,10 @@ class FocusManagerTest {
 
     private val habits = object : HabitService(habitDao, FakeCheckInDao(), bank, clock, ChangeBus(), settings) {
         val calls = mutableListOf<Pair<Long, Int?>>()
+        var throwOnCheckIn = false
         override suspend fun checkInWithBonus(habitId: Long, quantity: Double?, photoPath: String?, creditBank: Boolean, rewardOverride: Int?, onDay: java.time.LocalDate?): CheckInResult {
             calls += habitId to rewardOverride
+            if (throwOnCheckIn) throw IllegalStateException("check-in save failed")
             return CheckInResult(
                 CheckInEntity(habitId = habitId, epochDay = 0, at = clock.now(), minutesEarned = rewardOverride ?: 0),
                 0,
@@ -183,5 +187,29 @@ class FocusManagerTest {
         val finished = fm.completeIfDue()
         assertTrue(finished)
         assertEquals(listOf(hid to (focusDao.get()?.rewardMinutes)), habits.calls.map { it.first to it.second })
+    }
+
+    @Test
+    fun completeIfDueReportsFailureWhenCheckInThrows() = runTest {
+        val h = HabitEntity(name = "Read", iconKey = "book", colorArgb = 0, anchorEpochDay = clock.today().toEpochDay(), rewardMinutes = 5, createdAt = clock.now(), focusMinutes = 10)
+        val hid = habitDao.upsert(h)
+        fm.start(hid, 10)
+        clock.nowMs += 10 * 60_000L
+        habits.throwOnCheckIn = true
+        assertFalse(fm.completeIfDue())
+        assertEquals(FocusState.DONE, focusDao.get()!!.state)
+    }
+
+    @Test
+    fun finishStopwatchDoesNotClaimCreditWhenCheckInThrows() = runTest {
+        val h = HabitEntity(name = "Practice", iconKey = "book", colorArgb = 0, anchorEpochDay = clock.today().toEpochDay(), createdAt = clock.now(), stopwatch = true, stopwatchMinMin = 5, stopwatchRate = 0.5)
+        val hid = habitDao.upsert(h)
+        fm.start(hid)
+        clock.nowMs += 10 * 60_000L
+        habits.throwOnCheckIn = true
+        val result = fm.finishStopwatch()
+        assertNotNull(result)
+        assertNull(result!!.earned)
+        assertEquals(0, result.bonus)
     }
 }

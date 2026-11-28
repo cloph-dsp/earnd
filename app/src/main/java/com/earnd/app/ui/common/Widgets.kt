@@ -44,6 +44,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
@@ -176,19 +180,29 @@ fun NumberField(label: String, value: Int?, onChange: (Int?) -> Unit, modifier: 
 @Composable
 fun TimeField(label: String, minuteOfDay: Int?, onChange: (Int?) -> Unit, modifier: Modifier = Modifier) {
     var open by remember { mutableStateOf(false) }
+    val value = minuteOfDay?.let(::formatMinuteOfDay)
     Box(modifier) {
         OutlinedTextField(
-            value = minuteOfDay?.let(::formatMinuteOfDay) ?: "",
+            value = value ?: "",
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
             placeholder = { Text(timeHint()) },
             trailingIcon = { Icon(Icons.Outlined.Schedule, null, tint = Earnd.palette.muted) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            // TalkBack reads the overlay instead: hide this read-only field as a second target.
+            modifier = Modifier.fillMaxWidth().clearAndSetSemantics {},
         )
         // A readOnly field still takes taps for the cursor, so an overlay is what actually opens the picker.
-        Box(Modifier.matchParentSize().clickable { open = true })
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable { open = true }
+                .semantics {
+                    role = Role.Button
+                    contentDescription = if (value != null) "$label, $value" else label
+                }
+        )
     }
     if (open) {
         val start = minuteOfDay ?: DEFAULT_TIME_MIN
@@ -224,18 +238,28 @@ fun TimeField(label: String, minuteOfDay: Int?, onChange: (Int?) -> Unit, modifi
 @Composable
 fun DateField(label: String, epochDay: Long?, onChange: (Long?) -> Unit, modifier: Modifier = Modifier, placeholder: String? = null) {
     var open by remember { mutableStateOf(false) }
+    val value = epochDay?.let(::formatDay)
     Box(modifier) {
         OutlinedTextField(
-            value = epochDay?.let(::formatDay) ?: "",
+            value = value ?: "",
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
             placeholder = placeholder?.let { { Text(it) } },
             trailingIcon = { Icon(Icons.Outlined.DateRange, null, tint = Earnd.palette.muted) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            // TalkBack reads the overlay instead: hide this read-only field as a second target.
+            modifier = Modifier.fillMaxWidth().clearAndSetSemantics {},
         )
-        Box(Modifier.matchParentSize().clickable { open = true })
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable { open = true }
+                .semantics {
+                    role = Role.Button
+                    contentDescription = if (value != null) "$label, $value" else label
+                }
+        )
     }
     if (open) {
         val day = epochDay ?: ServiceLocator.clock.today().toEpochDay()

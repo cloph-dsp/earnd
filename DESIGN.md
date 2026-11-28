@@ -18,7 +18,7 @@ magenta gradients, glows).
 - Text #E9E4DA, secondary #A39C8F, muted #8F887B, done #6F695F, edge #7A7368 (borders on quiet controls).
 - Amber #FFB000 = earned time, rewards, habit checkboxes, progress. Large filled amber areas use
   amberFill #E9A412 (slightly less saturated); amber stays on numerals and text.
-- Signal red #FF4A3D = locked state, the one primary action per screen, "ignored N×". Nothing else.
+- Signal red #FF4A3D = locked state, debt and permission failures, "ignored N×" only. The one primary action per screen uses amberFill #E9A412 with onAmber content when it earns time; no red in neutral states, and amber never means "selected".
 - Selection (chips, weekday pickers, unlock amounts) is neutral: raised #1D1B18 fill plus a 1dp text
   border when chosen, a 1dp edge border when not. Amber never means "selected".
 - Interactive state is neutral too: switches, nav selection, tab indicators, sliders and text-field

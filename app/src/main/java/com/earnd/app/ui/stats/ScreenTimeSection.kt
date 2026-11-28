@@ -91,7 +91,11 @@ fun ScreenTimeSection() {
         }
     }
     Text(stringResource(R.string.stats_by_hour), style = MaterialTheme.typography.labelSmall, color = p.secondary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
-    HourBars(s.perHour)
+    if (s.perHour.all { it == 0L }) {
+        Text(stringResource(R.string.stats_hour_empty), style = MaterialTheme.typography.bodySmall, color = p.muted)
+    } else {
+        HourBars(s.perHour)
+    }
 }
 
 @Composable

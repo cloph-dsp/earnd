@@ -1,17 +1,20 @@
 package com.earnd.app.ui.home
 
 import com.earnd.app.domain.UnlockCap
+import com.earnd.app.domain.DateTimeFormats
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import com.earnd.app.ui.theme.Button
 import androidx.compose.foundation.border
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.material3.ButtonDefaults
+import com.earnd.app.ui.theme.Chamfer
 import com.earnd.app.ui.theme.ChamferPanel
 import com.earnd.app.ui.theme.Earnd
 import com.earnd.app.ui.theme.NumberStyle
@@ -67,6 +70,15 @@ private const val DRAIN_REFERENCE_MIN = 60
 
 private val SPEND_CHOICES = listOf(5, 10, 15, 30, 60)
 
+/** Weekday + time: a bare time reads as past when the deadline falls tomorrow. */
+private fun formatWeekdayTime(epochMillis: Long): String {
+    val zone = java.time.ZoneId.systemDefault()
+    val weekday = java.time.Instant.ofEpochMilli(epochMillis)
+        .atZone(zone)
+        .format(java.time.format.DateTimeFormatter.ofPattern("EEE", DateTimeFormats.current.locale))
+    return "$weekday ${UiFormats.value.formatTime(epochMillis, zone)}"
+}
+
 @Composable
 fun TimeBankCard(
     state: BankState,
@@ -116,9 +128,7 @@ fun TimeBankCard(
                         stringResource(
                             R.string.home_bank_expire_at, state.minutesExpiringNext,
                             // Weekday included: the rolling window can expire tomorrow, and a bare time reads as past.
-                            java.time.Instant.ofEpochMilli(state.nextExpiryAt)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .format(java.time.format.DateTimeFormatter.ofPattern("EEE HH:mm", java.util.Locale.getDefault())),
+                            formatWeekdayTime(state.nextExpiryAt),
                         ),
                         color = p.secondary,
                     )
@@ -130,7 +140,7 @@ fun TimeBankCard(
                     state.allDone && state.allDoneUnlock -> {
                         Text(stringResource(R.string.home_bank_all_done), style = MaterialTheme.typography.bodyMedium, color = p.secondary)
                         Spacer(Modifier.height(4.dp))
-                        Button(onClick = onAllDoneUnlock, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.home_bank_unlock_today)) }
+                        AmberPrimaryButton(onClick = onAllDoneUnlock, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.home_bank_unlock_today)) }
                     }
                     state.hardMode -> Text(
                         stringResource(R.string.home_bank_hard_mode),
@@ -144,6 +154,28 @@ fun TimeBankCard(
     }
 }
 
+/** Filled amber "earn time" primary, chamfered like other filled buttons; local so the shared theme stays neutral. */
+@Composable
+private fun AmberPrimaryButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val p = Earnd.palette
+    androidx.compose.material3.Button(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 52.dp),
+        enabled = enabled,
+        shape = Chamfer,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = p.amberFill,
+            contentColor = p.onAmber,
+        ),
+        content = content,
+    )
+}
+
 @Composable
 private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
     val p = Earnd.palette
@@ -151,8 +183,8 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
     // One option is no choice: the unlock button already states the amount, and a single
     // full-width chip reads as a focused input field rather than a picker.
     if (options.size == 1) {
-        Button(onClick = { onSpend(options.first()) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-            Text(stringResource(R.string.home_bank_unlock_until, formatMinutes(options.first()), UiFormats.value.formatTime(System.currentTimeMillis() + options.first() * 60_000L, java.time.ZoneId.systemDefault())), style = MaterialTheme.typography.labelLarge)
+        AmberPrimaryButton(onClick = { onSpend(options.first()) }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_bank_unlock_until, formatMinutes(options.first()), formatWeekdayTime(System.currentTimeMillis() + options.first() * 60_000L)), style = MaterialTheme.typography.labelLarge)
         }
         return
     }
@@ -174,7 +206,7 @@ private fun SpendPicker(balance: Int, cap: Int?, onSpend: (Int) -> Unit) {
             }
         }
     }
-    Button(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-        Text(stringResource(R.string.home_bank_unlock_until, formatMinutes(pick), UiFormats.value.formatTime(now + pick * 60_000L, java.time.ZoneId.systemDefault())), style = MaterialTheme.typography.labelLarge)
+    AmberPrimaryButton(onClick = { onSpend(pick) }, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.home_bank_unlock_until, formatMinutes(pick), formatWeekdayTime(now + pick * 60_000L)), style = MaterialTheme.typography.labelLarge)
     }
 }

@@ -38,6 +38,7 @@
     <string name="focus_done_checked">Registado.</string>
     <string name="focus_done_checked_bonus">Registado. +%1$d min, +%2$d de bónus de boas-vindas.</string>
     <string name="focus_done_checked_min">Registado. +%1$d min.</string>
+    <string name="focus_done_failed">Foco terminado mas o registo falhou — abre o Earnd para repetir.</string>
     <string name="focus_label_practising">Prática · %1$s</string>
     <string name="focus_label_focusing">Foco · %1$s restantes</string>
     <string name="focus_start">Iniciar</string>

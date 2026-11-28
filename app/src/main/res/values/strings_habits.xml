@@ -50,7 +50,6 @@
     <string name="habits_last_year_only">Only the last year is shown here.</string>
     <string name="habits_recent_checkins">Recent check-ins</string>
     <string name="habits_no_checkins">No check-ins yet.</string>
-    <string name="habits_photo">Photo</string>
     <string name="habits_undo_checkin">Undo check-in</string>
 
     <!-- Day segments -->

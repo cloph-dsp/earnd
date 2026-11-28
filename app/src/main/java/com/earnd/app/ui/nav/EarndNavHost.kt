@@ -82,7 +82,7 @@ fun EarndNavHost(nav: NavHostController, startDestination: String) {
                                 }
                             },
                             icon = { Icon(t.icon, contentDescription = null) },
-                            label = { Text(stringResource(t.label), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
+                            label = { Text(stringResource(t.label), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 13.sp)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Earnd.palette.text, selectedTextColor = Earnd.palette.text,
                                 indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
